@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:jr="http://openrosa.org/javarosa">
+	<h:head>
+		<h:title>Applab Formxs</h:title>
+		<model>
+			<instance>
+				<simple-form xmlns="simple-form">
+					<survey_id>1</survey_id>
+					<start/>
+					<end/>
+					<today/>
+					<handset_id/>
+					<handset_submit_time/>
+					<interviewer_id/>
+					<interviewer_name/>
+					<q1/>
+					<q2/>
+					<q3/>
+				</simple-form>
+			</instance>
+			<bind nodeset="/simple-form/start" type="dateTime" jr:preload="timestamp" jr:preloadParams="start"/>
+			<bind nodeset="/simple-form/end" type="dateTime" jr:preload="timestamp" jr:preloadParams="end"/>
+			<bind nodeset="/simple-form/handset_submit_time" type="date" jr:preload="date" jr:preloadParams="today" />
+			<bind nodeset="/simple-form/handset_id" type="string" jr:preload="property" jr:preloadParams="deviceid"/>
+			<bind nodeset="/simple-form/q1" type="string" require="true()"/>
+			<bind nodeset="/simple-form/interviewer_id" type="string" require="true()"/>
+			<bind nodeset="/simple-form/interviewer_name" type="string" require="true()"/>
+			<bind nodeset="/simple-form/q2" type="int" required="true()" constraint=". &gt;= 20 and . &lt;=120 " jr:constraintMsg="Thats not your age!!!"/>
+			<bind nodeset="/simple-form/q3" required="true()"/>
+		</model>
+	</h:head>
+	<h:body>
+		<input ref="interviewer_id">
+			<hint>Enter the interviewer ID</hint>
+			<label>Interviewer ID</label>
+		</input>
+		<input ref="interviewer_name">
+			<hint>Enter the interviewer name</hint>
+			<label>Interviewer Name</label>
+		</input>
+		<input ref="q1">
+			<hint>Please enter your name</hint>
+			<label>Name</label>
+		</input>
+		<input ref="q2">
+			<hint>Try Entering age between 20 and less than 120</hint>
+			<label>Age</label>
+		</input>
+		<select ref="q3">
+			<label>Gender</label>
+			<item>
+				<label>Male</label>
+				<value>male</value>
+			</item>
+			<item>
+				<label>Female</label>
+				<value>female</value>
+			</item>
+		</select>
+	</h:body>
+</h:html>

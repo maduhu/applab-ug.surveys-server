@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configurations>
+	<appsettings>
+		<zebra-username>zebra</zebra-username>
+		<zebra-password>zebra</zebra-password>
+		<salesforce-username>crmadmin@applab.org</salesforce-username>
+		<salesforce-password>applabug2010</salesforce-password>
+		<salesforce-token>nbOw4RzTYzsWLmViQpjx3IEnU</salesforce-token>
+		<zebra-url>192.168.1.21/yo</zebra-url>
+	</appsettings>
+</Configurations>

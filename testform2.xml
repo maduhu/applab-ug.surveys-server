@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:jr="http://openrosa.org/javarosa">
+	<h:head>
+		<h:title>Image Upload</h:title>
+		<model>
+			<instance>
+				<details-form xmlns="details-form">
+					<survey_id>1</survey_id>
+					<q1/>
+					<q2/>
+					<q6/>
+				</details-form>
+			</instance>
+			<bind nodeset="/details-form/q1" type="string" require="true()"/>
+			<bind nodeset="/details-form/q2" type="base64Binary"/>		
+			<bind nodeset="/details-form/q6" type="base64Binary"/>
+		</model>
+	</h:head>
+	<h:body>
+		<input ref="q1">
+			<hint>Please enter your name</hint>
+			<label>Name</label>
+		</input>
+		<upload ref="q2" mediatype="image/*" size="2345">
+			<hint>Please upload your image</hint>
+			<label>Upload Image</label>
+		</upload>
+		<upload ref="q6" mediatype="image/*" size="2345">
+			<hint>Please upload your image</hint>
+			<label>Upload Image</label>
+		</upload>
+	</h:body>
+</h:html>
