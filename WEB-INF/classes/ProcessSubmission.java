@@ -20,7 +20,7 @@ import java.util.Map.Entry;
  * Output: Empty body, status code distinguishes success from failure
  * 
  */
-public class submission extends HttpServlet {
+public class ProcessSubmission extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
     final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";

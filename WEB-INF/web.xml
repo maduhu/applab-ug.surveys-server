@@ -6,82 +6,82 @@
 
 
    <servlet>
-		<servlet-name>sub</servlet-name>
-		<servlet-class>submission</servlet-class>
+     <servlet-name>submitFormResponse</servlet-name>
+     <servlet-class>ProcessSubmission</servlet-class>
    </servlet>
    
    <servlet>
-   	<servlet-name>formL</servlet-name>
-   	<servlet-class>formList</servlet-class>
+     <servlet-name>formL</servlet-name>
+     <servlet-class>formList</servlet-class>
    </servlet>
    
    <servlet>
-   	<servlet-name>stats</servlet-name>
-   	<servlet-class>getStatistics</servlet-class>
+     <servlet-name>stats</servlet-name>
+     <servlet-class>getStatistics</servlet-class>
    </servlet>
    
    <servlet>
-   	<servlet-name>survey</servlet-name>
-   	<servlet-class>surveyList</servlet-class>
+     <servlet-name>getForm</servlet-name>
+     <servlet-class>GetForm</servlet-class>
    </servlet>
    
    <servlet>
-   	<servlet-name>getSub</servlet-name>
-   	<servlet-class>getSubmissions</servlet-class>
+     <servlet-name>getSub</servlet-name>
+     <servlet-class>getSubmissions</servlet-class>
    </servlet>
    
    <servlet>
-   	<servlet-name>processSub</servlet-name>
-   	<servlet-class>processSubmissions</servlet-class>
+     <servlet-name>processSub</servlet-name>
+     <servlet-class>processSubmissions</servlet-class>
    </servlet>
    
    <servlet>
-   	<servlet-name>xform</servlet-name>
-   	<servlet-class>getXform</servlet-class>
+     <servlet-name>xform</servlet-name>
+     <servlet-class>getXform</servlet-class>
    </servlet>
    
    <servlet>
-   	<servlet-name>sform</servlet-name>
-   	<servlet-class>saveXform</servlet-class>
+     <servlet-name>sform</servlet-name>
+     <servlet-class>saveXform</servlet-class>
    </servlet>
    
    <servlet-mapping>
-	<servlet-name>sub</servlet-name>
-	<url-pattern>/submission</url-pattern>
+     <servlet-name>submitFormResponse</servlet-name>
+     <url-pattern>/submission</url-pattern>
    </servlet-mapping>
    
    <servlet-mapping>
-	<servlet-name>xform</servlet-name>
-	<url-pattern>/getXform</url-pattern>
+     <servlet-name>xform</servlet-name>
+     <url-pattern>/getXform</url-pattern>
    </servlet-mapping>
    
    <servlet-mapping>
-	<servlet-name>stats</servlet-name>
-	<url-pattern>/getStatistics</url-pattern>
+     <servlet-name>stats</servlet-name>
+     <url-pattern>/getStatistics</url-pattern>
    </servlet-mapping>
    
    <servlet-mapping>
-	<servlet-name>getSub</servlet-name>
-	<url-pattern>/getSubmissions</url-pattern>
+     <servlet-name>getForm</servlet-name>
+     <url-pattern>/getForm</url-pattern>
+   </servlet-mapping>
+ 
+   <servlet-mapping>
+     <servlet-name>getSub</servlet-name>
+     <url-pattern>/getSubmissions</url-pattern>
    </servlet-mapping>
    
    <servlet-mapping>
-	<servlet-name>processSub</servlet-name>
-	<url-pattern>/processSubmissions</url-pattern>
+     <servlet-name>processSub</servlet-name>
+     <url-pattern>/processSubmissions</url-pattern>
    </servlet-mapping>
    
    <servlet-mapping>
-	<servlet-name>sform</servlet-name>
-	<url-pattern>/saveXform</url-pattern>
+     <servlet-name>sform</servlet-name>
+     <url-pattern>/saveXform</url-pattern>
    </servlet-mapping>
    
    <servlet-mapping>
-   	<servlet-name>formL</servlet-name>
-   	<url-pattern>/formList</url-pattern>
+     <servlet-name>formL</servlet-name>
+     <url-pattern>/formList</url-pattern>
    </servlet-mapping>
-   
-   <servlet-mapping>
-   	<servlet-name>survey</servlet-name>
-   	<url-pattern>/surveyList</url-pattern>
-   </servlet-mapping>
-</web-app>
+ </web-app>

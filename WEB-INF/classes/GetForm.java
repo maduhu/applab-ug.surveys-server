@@ -30,13 +30,12 @@ import org.xml.sax.*;
  * We require a transform here since the survey designer saves data in a different format than the mobile client
  * expects. We hope to push this transform to the designer->save path over time.
  * 
- * Input: survey id (provided in the surveyid URL parameter) 
+ * Input: survey id (provided in the surveyid URL parameter)
  * 
  * Output: xform data to be used by a mobile client
  * 
  */
-public class surveyList extends HttpServlet {
-
+public class GetForm extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {
         try {
             String surveyId = request.getParameter("surveyid");
@@ -45,13 +44,13 @@ public class surveyList extends HttpServlet {
                 String survey_name = configuration.DbConnect.getSurveyName(surveyId);
                 // get this survey from zebrasurvey
                 String zebra_survey_id = configuration.DbConnect.getZebraSurveyId(surveyId);
-                String xform_data = configuration.DbConnect.getXformData(surveyId);
-                if (xform_data != null && xform_data.length() > 0) {
+                String xformData = configuration.DbConnect.getXformData(surveyId);
+                if (xformData != null && xformData.length() > 0) {
                     // replace strings
                     String replaceStr = "<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">";
                     String addStr = "<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:jr=\"http://openrosa.org/javarosa\" xmlns:ev=\"http://www.w3.org/2001/xml-events\"><xf:head><xf:title>"
                             + survey_name + "</xf:title></xf:head>";
-                    String parsedStr = xform_data.replaceFirst(replaceStr, addStr);
+                    String parsedStr = xformData.replaceFirst(replaceStr, addStr);
                     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                     DocumentBuilder db = dbf.newDocumentBuilder();
                     InputSource is = new InputSource();

@@ -33,7 +33,7 @@ public class saveXform extends HttpServlet{
 		}
 		request.getInputStream().close();
 		String xform_data1=sb.toString();
-		String xform_data=configuration.manipulation.replace(xform_data1, "\'", "\\'");
+        String xform_data = configuration.manipulation.replace(xform_data1, "\'", "\\'");
 		System.out.println(configuration.manipulation.replace(xform_data,"'","\\'"));
 		//get the survey name
 		try

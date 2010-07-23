@@ -10,7 +10,7 @@ distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 License for the specific language governing permissions and limitations under
 the License.
-*/
+ */
 
 import java.io.*;
 import javax.servlet.*;
@@ -29,40 +29,35 @@ import configuration.applabConfig;
 
 public class formList extends HttpServlet {
 
-	private SoapBindingStub binding;
-	applabConfig applab=new applabConfig();
-	
-	protected void doGet(HttpServletRequest request ,HttpServletResponse response)
-	{
-		try
-		{
-			response.getWriter().write("<forms>");
-			configuration.sfConnect.login();
-			//get the published survey
-			System.out.println("KK");
-			ArrayList<String> pub_list=configuration.sfConnect.getPublishedSurveys();
-			//configuration.sfConnect.logout();
-			if(pub_list.size()>0)
-			{
-				for(int i=0;i<pub_list.size();i++)
-				{
-					if(configuration.DbConnect.zebraSurveyIdExists(pub_list.get(i)))
-					{
-						String survey_name=configuration.DbConnect.getSurveyName(pub_list.get(i));
-						response.getWriter().write("<form url=\"http://"+applab.getZebraUrl()+"/surveyList?surveyid="+pub_list.get(i)+"\" >"+survey_name+"</form>");
-					}
-				}
-			}
-			else
-			{
-				response.getWriter().write("<form>Don't Click</form>");
-			}
-			response.getWriter().write("</forms>");
-		}
-		catch(Exception e)
-		{
-			e.printStackTrace();
-			//this.logout();
-		}
-	}
+    private SoapBindingStub binding;
+    applabConfig applab = new applabConfig();
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            response.getWriter().write("<forms>");
+            configuration.sfConnect.login();
+            // get the published survey
+            System.out.println("KK");
+            ArrayList<String> pub_list = configuration.sfConnect.getPublishedSurveys();
+            // configuration.sfConnect.logout();
+            if (pub_list.size() > 0) {
+                for (int i = 0; i < pub_list.size(); i++) {
+                    if (configuration.DbConnect.zebraSurveyIdExists(pub_list.get(i))) {
+                        String survey_name = configuration.DbConnect.getSurveyName(pub_list.get(i));
+                        response.getWriter().write(
+                                "<form url=\"http://" + applab.getZebraUrl() + "/surveyList?surveyid=" + pub_list.get(i) + "\" >"
+                                        + survey_name + "</form>");
+                    }
+                }
+            }
+            else {
+                response.getWriter().write("<form>Don't Click</form>");
+            }
+            response.getWriter().write("</forms>");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            // this.logout();
+        }
+    }
 }

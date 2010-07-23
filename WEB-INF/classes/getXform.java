@@ -10,29 +10,16 @@ distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 License for the specific language governing permissions and limitations under
 the License.
-*/
+ */
 
-import javax.servlet.*;
 import javax.servlet.http.*;
-import javax.swing.JOptionPane;
-
 import java.io.*;
 
 public class getXform extends HttpServlet {
 
-	public void doGet(HttpServletRequest request,HttpServletResponse response) throws IOException
-	{
-		try
-		{
-			String form_id=request.getParameter("formId");
-			String xform_data=configuration.DbConnect.getXformData(form_id).replaceAll("\'", "'");
-			System.out.println(xform_data);
-			System.out.println("From Database");
-			response.getWriter().write(xform_data);
-		}
-		catch(NullPointerException e)
-		{
-			e.printStackTrace();
-		}
-	}
+    public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String formId = request.getParameter("formId");
+        String xformData = configuration.DbConnect.getXformData(formId);
+        response.getWriter().write(xformData);
+    }
 }
