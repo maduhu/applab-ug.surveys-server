@@ -10,249 +10,376 @@ import org.apache.commons.fileupload.*;
 import configuration.applabConfig;
 
 import java.util.*;
+import java.util.Map.Entry;
 
-public class submission extends HttpServlet{
+/**
+ * Server method that receives a survey submission and inserts the data into our database
+ * 
+ * Input: survey submission as XML (provided in POST body)
+ * 
+ * Output: Empty body, status code distinguishes success from failure
+ * 
+ */
+public class submission extends HttpServlet {
 
-	private static final long serialVersionUID = 1L;
-	final String DATE_FORMAT_NOW="yyyy-MM-dd HH:mm:ss";
+    private static final long serialVersionUID = 1L;
+    final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
 
-	protected void doPost(HttpServletRequest request,HttpServletResponse response) throws ServletException,IOException
-	{
-		response.setContentType("text/html");
-		try
-		{
-			if(ServletFileUpload.isMultipartContent(request))
-			{
-				HttpSession session=request.getSession(true);
-				String server_entry_time=applabConfig.getDateTime();
-				ServletFileUpload servletFileUpload=new ServletFileUpload(new DiskFileItemFactory());
-				List<?> fileList=servletFileUpload.parseRequest(request);
-				Iterator<?> it=fileList.iterator();
-				//store the paths to the attachments in attachment path
-				Hashtable<String,String> attachment_path=new Hashtable<String,String>();
-				boolean has_attachments=false;
-				if(fileList.size()>1)
-				{
-					has_attachments=true;
-				}
-				String appendtoFile="";
-				while(it.hasNext())
-				{
-					FileItem fileItem=(FileItem)it.next();
-					String contentType=fileItem.getContentType();
-					if(contentType.equals("text/xml"))
-					{
-						File temp=File.createTempFile("xmlFile", ".xml");
-						fileItem.write(temp);
-						DocumentBuilder builder=DocumentBuilderFactory.newInstance().newDocumentBuilder();
-						Document doc=builder.parse(temp);
-						doc.getDocumentElement().normalize();
-						//get the root node
-						Element rootNode=(Element)doc.getDocumentElement();
-						NodeList childNodes=rootNode.getChildNodes();
-						Hashtable<String, String> surveyValues=new Hashtable<String, String>();
-						//place all in the surveyValues
-						surveyValues.put("server_entry_time", server_entry_time);
-						for(int i=0;i<childNodes.getLength();i++)
-						{
-							Element element=(Element)childNodes.item(i);
-							NodeList eList=element.getChildNodes();
-							String elementName=element.getNodeName();
-							String elementValue="";
-							try
-							{
-								if(has_attachments)
-								{
-									Enumeration<String> at_keys=attachment_path.keys();
-									int cursor=0;
-									while(at_keys.hasMoreElements())
-									{
-										String at_key=at_keys.nextElement();
-										if(at_key.equals(eList.item(0).getNodeValue()))
-										{
-											elementValue=attachment_path.get(at_key);
-											cursor++;
-										}
-									}
-									if(cursor==0)
-									{
-										elementValue=eList.item(0).getNodeValue().toString();
-									}									
-								}
-								else
-								{
-									elementValue=eList.item(0).getNodeValue().toString();
-								}
-							}
-							catch(NullPointerException ex)
-							{
-								elementValue="";
-							}
-							surveyValues.put(elementName, elementValue);
-						}
-						//get the survey_id
-						String survey_id_=surveyValues.get("survey_id");
-						int zbr_survey_id=Integer.parseInt(surveyValues.get("survey_id"));
-						if(configuration.DbConnect.verifySurveyID(zbr_survey_id))
-						{
-							//The following permanent fields should not be included in creating a hex string
-							String zbr_handset_submit_time=surveyValues.get("handset_submit_time");
-							surveyValues.remove("handset_submit_time");
-							String zbr_server_entry_time=surveyValues.get("server_entry_time");
-							surveyValues.remove("server_entry_time");
-							String zbr_location=surveyValues.get("location");
-							//create hexstring
-							Enumeration<String> _keys=surveyValues.keys();
-							String zbr_hash_str="";
-							while(_keys.hasMoreElements())
-							{
-								String _key=_keys.nextElement();
-								String _value=surveyValues.get(_key);	
-								zbr_hash_str=zbr_hash_str+""+_value;
-							}
-							String zbr_hex_hash=configuration.md5.getMD5Hash(zbr_hash_str);
-							//extract the permanent fields
-							String zbr_handset_id=surveyValues.get("handset_id");
-							surveyValues.remove("handset_id");
-							String zbr_interviewer_id=surveyValues.get("interviewer_id");
-							surveyValues.remove("interviewer_id");
-							surveyValues.remove("survey_id");
-							
-							Enumeration<String> keys=surveyValues.keys();
-							int cursor=0;
-							String tb_fields="";
-							String tb_field_value="";
-							while(keys.hasMoreElements())
-							{
-								String key=keys.nextElement();
-								String value=surveyValues.get(key);
-								//verify that these questions have been created
-								if(configuration.DbConnect.verifySurveyField(key, zbr_survey_id))
-								{
-									if(tb_fields.equals(""))
-									{
-										tb_fields=key+""+tb_fields;
-									}
-									else
-									{
-										tb_fields=tb_fields+","+key;
-									}
-									if(tb_field_value.equals(""))
-									{
-										tb_field_value="'"+value+"'"+tb_field_value;
-									}
-									else
-									{
-										tb_field_value=tb_field_value+",'"+value+"'";
-									}
-									cursor++;
-								}
-							}
-							if(cursor>0)
-							{
-								String query_str="insert into zebrasurveysubmissions (survey_id,server_entry_time,handset_submit_time,handset_id,interviewee_name,result_hash,location,"+tb_fields+") values ("+zbr_survey_id+",'"+zbr_server_entry_time+"','"+zbr_handset_submit_time+"','"+zbr_handset_id+"','"+zbr_interviewer_id+"','"+zbr_hex_hash+"','"+zbr_location+"',"+tb_field_value+")";
-								String submitted_survey=configuration.DbConnect.postSubmission(query_str);
-								if(submitted_survey.equals("Data Posted"))
-								{
-									response.setStatus(HttpServletResponse.SC_CREATED);
-									response.setHeader("Location", request.getRequestURI());
-								}
-								else
-								{
-									response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-									response.setHeader("Location", request.getRequestURI());
-								}
-							}
-							else
-							{
-								response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-								response.setHeader("Location", request.getRequestURI());
-							}
-						}
-						else
-						{
-							response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-							response.setHeader("Location", request.getRequestURI());
-						}
-					}
-					else if(contentType.equals("image/jpeg") || contentType.equals("image/gif") || contentType.equals("image/png") || contentType.equals("image/bmp"))
-					{
-						String image_name="";
-						configuration.images img=new configuration.images();
-						if(contentType.equals("image/jpeg"))
-						{
-							image_name=img.generateImageName()+".jpg";
-						}
-						else if(contentType.equals("image/gif"))
-						{
-							image_name=img.generateImageName()+".gif";
-						}
-						else if(contentType.equals("image/png"))
-						{
-							image_name=img.generateImageName()+".png";
-						}
-						else if(contentType.equals("image/bmp"))
-						{
-							image_name=img.generateImageName()+".bmp";
-						}
-						if(!image_name.equals(""))
-						{
-							//save this image
-							String dir=getServletContext().getRealPath("/applabimages/"+image_name);
-							File file=new File(dir);
-							fileItem.write(file);
-							attachment_path.put(fileItem.getName(), "/applabimages/"+image_name);
-						}
-					}
-					else if(contentType.equals("video/3gp") || contentType.equals("video/mp4") || contentType.equals("video/3gpp"))
-					{
-						String video_name="";
-						configuration.images mdi=new configuration.images();
-						if(contentType.equals("video/3gp"))
-						{
-							video_name=mdi.generateImageName()+".3gp";
-						}
-						else if(contentType.equals("video/mp4"))
-						{
-							video_name=mdi.generateImageName()+".mp4";
-						}
-						else if(contentType.equals("video/3gpp"))
-						{
-							video_name=mdi.generateImageName()+".3gp";
-						}
-						if(!video_name.equals(""))
-						{
-							String dir=getServletContext().getRealPath("/videos/"+video_name);
-							File file=new File(dir);
-							fileItem.write(file);
-							attachment_path.put(fileItem.getName(), "/videos/"+video_name);
-						}
-					}
-					else if(contentType.equals("audio/3gp") || contentType.equals("audio/mp4") || contentType.equals("audio/m4a") || contentType.equals("audio/3gpp"))
-					{
-						String audio_name="";
-						configuration.images mdi=new configuration.images();
-						if(contentType.equals("audio/3gpp"))
-						{
-							audio_name=mdi.generateImageName()+".3gpp";
-						}
-						if(!audio_name.equals(""))
-						{
-							String dir=getServletContext().getRealPath("/audios/"+audio_name);
-							File file=new File(dir);
-							fileItem.write(file);
-							attachment_path.put(fileItem.getName(), "/audios/"+audio_name);
-						}
-					}
-				}
-			}
-		}
-		catch(Exception e)
-		{
-			e.printStackTrace();
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("text/html");
+        // pessimistic default
+        int httpStatusCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+        response.setHeader("Location", request.getRequestURI());
+        try {
+            // we are only expecting multi-part content
+            if (!ServletFileUpload.isMultipartContent(request)) {
+                httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
+                return;
+            }
+            ServletFileUpload servletFileUpload = new ServletFileUpload(new DiskFileItemFactory());
+            List<?> fileList = servletFileUpload.parseRequest(request);
+            HashMap<String, SurveyItemResponse> surveyResponses = null;
 
-			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-			response.setHeader("Location", request.getRequestURI());
-		}
-	}
+            // store the paths to the attachments in attachment path
+            HashMap<String, String> attachmentPaths = new HashMap<String, String>();
+            Iterator<?> it = fileList.iterator();
+            while (it.hasNext()) {
+                FileItem fileItem = (FileItem)it.next();
+                String contentType = fileItem.getContentType().toLowerCase(Locale.ENGLISH);
+
+                // survey answer content
+                if (contentType == "text/xml") {
+                    File temp = File.createTempFile("xmlFile", ".xml");
+                    fileItem.write(temp);
+                    DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                    Document xmlDocument = builder.parse(temp);
+                    surveyResponses = parseSurveySubmission(xmlDocument);
+                }
+                // attachments (TODO: open this further?)
+                else if (contentType == "image/jpeg" || contentType == "image/gif" || contentType == "image/png"
+                        || contentType == "image/bmp" || contentType == "video/3gp" || contentType == "video/mp4"
+                        || contentType == "video/3gpp" || contentType == "audio/3gp" || contentType == "audio/mp4"
+                        || contentType == "audio/m4a" || contentType == "audio/3gpp") {
+                    saveAttachment(fileItem, attachmentPaths);
+                }
+            }
+
+            // now that we've processed all of the data, insert the contents into our database
+            // and construct the HTTP response
+            httpStatusCode = storeSurveySubmission(surveyResponses, attachmentPaths);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+        finally {
+            response.setStatus(httpStatusCode);
+        }
+    }
+
+    private int storeSurveySubmission(HashMap<String, SurveyItemResponse> surveyResponses, HashMap<String, String> attachmentReferences) throws Exception {
+        int surveyId = Integer.parseInt(surveyResponses.get("survey_id").getEncodedAnswer(attachmentReferences));
+        if (configuration.DbConnect.verifySurveyID(surveyId)) {
+            // The following permanent fields should not be included in creating a hex string
+            String handsetSubmissionTimestamp = surveyResponses.remove("handset_submit_time").getEncodedAnswer(attachmentReferences);
+            String surveyLocation = surveyResponses.get("location").getEncodedAnswer(attachmentReferences);
+
+            // create hex string
+            String hashSource = "";
+            for (SurveyItemResponse responseValue : surveyResponses.values()) {
+                hashSource += responseValue.getEncodedAnswer(attachmentReferences);
+            }
+            String duplicateDetectionHash = configuration.md5.getMD5Hash(hashSource);
+
+            // extract the permanent fields
+            // TODO: in 2.8 we'll be passing the IMEI as an HTTP header
+            String handsetId = surveyResponses.remove("handset_id").getEncodedAnswer(attachmentReferences);
+
+            // even though the "question name" is interviewer_id, that was a typo and it actually stores the
+            // interviewee's name
+            String intervieweeName = surveyResponses.remove("interviewer_id").getEncodedAnswer(attachmentReferences);
+            surveyResponses.remove("survey_id");
+
+            String answerColumnsCommandText = "";
+            String answerValueCommandText = "";
+            for (Entry<String, SurveyItemResponse> surveyAnswer : surveyResponses.entrySet()) {
+                // the question name is used as our column names for survey answers
+                String answerColumn = surveyAnswer.getKey();
+                // verify that these questions have been created
+                if (configuration.DbConnect.verifySurveyField(answerColumn, surveyId)) {
+
+                    answerColumnsCommandText += "," + surveyAnswer.getKey();
+                    answerValueCommandText += ",'" + surveyAnswer.getValue().getEncodedAnswer(attachmentReferences) + "'";
+                }
+            }
+
+            // make sure we have valid questions
+            if (answerColumnsCommandText.length() > 0) {
+                String currentTime = applabConfig.getDateTime();
+                StringBuilder commandText = new StringBuilder();
+                commandText.append("insert into zebrasurveysubmissions ");
+                commandText.append("survey_id,server_entry_time,handset_submit_time,handset_id,interviewee_name,result_hash,location");
+                commandText.append(answerColumnsCommandText);
+                commandText.append(") values (");
+                commandText.append(surveyId);
+                commandText.append(",'" + currentTime + "'");
+                commandText.append(",'" + handsetSubmissionTimestamp + "'");
+                commandText.append(",'" + handsetId + "'");
+                commandText.append(",'" + intervieweeName + "'");
+                commandText.append(",'" + duplicateDetectionHash + "'");
+                commandText.append(",'" + surveyLocation + "'");
+                commandText.append(answerValueCommandText + ")");
+                if (configuration.DbConnect.postSubmission(commandText.toString())) {
+                    return HttpServletResponse.SC_CREATED;
+                }
+                else {
+                    return HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+                }
+            }
+        }
+
+        return HttpServletResponse.SC_NOT_FOUND;
+    }
+
+    private void saveAttachment(FileItem attachment, HashMap<String, String> attachmentReferences) throws Exception {
+        // grab everything after the forward slash and convert to file extension (e.g. image/gif -> .gif)
+        // use everything before the forward slash and use it for our directory (e.g. image/gif -> survey_images)
+        String contentType = attachment.getContentType();
+        
+        int separatorIndex = contentType.lastIndexOf("/");
+        assert (separatorIndex > 0 && separatorIndex < contentType.length()) : "callers should only pass valid content types";
+
+        String directoryName = "/survey_" + contentType.substring(0, separatorIndex) + "s/";
+        String fileExtension = "." + contentType.substring(separatorIndex + 1);
+        // for certain extensions, we can make substitutions here if it proves necessary (e.g. jpeg->jpg)
+
+        String attachmentReference = directoryName + new configuration.images().generateImageName() + fileExtension;
+
+        String fullPath = this.getServletContext().getRealPath(attachmentReference);
+        attachment.write(new File(fullPath));
+        // TODO: we should store the full public path here, not the relative one. See
+        // what the above full path gets you
+        attachmentReferences.put(attachment.getName(), attachmentReference);
+    }
+
+    /**
+     * parses the XML for a survey response. Delegates most of its work to parseSurveySubmissionElement
+     * 
+     * @param xmlDocument
+     *            DOM containing the submission XML
+     */
+    private static HashMap<String, SurveyItemResponse> parseSurveySubmission(Document xmlDocument) {
+        // normalize the root node
+        Element rootNode = xmlDocument.getDocumentElement();
+        rootNode.normalize();
+
+        HashMap<String, SurveyItemResponse> parsedSubmission = new HashMap<String, SurveyItemResponse>();
+
+        // now parse the tree and populate surveyResponses with the raw data
+        for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
+            switch (childNode.getNodeType()) {
+                case Node.ELEMENT_NODE:
+                    parseSurveySubmissionElement((Element)childNode, parsedSubmission, null);
+                    break;
+
+                default:
+                    // don't care about other types of nodes
+                    break;
+            }
+        }
+
+        return parsedSubmission;
+    }
+
+    /**
+     * given an XML node, processes the contents into a SurveyItemResponse
+     */
+    private static void parseSurveySubmissionElement(Element submissionElement, HashMap<String, SurveyItemResponse> existingSubmission,
+            SurveyAnswerGroup parentItem) {
+        // question name is always the name of the start element
+        String questionName = submissionElement.getNodeName();
+
+        SurveyItemResponse surveyItemResponse = existingSubmission.get(questionName);
+        if (surveyItemResponse == null) {
+            surveyItemResponse = new SurveyItemResponse(questionName, parentItem);
+            existingSubmission.put(questionName, surveyItemResponse);
+        }
+
+        // walk the child nodes, and either populate with a text-answer, or recurse for the multiple-answer case
+        for (Node childNode = submissionElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
+            switch (childNode.getNodeType()) {
+                case Node.ELEMENT_NODE:
+                    if (!(surveyItemResponse instanceof SurveyAnswerGroup)) {
+                        surveyItemResponse = new SurveyAnswerGroup(questionName, parentItem);
+                        existingSubmission.put(questionName, surveyItemResponse);
+                    }
+                    parseSurveySubmissionElement((Element)childNode, existingSubmission, (SurveyAnswerGroup)surveyItemResponse);
+                    break;
+
+                case Node.TEXT_NODE:
+                    surveyItemResponse.addAnswerText(childNode.getNodeValue());
+                    break;
+
+                default:
+                    // don't care about other types of nodes
+                    break;
+            }
+        }
+    }
+
+    /**
+     * in memory representation of a survey item response. Usually this just contains a text answer, but in the case of
+     * repeat questions, it can contain a collection of responses as the answer.
+     * 
+     * Single answer example:
+     * 
+     * <q1>My answer</q1>
+     * 
+     * Repeat answer example:
+     * 
+     * <q3> <q4>Answer 4</q4><q5>Answer 5</q5> </q3> <q3> <q4>Answer 4 #2</q4><q5>Answer 5 #2</q5> </q3>
+     */
+    private static class SurveyItemResponse {
+        private String questionName;
+
+        // we use two fields here for performance, so that we don't need to allocate an array
+        // for simple text answers
+        private String singletonAnswer;
+        private ArrayList<String> multipleAnswers;
+
+        // will be non-null if this is the child of a repeat question
+        private SurveyAnswerGroup parent;
+
+        public SurveyItemResponse(String questionName, SurveyAnswerGroup parent) {
+            if (questionName == null) {
+                questionName = "";
+            }
+            this.questionName = questionName;
+            this.parent = parent;
+
+            if (this.parent != null) {
+                this.parent.addChild(this);
+            }
+        }
+
+        public String getQuestionName() {
+            return this.questionName;
+        }
+
+        public void addAnswerText(String answerText) {
+            if (answerText != null) {
+                // see if we need to promote to a list
+                if (this.singletonAnswer != null) {
+                    // we should only get to this case when we have a valid parent group
+                    assert (this.parent != null) : "we should only get multiple answers when contained in a parent group";
+
+                    this.multipleAnswers = new ArrayList<String>();
+                    this.multipleAnswers.add(this.singletonAnswer);
+                    this.singletonAnswer = null;
+                }
+
+                if (this.multipleAnswers != null) {
+                    this.multipleAnswers.add(answerText);
+                }
+                else {
+                    this.singletonAnswer = answerText;
+                }
+            }
+        }
+
+        /**
+         * The encoding for a single answer is simply the text.
+         * 
+         * The encoding for multiple answers is, for example. [child:q6][1]answer\n[2]answer
+         */
+        public String getEncodedAnswer(HashMap<String, String> attachments) {
+            StringBuilder encodedAnswer = new StringBuilder();
+            if (this.parent != null) {
+                encodedAnswer.append("[child:");
+                encodedAnswer.append(this.parent.getQuestionName());
+                encodedAnswer.append("]");
+            }
+            if (this.multipleAnswers != null) {
+                int prefix = 1;
+                for (String answerText : this.multipleAnswers) {
+                    if (prefix > 1) {
+                        encodedAnswer.append("\n");
+                    }
+                    encodedAnswer.append("[");
+                    encodedAnswer.append(prefix);
+                    encodedAnswer.append("]");
+                    encodedAnswer.append(resolveAnswerText(answerText, attachments));
+                    prefix++;
+                }
+            }
+            else if (this.singletonAnswer != null) {
+                encodedAnswer.append(resolveAnswerText(this.singletonAnswer, attachments));
+            }
+
+            return encodedAnswer.toString();
+        }
+
+        /**
+         * Helper function to turn an attachment reference into the correct path if necessary
+         */
+        private final String resolveAnswerText(String answerText, HashMap<String, String> attachments) {
+            String resolvedAnswer = answerText;
+            // see if the element is referencing an attachment
+            if (attachments != null) {
+                String attachmentPath = attachments.get(resolvedAnswer);
+                if (attachmentPath != null) {
+                    resolvedAnswer = attachmentPath;
+                }
+            }
+            return resolvedAnswer;
+        }
+    }
+
+    /**
+     * used for the case of multiple-response groups, this does not have any user-provided text, but has child
+     * responses.
+     */
+    private static class SurveyAnswerGroup extends SurveyItemResponse {
+        HashMap<String, SurveyItemResponse> childResponses;
+
+        public SurveyAnswerGroup(String questionName, SurveyAnswerGroup parent) {
+            super(questionName, parent);
+            this.childResponses = new HashMap<String, SurveyItemResponse>();
+        }
+
+        public void addChild(SurveyItemResponse child) {
+            this.childResponses.put(child.getQuestionName(), child);
+        }
+
+        /**
+         * The encoding for a submission group is a string like: 3 responses (q8, q9, q10)
+         */
+        @Override
+        public String getEncodedAnswer(HashMap<String, String> attachments) {
+            StringBuilder encodedAnswer = new StringBuilder();
+            encodedAnswer.append(childResponses.size());
+            encodedAnswer.append(" response");
+            if (childResponses.size() != 1) {
+                encodedAnswer.append("s");
+            }
+            encodedAnswer.append(" (");
+            boolean firstChild = true;
+            for (String childQuestionName : this.childResponses.keySet()) {
+                if (firstChild) {
+                    firstChild = false;
+                }
+                else {
+                    encodedAnswer.append(", ");
+                }
+                encodedAnswer.append(childQuestionName);
+            }
+            encodedAnswer.append(")");
+            return encodedAnswer.toString();
+        }
+
+        @Override
+        public void addAnswerText(String answerText) {
+            assert false : "We should never get answer text for a submission group";
+        }
+    }
 }

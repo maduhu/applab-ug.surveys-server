@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>ZebraBackend</name>
-	<comment></comment>
+	<name>Surveys Server</name>
+	<comment>Server side tomcat code for Surveys application</comment>
 	<projects>
 	</projects>
 	<buildSpec>

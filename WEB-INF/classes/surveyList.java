@@ -10,11 +10,12 @@ distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 License for the specific language governing permissions and limitations under
 the License.
-*/
+ */
 
 import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
+import java.util.*;
 import javax.xml.parsers.*;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
@@ -23,211 +24,186 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.*;
 import org.xml.sax.*;
 
+/**
+ * Server method that returns the XML for a survey
+ * 
+ * We require a transform here since the survey designer saves data in a different format than the mobile client
+ * expects. We hope to push this transform to the designer->save path over time.
+ * 
+ * Input: survey id (provided in the surveyid URL parameter) 
+ * 
+ * Output: xform data to be used by a mobile client
+ * 
+ */
 public class surveyList extends HttpServlet {
-	
-	
-	protected void doGet(HttpServletRequest request ,HttpServletResponse response)
-	{
-		try
-		{
-			String survey_id=request.getParameter("surveyid");
-			if(!survey_id.equals(""))
-			{
-				//get the survey name
-				String survey_name=configuration.DbConnect.getSurveyName(survey_id);
-				// get this survey from zebrasurvey
-				String zebra_survey_id=configuration.DbConnect.getZebraSurveyId(survey_id);
-				String xform_data=configuration.DbConnect.getXformData(survey_id);
-				if(!xform_data.equals("") || !xform_data.equals(null))
-				{
-					//replace strings
-					String replaceStr="<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">";
-					String addStr="<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:jr=\"http://openrosa.org/javarosa\" xmlns:ev=\"http://www.w3.org/2001/xml-events\"><xf:head><xf:title>"+survey_name+"</xf:title></xf:head>";
-					String parsedStr=xform_data.replaceFirst(replaceStr, addStr);				
-					System.out.println(parsedStr);
-					DocumentBuilderFactory dbf=DocumentBuilderFactory.newInstance();
-					DocumentBuilder db=dbf.newDocumentBuilder();
-					InputSource is=new InputSource();
-					is.setCharacterStream(new StringReader(parsedStr));
-					Document doc=db.parse(is);
-					Node xform=doc.getFirstChild();
-					Node handset_id=doc.createElement("new_form1");
-					xform.appendChild(handset_id);
-					Transformer transformer=TransformerFactory.newInstance().newTransformer();
-					transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-					StreamResult result=new StreamResult(new StringWriter());
-					DOMSource source=new DOMSource(doc);
-					transformer.transform(source, result);
-					String xmlString=result.getWriter().toString();
-					System.out.println(xmlString);
-					//Node handset_id=doc.createElement("new_form1");
-					
-					/*
-					NodeList node_1=doc.getElementsByTagName("xf:xforms");
-					
-					for(int i=0;i<node_1.getLength();i++)
-					{
-						Element element_1=(Element)node_1.item(i);
-						NodeList node_2=element_1.getElementsByTagName("xf:model");
-						for(int j=0;j<node_2.getLength();j++)
-						{
-							Element element_2=(Element)node_2.item(j);
-							NodeList node_3=element_2.getElementsByTagName("xf:instance");
-							for(int x=0;x<node_3.getLength();x++)
-							{
-								Element element_3=(Element)node_3.item(x);
-								NodeList node_4=element_3.getElementsByTagName("new_form1");
-								for(int y=0;y<node_4.getLength();y++)
-								{
-									Element element_4=(Element)node_4.item(y);
-									//Node handset_id=node_4.
-									System.out.println(element_4.getNodeName());
-									//NodeList node_5=element_4.getChildNodes();
-									//System.out.println(node_5.getLength());
-								}								
-							}
-						}
-					}
-					/*
-					String str_split[]=parsedStr.split("<xf:");
-					for(int i=0;i<str_split.length;i++)
-					{
-						if(str_split[i].contains("format=\"image\""))
-						{
-							parsedStr=this.replaceString(str_split[i], str_split, parsedStr,"image");							
-						}
-						else if(str_split[i].contains("format=\"video\""))
-						{
-							parsedStr=this.replaceString(str_split[i], str_split, parsedStr,"video");
-						}
-						else if(str_split[i].contains("format=\"audio\""))
-						{
-							parsedStr=this.replaceString(str_split[i], str_split, parsedStr,"audio");
-						}
-					}
-					parsedStr=parsedStr.replaceAll("bind=", "ref=");
-					String add_xform_data_param1="formKey=\"new_form1\">" +
-							"\n<handset_id/>" +
-							"\n<handset_submit_time/>" +
-							"\n<survey_id>"+zebra_survey_id+"</survey_id>" +
-							"\n<interviewer_id/>"+
-							"\n<location/>";
-					String replace_xform_str_1="formKey=\"new_form1\">";
-					String parsed_xform_str2=parsedStr.replaceFirst(replace_xform_str_1, add_xform_data_param1);
-					
-					String add_xform_data_param2="</xf:instance>" +
-							"\n\t<xf:bind nodeset=\"/new_form1/handset_id\" type=\"string\" jr:preload=\"property\" jr:preloadParams=\"deviceid\"/>" +
-							"\n\t<xf:bind nodeset=\"/new_form1/handset_submit_time\" type=\"dateTime\" jr:preload=\"timestamp\" jr:preloadParams=\"end\"/>"+
-							"\n\t<xf:bind nodeset=\"/new_form1/interviewer_id\" type=\"string\" required=\"true()\"/>"+							
-							"\n\t<xf:bind nodeset=\"/new_form1/location\" type=\"geopoint\" />";
-					String replace_xform_str_2="</xf:instance>";
-					String parsed_xform_str3=parsed_xform_str2.replaceFirst(replace_xform_str_2, add_xform_data_param2);
-					
-					String add_xform_data_param3="</xf:label>" +
-							"\n\t<xf:input ref=\"interviewer_id\">" +
-							"\n\t\t<xf:label>Interviewee Name or ID</xf:label>" +
-							"\n\t</xf:input>";
-					
-					String replace_xform_str3="</xf:label>";
-					
-					String parsed_xform_str4=parsed_xform_str3.replaceFirst(replace_xform_str3, add_xform_data_param3);
-					
-					//check for gps field
-					
-					String replace_xform_str_gps="type=\"xsd:string\" format=\"gps\"";
-					String add_xform_data_param4="type=\"geopoint\"";
-					String parsed_xform_str5_=parsed_xform_str4.replaceAll(replace_xform_str_gps, add_xform_data_param4);
-					
-					String replace_xform_str_gps_="format=\"gps\" type=\"xsd:string\"";
-					String add_xform_data_param4_="type=\"geopoint\"";
-					String parsed_xform_str5=parsed_xform_str5_.replaceAll(replace_xform_str_gps_, add_xform_data_param4_);
-					
-					
-					
-					//check for image field					
-					
-					String replace_xform_str_img="type=\"xsd:base64Binary\" format=\"image\"";
-					String add_xform_data_param5="type=\"base64Binary\"";
-					String parsed_xform_str6=parsed_xform_str5.replaceAll(replace_xform_str_img, add_xform_data_param5);
-									
-					
-					//check for video fields
-					String replace_xform_str_video="type=\"xsd:base64Binary\" format=\"video\"";
-					String add_xform_data_param6="type=\"base64Binary\"";
-					String parsed_xform_str7=parsed_xform_str6.replaceAll(replace_xform_str_video, add_xform_data_param6);
-					
-					//check for audio fields
-					String replace_xform_str_audio="type=\"xsd:base64Binary\" format=\"audio\"";
-					String add_xform_data_param7="type=\"base64Binary\"";
-					String parsed_xform_str8=parsed_xform_str7.replaceAll(replace_xform_str_audio, add_xform_data_param7);
-					
-					String replace_xform_str_grp="</xf:group>"+
-													"\n</xf:xforms>";
-					String add_xform_str_grp="<xf:input ref=\"location\">"+ 
-												"\n\t<xf:label>Enter the location</xf:label>"+ 
-												"\n\t</xf:input>"+
-												"\n\t</xf:group>"+
-												"\n\t</xf:xforms>";
-					String parsed_xform_str9=parsed_xform_str8.replaceAll(replace_xform_str_grp, add_xform_str_grp);
-					
-					System.out.println(parsed_xform_str9);
-					
-					//response.getWriter().write(parsed_xform_str9);
-					 * 
-					 */
-				}
-			}
-		}
-		catch(Exception e)
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	protected String replaceString(String search_str,String str_split[],String parsed_str,String type)
-	{
-		String lookup="bind id=\"";
-		String lookup_2="\" nodeset=\"";
-		int get_str_position=search_str.indexOf(lookup_2);
-		String new_str=search_str.substring(lookup.length(),get_str_position);
-		String lookup_replace_str_1="input bind=\""+new_str+"\"";
-		for(int j=0;j<str_split.length;j++)
-		{
-			if(str_split[j].contains(lookup_replace_str_1))
-			{
-				//add upload to input
-				String add_str_upload="";
-				String add_str_upload2="upload";
-				if(type.equals("image"))
-				{
-					add_str_upload="upload mediatype=\"image/*\" size=\"2345\"";
-				}
-				else if(type.equals("video"))
-				{
-					add_str_upload="upload mediatype=\"video/*\"";
-				}
-				else if(type.equals("audio"))
-				{
-					add_str_upload="upload mediatype=\"audio/*\"";
-				}
-				String replace_str_input="input";
-				String new_str_upload=str_split[j].replaceAll(replace_str_input, add_str_upload);									
-				String new_str_upload2=str_split[j+1].replaceAll(replace_str_input, add_str_upload2);									
-				parsed_str=parsed_str.replaceAll(str_split[j], new_str_upload);
-				parsed_str=parsed_str.replaceAll(str_split[j+1], new_str_upload2);
-			}
-		}
-		return parsed_str;
-	}
-	
-	public String getCharacterDataFromElement(Element element)
-	{
-		Node child=element.getFirstChild();
-		if(child instanceof CharacterData)
-		{
-			CharacterData cd=(CharacterData)child;
-			return cd.getData();
-		}
-		return "?";
-	}
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            String surveyId = request.getParameter("surveyid");
+            if (!surveyId.equals("")) {
+                // get the survey name
+                String survey_name = configuration.DbConnect.getSurveyName(surveyId);
+                // get this survey from zebrasurvey
+                String zebra_survey_id = configuration.DbConnect.getZebraSurveyId(surveyId);
+                String xform_data = configuration.DbConnect.getXformData(surveyId);
+                if (xform_data != null && xform_data.length() > 0) {
+                    // replace strings
+                    String replaceStr = "<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">";
+                    String addStr = "<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:jr=\"http://openrosa.org/javarosa\" xmlns:ev=\"http://www.w3.org/2001/xml-events\"><xf:head><xf:title>"
+                            + survey_name + "</xf:title></xf:head>";
+                    String parsedStr = xform_data.replaceFirst(replaceStr, addStr);
+                    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder db = dbf.newDocumentBuilder();
+                    InputSource is = new InputSource();
+                    is.setCharacterStream(new StringReader(parsedStr));
+                    Document doc = db.parse(is);
+
+                    NodeList xf_bind_nodes = doc.getElementsByTagName("xf:bind");
+
+                    ArrayList<String> upload_element = new ArrayList<String>();
+                    Hashtable<String, String> map = new Hashtable<String, String>();
+
+                    for (int j = 0; j < xf_bind_nodes.getLength(); j++) {
+                        Element xf_bind_element = (Element)xf_bind_nodes.item(j);
+                        if (xf_bind_element.hasAttribute("format")) {
+                            String attr_value = xf_bind_element.getAttribute("format");
+                            if (attr_value.equalsIgnoreCase("gps")) {
+                                xf_bind_element.setAttribute("type", "geopoint");
+                            }
+                            else if (attr_value.equalsIgnoreCase("image")) {
+                                xf_bind_element.setAttribute("type", "binary");
+                                upload_element.add(xf_bind_element.getAttribute("id"));
+                                map.put(xf_bind_element.getAttribute("id"), "image");
+                            }
+                            else if (attr_value.equalsIgnoreCase("video")) {
+                                xf_bind_element.setAttribute("type", "binary");
+                                upload_element.add(xf_bind_element.getAttribute("id"));
+                                map.put(xf_bind_element.getAttribute("id"), "video");
+                            }
+                            else if (attr_value.equalsIgnoreCase("audio")) {
+                                xf_bind_element.setAttribute("type", "binary");
+                                upload_element.add(xf_bind_element.getAttribute("id"));
+                                map.put(xf_bind_element.getAttribute("id"), "audio");
+                            }
+                        }
+                    }
+
+                    Enumeration<String> keys = map.keys();
+                    while (keys.hasMoreElements()) {
+                        String key = keys.nextElement();
+                        String value = map.get(key);
+                        NodeList xf_input_nodes = doc.getElementsByTagName("xf:input");
+                        for (int j = 0; j < xf_input_nodes.getLength(); j++) {
+                            Element xf_input_element = (Element)xf_input_nodes.item(j);
+                            String bind_attr_value = xf_input_element.getAttribute("bind");
+                            if (key.equalsIgnoreCase(bind_attr_value)) {
+                                if (value.equalsIgnoreCase("image")) {
+                                    xf_input_element.setAttribute("mediatype", "image/*");
+                                    xf_input_element.setAttribute("size", "2345");
+                                }
+                                else if (value.equalsIgnoreCase("video")) {
+                                    xf_input_element.setAttribute("mediatype", "video/*");
+                                }
+                                else if (value.equalsIgnoreCase("audio")) {
+                                    xf_input_element.setAttribute("mediatype", "audio/*");
+                                }
+                                doc.renameNode(xf_input_element, "", "xf:upload");
+                            }
+                        }
+                    }
+
+                    NodeList node_1 = doc.getElementsByTagName("xf:xforms");
+                    for (int i = 0; i < node_1.getLength(); i++) {
+                        Element element_1 = (Element)node_1.item(i);
+
+                        NodeList node_2 = element_1.getElementsByTagName("xf:model");
+                        for (int j = 0; j < node_2.getLength(); j++) {
+                            Element element_2 = (Element)node_2.item(j);
+
+                            Node bind_handset_id = doc.createElement("xf:bind");
+                            NamedNodeMap handset_id_attr = bind_handset_id.getAttributes();
+
+                            Attr nodeset_handset_id = doc.createAttribute("nodeset");
+                            nodeset_handset_id.setValue("/new_form1/handset_id");
+                            handset_id_attr.setNamedItem(nodeset_handset_id);
+
+                            Attr type_handset_id = doc.createAttribute("type");
+                            type_handset_id.setValue("string");
+                            handset_id_attr.setNamedItem(type_handset_id);
+
+                            Attr jr_handset_id = doc.createAttribute("jr:preload");
+                            jr_handset_id.setValue("property");
+                            handset_id_attr.setNamedItem(jr_handset_id);
+
+                            Attr jr_preload_handset_id = doc.createAttribute("jr:preloadParams");
+                            jr_preload_handset_id.setValue("deviceid");
+                            handset_id_attr.setNamedItem(jr_preload_handset_id);
+
+                            Attr id_handset_id = doc.createAttribute("id");
+                            id_handset_id.setValue("handset_id");
+                            handset_id_attr.setNamedItem(id_handset_id);
+
+                            element_2.appendChild(bind_handset_id);
+
+                            Node bind_handset_submit_time = doc.createElement("xf:bind");
+                            NamedNodeMap handset_submit_time_attr = bind_handset_submit_time.getAttributes();
+
+                            Attr nodeset_handset_submit_time = doc.createAttribute("nodeset");
+                            nodeset_handset_submit_time.setValue("/new_form1/handset_submit_time");
+                            handset_submit_time_attr.setNamedItem(nodeset_handset_submit_time);
+
+                            Attr type_handset_submit_time = doc.createAttribute("type");
+                            type_handset_submit_time.setValue("dateTime");
+                            handset_submit_time_attr.setNamedItem(type_handset_submit_time);
+
+                            Attr jr_handset_submit_time = doc.createAttribute("jr:preload");
+                            jr_handset_submit_time.setValue("timestamp");
+                            handset_submit_time_attr.setNamedItem(jr_handset_submit_time);
+
+                            Attr jr_preload_handset_submit_time = doc.createAttribute("jr:preloadParams");
+                            jr_preload_handset_submit_time.setValue("end");
+                            handset_submit_time_attr.setNamedItem(jr_preload_handset_submit_time);
+
+                            Attr id_handset_submit_time = doc.createAttribute("id");
+                            id_handset_submit_time.setValue("handset_submit_time");
+                            handset_submit_time_attr.setNamedItem(id_handset_submit_time);
+
+                            element_2.appendChild(bind_handset_submit_time);
+
+                            NodeList node_3 = element_2.getElementsByTagName("xf:instance");
+                            for (int x = 0; x < node_3.getLength(); x++) {
+                                Element element_3 = (Element)node_3.item(x);
+                                NodeList node_4 = element_3.getElementsByTagName("new_form1");
+                                for (int y = 0; y < node_4.getLength(); y++) {
+                                    Element element_4 = (Element)node_4.item(y);
+                                    Node handset_id = doc.createElement("handset_id");
+                                    Node handset_submit_time = doc.createElement("handset_submit_time");
+                                    Node interviewee_name = doc.createElement("interviewee_name");
+                                    Node location = doc.createElement("location");
+                                    Node xform_survey_id = doc.createElement("survey_id");
+                                    xform_survey_id.setTextContent(zebra_survey_id);
+                                    element_4.appendChild(handset_id);
+                                    element_4.appendChild(handset_submit_time);
+                                    element_4.appendChild(interviewee_name);
+                                    element_4.appendChild(location);
+                                    element_4.appendChild(xform_survey_id);
+                                }
+                            }
+                        }
+                    }
+
+                    Transformer transformer = TransformerFactory.newInstance().newTransformer();
+                    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                    StreamResult result = new StreamResult(new StringWriter());
+                    DOMSource source = new DOMSource(doc);
+                    transformer.transform(source, result);
+                    String xmlString = result.getWriter().toString();
+                    System.out.println(xmlString);
+                }
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
