@@ -45,7 +45,7 @@ public class formList extends HttpServlet {
                     if (configuration.DbConnect.zebraSurveyIdExists(pub_list.get(i))) {
                         String survey_name = configuration.DbConnect.getSurveyName(pub_list.get(i));
                         response.getWriter().write(
-                                "<form url=\"http://" + applab.getZebraUrl() + "/surveyList?surveyid=" + pub_list.get(i) + "\" >"
+                                "<form url=\"http://" + applab.getZebraUrl() + "/getForm?surveyid=" + pub_list.get(i) + "\" >"
                                         + survey_name + "</form>");
                     }
                 }
