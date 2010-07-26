@@ -1,3 +1,4 @@
+package applab.surveys.server;
 /*
 
 Copyright (C) 2010 Grameen Foundation

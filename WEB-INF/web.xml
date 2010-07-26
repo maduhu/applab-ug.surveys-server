@@ -7,17 +7,17 @@
    <servlet>
      <description>Receives a completed survey</description>
      <servlet-name>submitFormResponse</servlet-name>
-     <servlet-class>ProcessSubmission</servlet-class>
+     <servlet-class>applab.surveys.server.ProcessSubmission</servlet-class>
    </servlet>
    <servlet>
      <description>Lists all of the available survey forms</description>
      <servlet-name>getFormList</servlet-name>
-     <servlet-class>formList</servlet-class>
+     <servlet-class>applab.surveys.server.formList</servlet-class>
    </servlet>
    <servlet>
      <description>Returns the requested survey form</description>
      <servlet-name>getForm</servlet-name>
-     <servlet-class>GetForm</servlet-class>
+     <servlet-class>applab.surveys.server.GetForm</servlet-class>
    </servlet>
    <servlet>
      <servlet-name>getSub</servlet-name>
@@ -29,16 +29,16 @@
    </servlet>
    <servlet>
      <servlet-name>getXform</servlet-name>
-     <servlet-class>getXform</servlet-class>
+     <servlet-class>applab.surveys.server.getXform</servlet-class>
    </servlet>
    <servlet>
      <servlet-name>saveXform</servlet-name>
-     <servlet-class>saveXform</servlet-class>
+     <servlet-class>applab.surveys.server.saveXform</servlet-class>
    </servlet>
    <servlet>
      <description>Allows callers to perform a remote select call</description>
      <servlet-name>Select</servlet-name>
-     <servlet-class>Select</servlet-class>
+     <servlet-class>applab.surveys.server.Select</servlet-class>
    </servlet>
    
    <servlet-mapping>

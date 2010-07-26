@@ -12,36 +12,34 @@ License for the specific language governing permissions and limitations under
 the License.
  */
 
-package configuration;
+package applab.surveys.server;
 
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 
 import javax.xml.rpc.ServiceException;
 import com.sforce.soap.enterprise.*;
+import com.sforce.soap.enterprise.fault.InvalidIdFault;
+import com.sforce.soap.enterprise.fault.LoginFault;
 import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
 import com.sforce.soap.enterprise.sobject.*;
 
-public class sfConnect {
+import configuration.applabConfig;
+
+public class SalesforceProxy {
 
     static applabConfig applab = new applabConfig();
     private static SoapBindingStub binding;
 
-    public static void login() throws ServiceException {
+    public static void login() throws ServiceException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException {
         binding = (SoapBindingStub)new SforceServiceLocator().getSoap();
-        try {
-            LoginResult loginResult = binding.login(applab.getSalesForceUsername(), applab.getSalesForcePassword()
-                    + applab.getSalesForceToken());
+        LoginResult loginResult = binding.login(applab.getSalesForceUsername(), applab.getSalesForcePassword()
+                + applab.getSalesForceToken());
 
-            binding._setProperty(SoapBindingStub.ENDPOINT_ADDRESS_PROPERTY, loginResult.getServerUrl());
+        binding._setProperty(SoapBindingStub.ENDPOINT_ADDRESS_PROPERTY, loginResult.getServerUrl());
 
-            SessionHeader sh = new SessionHeader();
-            sh.setSessionId(loginResult.getSessionId());
-            binding.setHeader(new SforceServiceLocator().getServiceName().getNamespaceURI(), "SessionHeader", sh);
-        }
-        catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        SessionHeader sessionHeader = new SessionHeader(loginResult.getSessionId());
+        binding.setHeader(new SforceServiceLocator().getServiceName().getNamespaceURI(), "SessionHeader", sessionHeader);
     }
 
     public static boolean surveyIdExists(String survey_id) throws Exception {

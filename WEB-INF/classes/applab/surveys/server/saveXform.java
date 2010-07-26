@@ -1,3 +1,4 @@
+package applab.surveys.server;
 /*
 
 Copyright (C) 2010 Grameen Foundation
@@ -12,10 +13,9 @@ License for the specific language governing permissions and limitations under
 the License.
  */
 
+
 import javax.servlet.http.*;
-import javax.xml.parsers.*;
 import org.w3c.dom.*;
-import org.xml.sax.*;
 import java.io.*;
 import java.util.*;
 
@@ -36,8 +36,8 @@ public class saveXform extends HttpServlet {
         System.out.println(configuration.manipulation.replace(xform_data, "'", "\\'"));
         // get the survey name
         try {
-            configuration.sfConnect.login();
-            String surveyName = configuration.sfConnect.getSurveyName(survey_id);
+            SalesforceProxy.login();
+            String surveyName = SalesforceProxy.getSurveyName(survey_id);
             // check if id exists in zebrasurvey
             if (configuration.DbConnect.zebraSurveyIdExists(survey_id)) {
                 // System.out.println(xform_data);
@@ -48,7 +48,7 @@ public class saveXform extends HttpServlet {
                 this.createSurveyQuestions(zebra_survey_id, xform_data);
             }
             else {
-                if (configuration.sfConnect.surveyIdExists(survey_id)) {
+                if (SalesforceProxy.surveyIdExists(survey_id)) {
                     String creation_date = configuration.applabConfig.getDateTime();
                     configuration.DbConnect.saveXform(survey_id, xform_data, surveyName, creation_date);
                     // on saving
@@ -68,11 +68,7 @@ public class saveXform extends HttpServlet {
             Hashtable<String, String> zebraQuestions = configuration.DbConnect.getZebraSurveyQuestions(zebra_survey_id);
             Hashtable<String, String> saveQuestions = new Hashtable<String, String>();
             ArrayList<String> paramQtn = new ArrayList<String>();
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            DocumentBuilder db = dbf.newDocumentBuilder();
-            InputSource is = new InputSource();
-            is.setCharacterStream(new StringReader(xform_data));
-            Document doc = db.parse(is);
+            Document doc = XmlHelpers.parseXml(xform_data);
             NodeList nodes = doc.getElementsByTagName("xf:group");
             for (int i = 0; i < nodes.getLength(); i++) {
                 Element element = (Element)nodes.item(i);
@@ -147,6 +143,7 @@ public class saveXform extends HttpServlet {
                     }
                 }
             }
+
             Enumeration<String> oldKeys = zebraQuestions.keys();
             while (oldKeys.hasMoreElements()) {
                 String key = oldKeys.nextElement();

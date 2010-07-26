@@ -1,3 +1,4 @@
+package applab.surveys.server;
 /*
 
 Copyright (C) 2010 Grameen Foundation
@@ -25,10 +26,10 @@ public class formList extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {
         try {
             response.getWriter().write("<forms>");
-            configuration.sfConnect.login();
+            SalesforceProxy.login();
             // get the published survey
             System.out.println("KK");
-            ArrayList<String> pub_list = configuration.sfConnect.getPublishedSurveys();
+            ArrayList<String> pub_list = SalesforceProxy.getPublishedSurveys();
             // configuration.sfConnect.logout();
             if (pub_list.size() > 0) {
                 for (int i = 0; i < pub_list.size(); i++) {

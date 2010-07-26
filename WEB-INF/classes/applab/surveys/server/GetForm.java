@@ -1,3 +1,4 @@
+package applab.surveys.server;
 /*
 
 Copyright (C) 2010 Grameen Foundation
@@ -11,6 +12,7 @@ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 License for the specific language governing permissions and limitations under
 the License.
  */
+
 
 import javax.servlet.http.*;
 import java.util.*;
