@@ -4,84 +4,73 @@
    xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
    version="2.5">
 
-
    <servlet>
+     <description>Receives a completed survey</description>
      <servlet-name>submitFormResponse</servlet-name>
      <servlet-class>ProcessSubmission</servlet-class>
    </servlet>
-   
    <servlet>
-     <servlet-name>formL</servlet-name>
+     <description>Lists all of the available survey forms</description>
+     <servlet-name>getFormList</servlet-name>
      <servlet-class>formList</servlet-class>
    </servlet>
-   
    <servlet>
-     <servlet-name>stats</servlet-name>
-     <servlet-class>getStatistics</servlet-class>
-   </servlet>
-   
-   <servlet>
+     <description>Returns the requested survey form</description>
      <servlet-name>getForm</servlet-name>
      <servlet-class>GetForm</servlet-class>
    </servlet>
-   
    <servlet>
      <servlet-name>getSub</servlet-name>
      <servlet-class>getSubmissions</servlet-class>
    </servlet>
-   
    <servlet>
      <servlet-name>processSub</servlet-name>
      <servlet-class>processSubmissions</servlet-class>
    </servlet>
-   
    <servlet>
-     <servlet-name>xform</servlet-name>
+     <servlet-name>getXform</servlet-name>
      <servlet-class>getXform</servlet-class>
    </servlet>
-   
    <servlet>
-     <servlet-name>sform</servlet-name>
+     <servlet-name>saveXform</servlet-name>
      <servlet-class>saveXform</servlet-class>
+   </servlet>
+   <servlet>
+     <description>Allows callers to perform a remote select call</description>
+     <servlet-name>Select</servlet-name>
+     <servlet-class>Select</servlet-class>
    </servlet>
    
    <servlet-mapping>
      <servlet-name>submitFormResponse</servlet-name>
      <url-pattern>/submission</url-pattern>
    </servlet-mapping>
-   
    <servlet-mapping>
-     <servlet-name>xform</servlet-name>
-     <url-pattern>/getXform</url-pattern>
+     <servlet-name>getFormList</servlet-name>
+     <url-pattern>/formList</url-pattern>
    </servlet-mapping>
-   
-   <servlet-mapping>
-     <servlet-name>stats</servlet-name>
-     <url-pattern>/getStatistics</url-pattern>
-   </servlet-mapping>
-   
    <servlet-mapping>
      <servlet-name>getForm</servlet-name>
      <url-pattern>/getForm</url-pattern>
    </servlet-mapping>
- 
    <servlet-mapping>
      <servlet-name>getSub</servlet-name>
      <url-pattern>/getSubmissions</url-pattern>
    </servlet-mapping>
-   
    <servlet-mapping>
      <servlet-name>processSub</servlet-name>
      <url-pattern>/processSubmissions</url-pattern>
    </servlet-mapping>
-   
    <servlet-mapping>
-     <servlet-name>sform</servlet-name>
+     <servlet-name>getXform</servlet-name>
+     <url-pattern>/getXform</url-pattern>
+   </servlet-mapping>
+   <servlet-mapping>
+     <servlet-name>saveXform</servlet-name>
      <url-pattern>/saveXform</url-pattern>
    </servlet-mapping>
-   
    <servlet-mapping>
-     <servlet-name>formL</servlet-name>
-     <url-pattern>/formList</url-pattern>
+     <servlet-name>Select</servlet-name>
+     <url-pattern>/select</url-pattern>
    </servlet-mapping>
  </web-app>

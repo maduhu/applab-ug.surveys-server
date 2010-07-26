@@ -12,24 +12,14 @@ License for the specific language governing permissions and limitations under
 the License.
  */
 
-import java.io.*;
-import javax.servlet.*;
 import javax.servlet.http.*;
-import java.io.IOException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
-
-import javax.xml.rpc.ServiceException;
-import com.sforce.soap.enterprise.*;
-import com.sforce.soap.enterprise.sobject.*;
 
 import configuration.applabConfig;
 
 public class formList extends HttpServlet {
+    private static final long serialVersionUID = 1L;
 
-    private SoapBindingStub binding;
     applabConfig applab = new applabConfig();
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {

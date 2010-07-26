@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configurations>
-	<appsettings>
-		<zebra-username>zebra</zebra-username>
-		<zebra-password>zebra</zebra-password>
-		<salesforce-username>crmadmin@applab.org</salesforce-username>
-		<salesforce-password>applabug2010</salesforce-password>
-		<salesforce-token>nbOw4RzTYzsWLmViQpjx3IEnU</salesforce-token>
-		<zebra-url>192.168.1.21/yo</zebra-url>
-	</appsettings>
+  <appsettings>
+    <database-username>zebra</database-username>
+    <database-password>zebra</database-password>
+    <database-reader-username>zebra</database-reader-username>
+    <database-reader-password>zebra</database-reader-password>
+    <salesforce-username>crmadmin@applab.org</salesforce-username>
+    <salesforce-password>applabug2010</salesforce-password>
+    <salesforce-token>lCuGXxlQDQ2REgIBA6m5GoJUx</salesforce-token>
+    <host-url>192.168.1.21:8080/zebra</host-url>
+    <search-username>ycppquiz</search-username>
+    <search-password>ycppquiz</search-password>
+  </appsettings>
 </Configurations>

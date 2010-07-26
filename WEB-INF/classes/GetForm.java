@@ -12,17 +12,10 @@ License for the specific language governing permissions and limitations under
 the License.
  */
 
-import java.io.*;
-import javax.servlet.*;
 import javax.servlet.http.*;
 import java.util.*;
-import javax.xml.parsers.*;
-import javax.xml.transform.*;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.*;
-import org.xml.sax.*;
 
 /**
  * Server method that returns the XML for a survey
@@ -36,26 +29,26 @@ import org.xml.sax.*;
  * 
  */
 public class GetForm extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {
         try {
             String surveyId = request.getParameter("surveyid");
             if (!surveyId.equals("")) {
                 // get the survey name
-                String survey_name = configuration.DbConnect.getSurveyName(surveyId);
+                String surveyName = configuration.DbConnect.getSurveyName(surveyId);
+                
                 // get this survey from zebrasurvey
                 String zebra_survey_id = configuration.DbConnect.getZebraSurveyId(surveyId);
                 String xformData = configuration.DbConnect.getXformData(surveyId);
                 if (xformData != null && xformData.length() > 0) {
-                    // replace strings
-                    String replaceStr = "<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">";
-                    String addStr = "<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:jr=\"http://openrosa.org/javarosa\" xmlns:ev=\"http://www.w3.org/2001/xml-events\"><xf:head><xf:title>"
-                            + survey_name + "</xf:title></xf:head>";
-                    String parsedStr = xformData.replaceFirst(replaceStr, addStr);
-                    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-                    DocumentBuilder db = dbf.newDocumentBuilder();
-                    InputSource is = new InputSource();
-                    is.setCharacterStream(new StringReader(parsedStr));
-                    Document doc = db.parse(is);
+                    // fixup Purcforms generated data with a start tag that includes the survey name
+                    String designerGeneratedFormBeginning = "<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">";
+                    String targetFormBeginning = "<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:jr=\"http://openrosa.org/javarosa\" xmlns:ev=\"http://www.w3.org/2001/xml-events\"><xf:head><xf:title>"
+                            + surveyName + "</xf:title></xf:head>";
+                    xformData = xformData.replaceFirst(designerGeneratedFormBeginning, targetFormBeginning);
+                    
+                    Document doc = XmlHelpers.parseXml(xformData);
 
                     NodeList xf_bind_nodes = doc.getElementsByTagName("xf:bind");
 
@@ -191,12 +184,7 @@ public class GetForm extends HttpServlet {
                         }
                     }
 
-                    Transformer transformer = TransformerFactory.newInstance().newTransformer();
-                    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-                    StreamResult result = new StreamResult(new StringWriter());
-                    DOMSource source = new DOMSource(doc);
-                    transformer.transform(source, result);
-                    String xmlString = result.getWriter().toString();
+                    String xmlString = XmlHelpers.exportAsString(doc);
                     System.out.println(xmlString);
                 }
             }

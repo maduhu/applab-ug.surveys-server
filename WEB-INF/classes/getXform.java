@@ -16,6 +16,7 @@ import javax.servlet.http.*;
 import java.io.*;
 
 public class getXform extends HttpServlet {
+    private static final long serialVersionUID = 1L;
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String formId = request.getParameter("formId");

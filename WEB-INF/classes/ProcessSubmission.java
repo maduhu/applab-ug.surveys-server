@@ -1,7 +1,6 @@
 import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
-import javax.xml.parsers.*;
 import org.w3c.dom.*;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
@@ -28,12 +27,11 @@ public class ProcessSubmission extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         response.setContentType("text/html");
         // pessimistic default
-        int httpStatusCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
         response.setHeader("Location", request.getRequestURI());
         try {
             // we are only expecting multi-part content
             if (!ServletFileUpload.isMultipartContent(request)) {
-                httpStatusCode = HttpServletResponse.SC_BAD_REQUEST;
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "request must be MIME encoded");
                 return;
             }
             ServletFileUpload servletFileUpload = new ServletFileUpload(new DiskFileItemFactory());
@@ -42,17 +40,14 @@ public class ProcessSubmission extends HttpServlet {
 
             // store the paths to the attachments in attachment path
             HashMap<String, String> attachmentPaths = new HashMap<String, String>();
-            Iterator<?> it = fileList.iterator();
-            while (it.hasNext()) {
-                FileItem fileItem = (FileItem)it.next();
+            Iterator<?> fileIterator = fileList.iterator();
+            while (fileIterator.hasNext()) {
+                FileItem fileItem = (FileItem)fileIterator.next();
                 String contentType = fileItem.getContentType().toLowerCase(Locale.ENGLISH);
 
                 // survey answer content
                 if (contentType == "text/xml") {
-                    File temp = File.createTempFile("xmlFile", ".xml");
-                    fileItem.write(temp);
-                    DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-                    Document xmlDocument = builder.parse(temp);
+                    Document xmlDocument = XmlHelpers.parseXml(fileItem.getString());
                     surveyResponses = parseSurveySubmission(xmlDocument);
                 }
                 // attachments (TODO: open this further?)
@@ -66,18 +61,17 @@ public class ProcessSubmission extends HttpServlet {
 
             // now that we've processed all of the data, insert the contents into our database
             // and construct the HTTP response
-            httpStatusCode = storeSurveySubmission(surveyResponses, attachmentPaths);
+            int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths);
+            response.setStatus(httpResponseCode);
         }
         catch (Exception e) {
             e.printStackTrace();
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-        finally {
-            response.setStatus(httpStatusCode);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
-    private int storeSurveySubmission(HashMap<String, SurveyItemResponse> surveyResponses, HashMap<String, String> attachmentReferences) throws Exception {
+    private int storeSurveySubmission(HashMap<String, SurveyItemResponse> surveyResponses, HashMap<String, String> attachmentReferences)
+            throws Exception {
         int surveyId = Integer.parseInt(surveyResponses.get("survey_id").getEncodedAnswer(attachmentReferences));
         if (configuration.DbConnect.verifySurveyID(surveyId)) {
             // The following permanent fields should not be included in creating a hex string
@@ -145,7 +139,7 @@ public class ProcessSubmission extends HttpServlet {
         // grab everything after the forward slash and convert to file extension (e.g. image/gif -> .gif)
         // use everything before the forward slash and use it for our directory (e.g. image/gif -> survey_images)
         String contentType = attachment.getContentType();
-        
+
         int separatorIndex = contentType.lastIndexOf("/");
         assert (separatorIndex > 0 && separatorIndex < contentType.length()) : "callers should only pass valid content types";
 
@@ -156,9 +150,13 @@ public class ProcessSubmission extends HttpServlet {
         String attachmentReference = directoryName + new configuration.images().generateImageName() + fileExtension;
 
         String fullPath = this.getServletContext().getRealPath(attachmentReference);
-        attachment.write(new File(fullPath));
-        // TODO: we should store the full public path here, not the relative one. See
-        // what the above full path gets you
+        File targetFile = new File(fullPath);
+        
+        // create the directory if necessary
+        targetFile.mkdir();
+        attachment.write(targetFile);
+        
+        // TODO: we should store the full public path here, not the relative one. 
         attachmentReferences.put(attachment.getName(), attachmentReference);
     }
 
@@ -177,14 +175,11 @@ public class ProcessSubmission extends HttpServlet {
 
         // now parse the tree and populate surveyResponses with the raw data
         for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
-            switch (childNode.getNodeType()) {
-                case Node.ELEMENT_NODE:
-                    parseSurveySubmissionElement((Element)childNode, parsedSubmission, null);
-                    break;
-
-                default:
-                    // don't care about other types of nodes
-                    break;
+            if (childNode.getNodeType() == Node.ELEMENT_NODE) {
+                parseSurveySubmissionElement((Element)childNode, parsedSubmission, null);
+            }
+            else {
+                // don't care about other types of nodes
             }
         }
 

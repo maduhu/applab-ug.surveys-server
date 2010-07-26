@@ -45,23 +45,23 @@ public class applabConfig {
 			//convert the node into an element
 			Element app_element=(Element)app_node;
 			
-			//zebra username
-			NodeList zbr_user_list=app_element.getElementsByTagName("zebra-username");
+			//database username
+			NodeList zbr_user_list=app_element.getElementsByTagName("database-username");
 			Element zbr_user_element=(Element)zbr_user_list.item(0);
 			NodeList zbr_user_list_level1=zbr_user_element.getChildNodes();
-			keyvalues.put("zebra-username", ((Node)zbr_user_list_level1.item(0)).getNodeValue());
+			keyvalues.put("database-username", ((Node)zbr_user_list_level1.item(0)).getNodeValue());
 			
-			//zebra password
-			NodeList zbr_pwd_list=app_element.getElementsByTagName("zebra-password");
+			//database password
+			NodeList zbr_pwd_list=app_element.getElementsByTagName("database-password");
 			Element zbr_pwd_element=(Element)zbr_pwd_list.item(0);
 			NodeList zbr_pwd_list_level1=zbr_pwd_element.getChildNodes();
-			keyvalues.put("zebra-password", ((Node)zbr_pwd_list_level1.item(0)).getNodeValue());
+			keyvalues.put("database-password", ((Node)zbr_pwd_list_level1.item(0)).getNodeValue());
 			
 			//zebra ip url
-			NodeList zbr_url_list=app_element.getElementsByTagName("zebra-url");
+			NodeList zbr_url_list=app_element.getElementsByTagName("host-url");
 			Element zbr_url_element=(Element)zbr_url_list.item(0);
 			NodeList zbr_url_list_level1=zbr_url_element.getChildNodes();
-			keyvalues.put("zebra-url", ((Node)zbr_url_list_level1.item(0)).getNodeValue());		
+			keyvalues.put("host-url", ((Node)zbr_url_list_level1.item(0)).getNodeValue());		
 			
 			//salesforce username
 			NodeList sf_username_list=app_element.getElementsByTagName("salesforce-username");
@@ -97,17 +97,17 @@ public class applabConfig {
 	
 	public String getZebraUsername()
 	{
-		return keyvalues.get("zebra-username");
+		return keyvalues.get("database-username");
 	}
 	
 	public String getZebraPassword()
 	{
-		return keyvalues.get("zebra-password");
+		return keyvalues.get("database-password");
 	}
 	
 	public String getZebraUrl()
 	{
-		return keyvalues.get("zebra-url");
+		return keyvalues.get("host-url");
 	}
 	
 	public String getSalesForceUsername()
