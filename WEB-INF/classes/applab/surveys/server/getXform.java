@@ -21,7 +21,7 @@ public class getXform extends HttpServlet {
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String formId = request.getParameter("formId");
-        String xformData = configuration.DbConnect.getXformData(formId);
+        String xformData = DatabaseHelpers.getXformData(formId);
         response.getWriter().write(xformData);
     }
 }

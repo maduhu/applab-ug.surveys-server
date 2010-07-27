@@ -1,18 +1,18 @@
 package applab.surveys.server;
+
 /*
 
-Copyright (C) 2010 Grameen Foundation
-Licensed under the Apache License, Version 2.0 (the "License"); you may not
-use this file except in compliance with the License. You may obtain a copy of
-the License at
-http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-License for the specific language governing permissions and limitations under
-the License.
+ Copyright (C) 2010 Grameen Foundation
+ Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ use this file except in compliance with the License. You may obtain a copy of
+ the License at
+ http://www.apache.org/licenses/LICENSE-2.0
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ License for the specific language governing permissions and limitations under
+ the License.
  */
-
 
 import javax.servlet.http.*;
 import org.w3c.dom.*;
@@ -36,26 +36,25 @@ public class saveXform extends HttpServlet {
         System.out.println(configuration.manipulation.replace(xform_data, "'", "\\'"));
         // get the survey name
         try {
-            SalesforceProxy.login();
-            String surveyName = SalesforceProxy.getSurveyName(survey_id);
+            SalesforceProxy salesforceProxy = SalesforceProxy.login();
+            String surveyName = salesforceProxy.getSurveyName(survey_id);
             // check if id exists in zebrasurvey
-            if (configuration.DbConnect.zebraSurveyIdExists(survey_id)) {
+            if (DatabaseHelpers.zebraSurveyIdExists(survey_id)) {
                 // System.out.println(xform_data);
-                configuration.DbConnect.saveXform(survey_id, surveyName, xform_data);
+                DatabaseHelpers.saveXform(survey_id, surveyName, xform_data);
                 // on saving check with zebrasurveyquestions
-                int zebra_survey_id = Integer.parseInt(configuration.DbConnect.getZebraSurveyId(survey_id));
+                int zebra_survey_id = Integer.parseInt(DatabaseHelpers.getZebraSurveyId(survey_id));
                 // configuration.DbConnect.deleteSurveyFromSurveyQuestions(zebra_survey_id);
                 this.createSurveyQuestions(zebra_survey_id, xform_data);
             }
-            else {
-                if (SalesforceProxy.surveyIdExists(survey_id)) {
-                    String creation_date = configuration.applabConfig.getDateTime();
-                    configuration.DbConnect.saveXform(survey_id, xform_data, surveyName, creation_date);
-                    // on saving
-                    int zebra_survey_id = Integer.parseInt(configuration.DbConnect.getZebraSurveyId(survey_id));
-                    this.createSurveyQuestions(zebra_survey_id, xform_data);
-                }
+            else if (salesforceProxy.surveyIdExists(survey_id)) {
+                String creation_date = ApplabConfiguration.getDateTime();
+                DatabaseHelpers.saveXform(survey_id, xform_data, surveyName, creation_date);
+                // on saving
+                int zebra_survey_id = Integer.parseInt(DatabaseHelpers.getZebraSurveyId(survey_id));
+                this.createSurveyQuestions(zebra_survey_id, xform_data);
             }
+            salesforceProxy.logout();
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -65,7 +64,7 @@ public class saveXform extends HttpServlet {
     protected void createSurveyQuestions(int zebra_survey_id, String xform_data) {
         try {
             // check if survey exists in zebra
-            Hashtable<String, String> zebraQuestions = configuration.DbConnect.getZebraSurveyQuestions(zebra_survey_id);
+            Hashtable<String, String> zebraQuestions = DatabaseHelpers.getZebraSurveyQuestions(zebra_survey_id);
             Hashtable<String, String> saveQuestions = new Hashtable<String, String>();
             ArrayList<String> paramQtn = new ArrayList<String>();
             Document doc = XmlHelpers.parseXml(xform_data);
@@ -155,26 +154,26 @@ public class saveXform extends HttpServlet {
                 }
                 if (cursor == 0) {
                     // this parameter was deleted during the design
-                    if (!configuration.DbConnect.surveyQuestionHasSubmissions(zebra_survey_id, key)) {
-                        configuration.DbConnect.deleteSurveyQuestion(zebra_survey_id, key);
+                    if (!DatabaseHelpers.surveyQuestionHasSubmissions(zebra_survey_id, key)) {
+                        DatabaseHelpers.deleteSurveyQuestion(zebra_survey_id, key);
                     }
                 }
             }
             Enumeration<String> keys = saveQuestions.keys();
             while (keys.hasMoreElements()) {
                 String key = keys.nextElement();
-                if (configuration.DbConnect.verifySurveyField(key, zebra_survey_id)) {
-                    if (!configuration.DbConnect.surveyQuestionHasSubmissions(zebra_survey_id, key)) {
+                if (DatabaseHelpers.verifySurveyField(key, zebra_survey_id)) {
+                    if (!DatabaseHelpers.surveyQuestionHasSubmissions(zebra_survey_id, key)) {
                         // compare the questions
                         if (!saveQuestions.get(key).equals(zebraQuestions.get(key))) {
                             // update the question only
-                            configuration.DbConnect.updateSurveyQuestion(key, saveQuestions.get(key), zebra_survey_id);
+                            DatabaseHelpers.updateSurveyQuestion(key, saveQuestions.get(key), zebra_survey_id);
                         }
                     }
                 }
                 else {
                     // does not exist.
-                    configuration.DbConnect.saveZebraSurveyQuestions(zebra_survey_id, saveQuestions.get(key), key);
+                    DatabaseHelpers.saveZebraSurveyQuestions(zebra_survey_id, saveQuestions.get(key), key);
                 }
             }
         }

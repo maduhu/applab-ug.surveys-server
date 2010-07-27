@@ -5,11 +5,11 @@ import junit.framework.TestCase;
 
 
 public class TestSurveySubmission extends TestCase {
-    private int x = 1; 
-    private int y = 1; 
+    @Test public void testSingleAnswerParsing() { 
+        // process submission and assert bits about the results
+    } 
 
-    @Test public void testAddition() { 
-        int z = x + y; 
-        assertEquals(2, z); 
+    @Test public void testRepeatAnswerParsing() { 
+        // process submission and assert bits about the results
     } 
 }

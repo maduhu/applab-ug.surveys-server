@@ -38,11 +38,11 @@ public class GetForm extends HttpServlet {
             String surveyId = request.getParameter("surveyid");
             if (!surveyId.equals("")) {
                 // get the survey name
-                String surveyName = configuration.DbConnect.getSurveyName(surveyId);
+                String surveyName = DatabaseHelpers.getSurveyName(surveyId);
                 
                 // get this survey from zebrasurvey
-                String zebra_survey_id = configuration.DbConnect.getZebraSurveyId(surveyId);
-                String xformData = configuration.DbConnect.getXformData(surveyId);
+                String zebra_survey_id = DatabaseHelpers.getZebraSurveyId(surveyId);
+                String xformData = DatabaseHelpers.getXformData(surveyId);
                 if (xformData != null && xformData.length() > 0) {
                     // fixup Purcforms generated data with a start tag that includes the survey name
                     String designerGeneratedFormBeginning = "<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">";

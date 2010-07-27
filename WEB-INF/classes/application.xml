@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+  <comment>Configuration information for applab servers</comment>
+  
+  <entry key="database-username">zebra</entry>
+  <entry key="database-password">zebra</entry>
+  <entry key="database-reader-username">reader</entry>
+  <entry key="database-reader-password">r3ad3r12#</entry>
+
+  <!-- use crmadmin@applab.org in production -->
+  <entry key="salesforce-username">crmadmin@applab.org.ckwtest</entry>
+  <entry key="salesforce-password">applabug2010</entry>
+  <!-- use lCuGXxlQDQ2REgIBA6m5GoJUx in production -->
+  <entry key="salesforce-token">rzNlXfhzyHZMz0qrawVHnhLG</entry>
+
+  <entry key="host-url">applab.yo.co.ug:8888/zebra</entry>
+  <entry key="search-username">ycppquiz</entry>
+  <entry key="search-password">ycppquiz</entry>
+</properties>

@@ -8,7 +8,6 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.*;
 
-import configuration.applabConfig;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -75,7 +74,7 @@ public class ProcessSubmission extends HttpServlet {
     private int storeSurveySubmission(HashMap<String, SurveyItemResponse> surveyResponses, HashMap<String, String> attachmentReferences)
             throws Exception {
         int surveyId = Integer.parseInt(surveyResponses.get("survey_id").getEncodedAnswer(attachmentReferences));
-        if (configuration.DbConnect.verifySurveyID(surveyId)) {
+        if (DatabaseHelpers.verifySurveyID(surveyId)) {
             // The following permanent fields should not be included in creating a hex string
             String handsetSubmissionTimestamp = surveyResponses.remove("handset_submit_time").getEncodedAnswer(attachmentReferences);
             String surveyLocation = surveyResponses.get("location").getEncodedAnswer(attachmentReferences);
@@ -102,7 +101,7 @@ public class ProcessSubmission extends HttpServlet {
                 // the question name is used as our column names for survey answers
                 String answerColumn = surveyAnswer.getKey();
                 // verify that these questions have been created
-                if (configuration.DbConnect.verifySurveyField(answerColumn, surveyId)) {
+                if (DatabaseHelpers.verifySurveyField(answerColumn, surveyId)) {
 
                     answerColumnsCommandText += "," + surveyAnswer.getKey();
                     answerValueCommandText += ",'" + surveyAnswer.getValue().getEncodedAnswer(attachmentReferences) + "'";
@@ -111,7 +110,7 @@ public class ProcessSubmission extends HttpServlet {
 
             // make sure we have valid questions
             if (answerColumnsCommandText.length() > 0) {
-                String currentTime = applabConfig.getDateTime();
+                String currentTime = ApplabConfiguration.getDateTime();
                 StringBuilder commandText = new StringBuilder();
                 commandText.append("insert into zebrasurveysubmissions ");
                 commandText.append("survey_id,server_entry_time,handset_submit_time,handset_id,interviewee_name,result_hash,location");
@@ -125,7 +124,7 @@ public class ProcessSubmission extends HttpServlet {
                 commandText.append(",'" + duplicateDetectionHash + "'");
                 commandText.append(",'" + surveyLocation + "'");
                 commandText.append(answerValueCommandText + ")");
-                if (configuration.DbConnect.postSubmission(commandText.toString())) {
+                if (DatabaseHelpers.postSubmission(commandText.toString())) {
                     return HttpServletResponse.SC_CREATED;
                 }
                 else {

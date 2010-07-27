@@ -12,36 +12,74 @@ License for the specific language governing permissions and limitations under
 the License.
  */
 
-package configuration;
+package applab.surveys.server;
 
 import java.sql.*;
 import java.util.*;
 
-public class DbConnect {
+
+public class DatabaseHelpers {
 
     final static String JDBC_DRIVER = "com.mysql.jdbc.Driver";
-    final static String DATABASE_URL = "jdbc:mysql://localhost:3306/zebra";
-    static applabConfig applab = new applabConfig();
 
+    static String getDatabaseUrl(DatabaseId targetDatabase) {
+        String SURVEY_DATABASE_URL = "jdbc:mysql://localhost:3306/zebra";
+        String SEARCH_DATABASE_URL = "jdbc:mysql://localhost:3306/ycppquiz";
+        
+        switch (targetDatabase) {
+            case Search:
+                return SEARCH_DATABASE_URL;
+                
+            case Surveys:
+                return SURVEY_DATABASE_URL;
+        }
+        
+        return "";
+    }
+    
+    static String getDatabaseUsername(DatabaseId targetDatabase) {
+        switch (targetDatabase) {
+            case Search:
+                return ApplabConfiguration.getSearchUsername();
+                
+            case Surveys:
+                return ApplabConfiguration.getSurveysUsername();
+        }
+        
+        return "";
+    }
+    
+    static String getDatabasePassword(DatabaseId targetDatabase) {
+        switch (targetDatabase) {
+            case Search:
+                return ApplabConfiguration.getSearchPassword();
+                
+            case Surveys:
+                return ApplabConfiguration.getSurveysPassword();
+        }
+        
+        return "";
+    }
+    
     // helper function to create a connection to our local database
-    public static Connection createConnection() throws ClassNotFoundException, SQLException {
+    public static Connection createConnection(DatabaseId targetDatabase) throws ClassNotFoundException, SQLException {
         // make sure the JDBC driver is loaded into memory
         Class.forName(JDBC_DRIVER);
-        return DriverManager.getConnection(DATABASE_URL, applab.getZebraUsername(), applab.getZebraPassword());
+        return DriverManager.getConnection(getDatabaseUrl(targetDatabase), getDatabaseUsername(targetDatabase), getDatabasePassword(targetDatabase));
     }
 
     // like createConnection, except it uses a read-only account
-    public static Connection createReaderConnection() throws ClassNotFoundException, SQLException {
+    public static Connection createReaderConnection(DatabaseId targetDatabase) throws ClassNotFoundException, SQLException {
         // make sure the JDBC driver is loaded into memory
         Class.forName(JDBC_DRIVER);
-        return DriverManager.getConnection(DATABASE_URL, applab.getZebraUsername(), applab.getZebraPassword());
+        return DriverManager.getConnection(getDatabaseUrl(targetDatabase), ApplabConfiguration.getReaderUsername(), ApplabConfiguration.getReaderPassword());
     }
 
     public static boolean verifySurveyID(int survey_id) {
         try {
-            Connection con = createConnection();
+            Connection con = createReaderConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "Select id from zebrasurvey where id=" + survey_id;
+            String sqlQuery = "SELECT id from zebrasurvey where id=" + survey_id;
             ResultSet resultSet = stmt.executeQuery(sqlQuery);
             while (resultSet.next()) {
                 int surveyID = Integer.parseInt(resultSet.getString("id"));
@@ -60,9 +98,9 @@ public class DbConnect {
 
     public static boolean zebraSurveyIdExists(String survey_id) {
         try {
-            Connection con = createConnection();
+            Connection con = createReaderConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "Select survey_id from zebrasurvey where survey_id='" + survey_id + "'";
+            String sqlQuery = "SELECT survey_id from zebrasurvey where survey_id='" + survey_id + "'";
             ResultSet resultSet = stmt.executeQuery(sqlQuery);
             while (resultSet.next()) {
                 String surveyID = resultSet.getString("survey_id");
@@ -81,9 +119,9 @@ public class DbConnect {
 
     public static String getSurveyName(String survey_id) {
         try {
-            Connection con = createConnection();
+            Connection con = createReaderConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "select survey_name from zebrasurvey where survey_id='" + survey_id + "'";
+            String sqlQuery = "SELECT survey_name from zebrasurvey where survey_id='" + survey_id + "'";
             ResultSet resultSet = stmt.executeQuery(sqlQuery);
             while (resultSet.next()) {
                 String survey_name = resultSet.getString("survey_name");
@@ -100,9 +138,9 @@ public class DbConnect {
 
     public static String getZebraSurveyId(String salesforce_survey_id) {
         try {
-            Connection con = createConnection();
+            Connection con = createReaderConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "select id from zebrasurvey where survey_id='" + salesforce_survey_id + "'";
+            String sqlQuery = "SELECT id from zebrasurvey where survey_id='" + salesforce_survey_id + "'";
             ResultSet resultSet = stmt.executeQuery(sqlQuery);
             while (resultSet.next()) {
                 String xform_data = resultSet.getString("id");
@@ -120,9 +158,9 @@ public class DbConnect {
     public static Hashtable<String, String> getSurveyQuestionParameter(int zebra_survey_id) {
         Hashtable<String, String> questionAnswer = new Hashtable<String, String>();
         try {
-            Connection con = createConnection();
+            Connection con = createReaderConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "select xform_param_name,xform_param_var from zebrasurveyquestions where survey_id=" + zebra_survey_id;
+            String sqlQuery = "SELECT xform_param_name,xform_param_var from zebrasurveyquestions where survey_id=" + zebra_survey_id;
             ResultSet resultSet = stmt.executeQuery(sqlQuery);
             while (resultSet.next()) {
                 questionAnswer.put(resultSet.getString("xform_param_name"), resultSet.getString("xform_param_var"));
@@ -140,9 +178,9 @@ public class DbConnect {
         Hashtable<Integer, String[]> answer = new Hashtable<Integer, String[]>();
         String split[] = parameter.split(",");
         try {
-            Connection con = createConnection();
+            Connection con = createReaderConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "select " + parameter + " from zebrasurveysubmissions where survey_id=" + zebra_survey_id
+            String sqlQuery = "SELECT " + parameter + " from zebrasurveysubmissions where survey_id=" + zebra_survey_id
                     + " and survey_status='" + status + "'";
             ResultSet resultSet = stmt.executeQuery(sqlQuery);
             int cursor = 0;
@@ -163,9 +201,9 @@ public class DbConnect {
 
     public static String getXformData(String survey_id) {
         try {
-            Connection con = createConnection();
+            Connection con = createReaderConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "select xform from zebrasurvey where survey_id='" + survey_id + "'";
+            String sqlQuery = "SELECT xform from zebrasurvey where survey_id='" + survey_id + "'";
             ResultSet resultSet = stmt.executeQuery(sqlQuery);
             while (resultSet.next()) {
                 String xform_data = resultSet.getString("xform");
@@ -182,9 +220,9 @@ public class DbConnect {
 
     public static boolean updateSurveySubmissionStatus(int survey_submission_id, String survey_status) {
         try {
-            Connection con = createConnection();
+            Connection con = createConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "update zebrasurveysubmissions set survey_status='" + survey_status + "' where id=" + survey_submission_id;
+            String sqlQuery = "UPDATE zebrasurveysubmissions set survey_status='" + survey_status + "' where id=" + survey_submission_id;
             stmt.executeUpdate(sqlQuery);
             stmt.close();
             con.close();
@@ -198,9 +236,9 @@ public class DbConnect {
 
     public static boolean verifySurveyField(String xform_param_var, int surveyID) {
         try {
-            Connection con = createConnection();
+            Connection con = createReaderConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "Select xform_param_var from zebrasurveyquestions where xform_param_var='" + xform_param_var
+            String sqlQuery = "SELECT xform_param_var from zebrasurveyquestions where xform_param_var='" + xform_param_var
                     + "' and survey_id=" + surveyID;
             ResultSet resultSet = stmt.executeQuery(sqlQuery);
             while (resultSet.next()) {
@@ -223,7 +261,7 @@ public class DbConnect {
      */
     public static boolean postSubmission(String sqlQuery) {
         try {
-            Connection connection = createConnection();
+            Connection connection = createConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             statement.executeUpdate(sqlQuery);
             statement.close();
@@ -238,9 +276,9 @@ public class DbConnect {
 
     public static boolean saveXform(String survey_id, String survey_name, String xform_data) {
         try {
-            Connection con = createConnection();
+            Connection con = createConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "update zebrasurvey set survey_name='" + survey_name + "',xform='" + xform_data + "' where survey_id='"
+            String sqlQuery = "UPDATE zebrasurvey set survey_name='" + survey_name + "',xform='" + xform_data + "' where survey_id='"
                     + survey_id + "'";
             stmt.executeUpdate(sqlQuery);
             stmt.close();
@@ -255,9 +293,9 @@ public class DbConnect {
 
     public static boolean saveXform(String survey_id, String xform_data, String surveyName, String creationDate) {
         try {
-            Connection con = createConnection();
+            Connection con = createConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "insert into zebrasurvey (survey_name,survey_id,created_at,xform) values ('" + surveyName + "','" + survey_id
+            String sqlQuery = "INSERT into zebrasurvey (survey_name,survey_id,created_at,xform) values ('" + surveyName + "','" + survey_id
                     + "','" + creationDate + "','" + xform_data + "')";
 
             stmt.executeUpdate(sqlQuery);
@@ -273,9 +311,9 @@ public class DbConnect {
 
     public static boolean saveZebraSurveyQuestions(int survey_id, String xform_param_name, String xform_param_var) {
         try {
-            Connection con = createConnection();
+            Connection con = createConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "Insert into zebrasurveyquestions (survey_id,xform_param_name,xform_param_var,xform_param_options) values ("
+            String sqlQuery = "INSERT into zebrasurveyquestions (survey_id,xform_param_name,xform_param_var,xform_param_options) values ("
                     + survey_id + ",'" + xform_param_name + "','" + xform_param_var + "','')";
             stmt.executeUpdate(sqlQuery);
             stmt.close();
@@ -290,9 +328,9 @@ public class DbConnect {
 
     public static boolean deleteSurveyFromSurveyQuestions(int survey_id) {
         try {
-            Connection con = createConnection();
+            Connection con = createConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "Delete from zebrasurveyquestions where survey_id=" + survey_id;
+            String sqlQuery = "DELETE from zebrasurveyquestions where survey_id=" + survey_id;
             stmt.executeUpdate(sqlQuery);
             stmt.close();
             con.close();
@@ -306,9 +344,9 @@ public class DbConnect {
 
     public static int getNumberOfSubmissions(int zebra_survey_id, String survey_status) {
         try {
-            Connection con = createConnection();
+            Connection con = createReaderConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "select count(survey_status) as status from zebrasurveysubmissions where survey_status='" + survey_status
+            String sqlQuery = "SELECT count(survey_status) as status from zebrasurveysubmissions where survey_status='" + survey_status
                     + "' and survey_id=" + zebra_survey_id;
             ResultSet resultSet = stmt.executeQuery(sqlQuery);
             while (resultSet.next()) {
@@ -327,7 +365,7 @@ public class DbConnect {
     public static Hashtable<String, String> getZebraSurveyQuestions(int zebra_survey_id) {
         Hashtable<String, String> questions = new Hashtable<String, String>();
         try {
-            Connection con = createConnection();
+            Connection con = createReaderConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
             String sqlQuery = "select xform_param_name,xform_param_var from zebrasurveyquestions where survey_id=" + zebra_survey_id;
             ResultSet resultSet = stmt.executeQuery(sqlQuery);
@@ -347,9 +385,9 @@ public class DbConnect {
 
     public static String updateSurveyQuestion(String xform_param_var, String xform_param_name, int zebra_survey_id) {
         try {
-            Connection con = createConnection();
+            Connection con = createConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "update zebrasurveyquestions set xform_param_name='" + xform_param_name + "' where survey_id="
+            String sqlQuery = "UPDATE zebrasurveyquestions set xform_param_name='" + xform_param_name + "' where survey_id="
                     + zebra_survey_id + " and xform_param_var='" + xform_param_var + "'";
             stmt.executeUpdate(sqlQuery);
             stmt.close();
@@ -364,9 +402,9 @@ public class DbConnect {
 
     public static boolean surveyQuestionHasSubmissions(int zebra_survey_id, String parameter) {
         try {
-            Connection con = createConnection();
+            Connection con = createReaderConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "select " + parameter + " from zebrasurveysubmissions where survey_id=" + zebra_survey_id;
+            String sqlQuery = "SELECT " + parameter + " from zebrasurveysubmissions where survey_id=" + zebra_survey_id;
             ResultSet resultSet = stmt.executeQuery(sqlQuery);
             try {
                 while (resultSet.next()) {
@@ -388,9 +426,9 @@ public class DbConnect {
 
     public static boolean deleteSurveyQuestion(int zebra_survey_id, String parameter) {
         try {
-            Connection con = createConnection();
+            Connection con = createConnection(DatabaseId.Surveys);
             Statement stmt = con.createStatement();
-            String sqlQuery = "delete from zebrasurveyquestions where xform_param_var='" + parameter + "' and survey_id=" + zebra_survey_id;
+            String sqlQuery = "DELETE from zebrasurveyquestions where xform_param_var='" + parameter + "' and survey_id=" + zebra_survey_id;
             stmt.executeUpdate(sqlQuery);
             stmt.close();
             con.close();

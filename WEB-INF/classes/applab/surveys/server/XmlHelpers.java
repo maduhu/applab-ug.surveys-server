@@ -1,5 +1,6 @@
 package applab.surveys.server;
 import java.io.IOException;
+import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 
@@ -26,8 +27,15 @@ public class XmlHelpers {
      * Convert the given string into an XML DOM
      */
     public static Document parseXml(String xmlString) throws SAXException, IOException, ParserConfigurationException {
+        return parseXml(new StringReader(xmlString));
+    }
+
+    /**
+     * Convert the given reader into an XML DOM
+     */
+    public static Document parseXml(Reader reader) throws SAXException, IOException, ParserConfigurationException {
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-        InputSource inputSource = new InputSource(new StringReader(xmlString));
+        InputSource inputSource = new InputSource(reader);
         return documentBuilder.parse(inputSource);
     }
 

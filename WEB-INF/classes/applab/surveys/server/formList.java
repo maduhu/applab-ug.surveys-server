@@ -16,27 +16,23 @@ the License.
 import javax.servlet.http.*;
 import java.util.ArrayList;
 
-import configuration.applabConfig;
 
 public class formList extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
-    applabConfig applab = new applabConfig();
-
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {
         try {
             response.getWriter().write("<forms>");
-            SalesforceProxy.login();
+            SalesforceProxy salesforceProxy = SalesforceProxy.login();
+
             // get the published survey
-            System.out.println("KK");
-            ArrayList<String> pub_list = SalesforceProxy.getPublishedSurveys();
-            // configuration.sfConnect.logout();
+            ArrayList<String> pub_list = salesforceProxy.getPublishedSurveys();
             if (pub_list.size() > 0) {
                 for (int i = 0; i < pub_list.size(); i++) {
-                    if (configuration.DbConnect.zebraSurveyIdExists(pub_list.get(i))) {
-                        String survey_name = configuration.DbConnect.getSurveyName(pub_list.get(i));
+                    if (DatabaseHelpers.zebraSurveyIdExists(pub_list.get(i))) {
+                        String survey_name = DatabaseHelpers.getSurveyName(pub_list.get(i));
                         response.getWriter().write(
-                                "<form url=\"http://" + applab.getZebraUrl() + "/getForm?surveyid=" + pub_list.get(i) + "\" >"
+                                "<form url=\"http://" + ApplabConfiguration.getHostUrl() + "/getForm?surveyid=" + pub_list.get(i) + "\" >"
                                         + survey_name + "</form>");
                     }
                 }
@@ -45,6 +41,7 @@ public class formList extends HttpServlet {
                 response.getWriter().write("<form>Don't Click</form>");
             }
             response.getWriter().write("</forms>");
+            salesforceProxy.logout();
         }
         catch (Exception e) {
             e.printStackTrace();

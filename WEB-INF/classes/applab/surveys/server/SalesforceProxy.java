@@ -24,55 +24,52 @@ import com.sforce.soap.enterprise.fault.LoginFault;
 import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
 import com.sforce.soap.enterprise.sobject.*;
 
-import configuration.applabConfig;
 
 public class SalesforceProxy {
+    private SoapBindingStub binding;
 
-    static applabConfig applab = new applabConfig();
-    private static SoapBindingStub binding;
+    private SalesforceProxy() throws ServiceException {
+        // only called from SalesforceProxy.login()
+        this.binding = (SoapBindingStub)new SforceServiceLocator().getSoap();
+    }
 
-    public static void login() throws ServiceException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException {
-        binding = (SoapBindingStub)new SforceServiceLocator().getSoap();
-        LoginResult loginResult = binding.login(applab.getSalesForceUsername(), applab.getSalesForcePassword()
-                + applab.getSalesForceToken());
+    public static SalesforceProxy login() throws ServiceException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException {
+        SalesforceProxy proxy = new SalesforceProxy();
+        LoginResult loginResult = proxy.binding.login(ApplabConfiguration.getSalesforceUsername(), ApplabConfiguration.getSalesforcePassword()
+                + ApplabConfiguration.getSalesforceToken());
 
-        binding._setProperty(SoapBindingStub.ENDPOINT_ADDRESS_PROPERTY, loginResult.getServerUrl());
+        proxy.binding._setProperty(SoapBindingStub.ENDPOINT_ADDRESS_PROPERTY, loginResult.getServerUrl());
 
         SessionHeader sessionHeader = new SessionHeader(loginResult.getSessionId());
-        binding.setHeader(new SforceServiceLocator().getServiceName().getNamespaceURI(), "SessionHeader", sessionHeader);
+        proxy.binding.setHeader(new SforceServiceLocator().getServiceName().getNamespaceURI(), "SessionHeader", sessionHeader);
+        return proxy;
     }
 
-    public static boolean surveyIdExists(String survey_id) throws Exception {
-        QueryResult query = binding.query("Select Name from Survey__c where Name='" + survey_id + "'");
+    public boolean surveyIdExists(String survey_id) throws Exception {
+        QueryResult query = this.binding.query("Select Name from Survey__c where Name='" + survey_id + "'");
+        return (query.getSize() == 1);
+    }
+
+    public String getSurveyName(String survey_id) throws Exception {
+        QueryResult query = this.binding.query("Select Survey_Name__c from Survey__c where Name='" + survey_id + "'");
         if (query.getSize() == 1) {
-            return true;
+            Survey__c survey = (Survey__c)query.getRecords(0);
+            return survey.getSurvey_Name__c();
         }
-        return false;
+        return "Not Available";
     }
 
-    public static String getSurveyName(String survey_id) throws Exception {
-        QueryResult query = binding.query("Select Survey_Name__c from Survey__c where Name='" + survey_id + "'");
-        if (query.getSize() == 1) {
-            Survey__c s = (Survey__c)query.getRecords(0);
-            return s.getSurvey_Name__c();
+    public ArrayList<String> getPublishedSurveys() throws Exception {
+        QueryResult query = this.binding.query("select Name from Survey__c where Survey_Status__c = 'Published'");
+        ArrayList<String> surveyNames = new ArrayList<String>();
+        for (int i = 0; i < query.getSize(); i++) {
+            Survey__c survey = (Survey__c)query.getRecords(i);
+            surveyNames.add(survey.getName());
         }
-        return "Not Avaliable";
+        return surveyNames;
     }
 
-    public static ArrayList<String> getPublishedSurveys() throws Exception {
-        QueryResult query = binding.query("select Name from Survey__c where Survey_Status__c = 'Published'");
-        if (query.getSize() > 0) {
-            ArrayList<String> surveyNames = new ArrayList<String>();
-            for (int i = 0; i < query.getSize(); i++) {
-                Survey__c s = (Survey__c)query.getRecords(i);
-                surveyNames.add(s.getName());
-            }
-            return surveyNames;
-        }
-        return null;
-    }
-
-    public static void logout() throws UnexpectedErrorFault, RemoteException {
-        binding.logout();
+    public void logout() throws UnexpectedErrorFault, RemoteException {
+        this.binding.logout();
     }
 }
