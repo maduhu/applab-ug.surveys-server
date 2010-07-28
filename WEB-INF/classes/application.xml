@@ -3,8 +3,8 @@
 <properties>
   <comment>Configuration information for applab servers</comment>
   
-  <entry key="database-username">zebra</entry>
-  <entry key="database-password">zebra</entry>
+  <entry key="surveys-username">zebra</entry>
+  <entry key="surveys-password">zebra</entry>
   <entry key="database-reader-username">reader</entry>
   <entry key="database-reader-password">r3ad3r12#</entry>
 

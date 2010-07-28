@@ -15,7 +15,7 @@ public class Select extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
     private final static String NAMESPACE = "http://schemas.applab.org/2010/07";
-    private final static String SELECT_RESPONSE_ELEMENT_NAME = "SelectResponse";
+    private final static String SELECT_REQUEST_ELEMENT_NAME = "SelectRequest";
     private final static String TARGET_ATTRIBUTE_NAME = "target";
 
     // given a post body like:
@@ -35,11 +35,13 @@ public class Select extends HttpServlet {
     // Possible mitigations: HTTP auth, HTTPS, closed query space
     protected void doPost(HttpServletRequest request, HttpServletResponse response) {
         try {
-            SelectRequest parsedRequest = parseRequest(XmlHelpers.parseXml(request.getReader()));
+            Document requestXml = XmlHelpers.parseXml(request.getReader());
+            SelectRequest parsedRequest = parseRequest(requestXml);
             String selectCommandText = parsedRequest.getSelectText();
             if (selectCommandText.length() == 0) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST,
-                        "Expect a request of the form <SelectRequest>SQL command text</SelectRequest>");
+                response
+                        .sendError(HttpServletResponse.SC_BAD_REQUEST,
+                                "Expect a request of the form <SelectRequest xmlns=\"http://schemas.applab.org/2010/07\">SQL command text</SelectRequest>");
                 return;
             }
 
@@ -57,7 +59,9 @@ public class Select extends HttpServlet {
             int columnCount = columnMetadata.getColumnCount();
             while (resultSet.next()) {
                 responseStream.print("<row>");
-                for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                
+                // JDBC references are 1-based, not 0-based
+                for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
                     String columnName = columnMetadata.getColumnName(columnIndex);
                     responseStream.print("<" + columnName + ">");
                     responseStream.print(resultSet.getString(columnIndex));
@@ -71,9 +75,11 @@ public class Select extends HttpServlet {
             databaseConnection.close();
         }
         catch (Exception exception) {
-            exception.printStackTrace();
+            StringWriter stringWriter = new StringWriter();
+            exception.printStackTrace(new PrintWriter(stringWriter));
+
             try {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, stringWriter.toString());
             }
             catch (IOException ioException) {
                 ioException.printStackTrace();
@@ -81,39 +87,43 @@ public class Select extends HttpServlet {
         }
     }
 
+    // Test methods
+    // TODO: how do we hide these from production?
+    public static String getQueryFromRequest(Document requestXml) {
+        return parseRequest(requestXml).getSelectText();
+    }
+
+    public static DatabaseId getTargetFromRequest(Document requestXml) {
+        return parseRequest(requestXml).getDatabaseId();
+    }
+
     // parse a select request and get out the string
     // if the string is empty, caller can respond with 400: Bad Request
-    private SelectRequest parseRequest(Document requestXml) {
+    private static SelectRequest parseRequest(Document requestXml) {
         assert (requestXml != null);
 
         DatabaseId targetDatabase = DatabaseId.Surveys;
         StringBuilder selectContent = new StringBuilder();
         Element rootNode = requestXml.getDocumentElement();
-        if (rootNode.getNamespaceURI() == NAMESPACE && rootNode.getLocalName() == SELECT_RESPONSE_ELEMENT_NAME) {
+        if (NAMESPACE.equals(rootNode.getNamespaceURI()) && SELECT_REQUEST_ELEMENT_NAME.equals(rootNode.getLocalName())) {
+            String targetDatabaseValue = rootNode.getAttribute(TARGET_ATTRIBUTE_NAME);
+            if (targetDatabaseValue.length() > 0) {
+                targetDatabase = DatabaseId.valueOf(targetDatabaseValue);                
+            }
+
+            // and look through the child node for the text content
             for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
-                switch (childNode.getNodeType()) {
-                    case Node.TEXT_NODE:
-                        selectContent.append(childNode.getNodeValue());
-                        break;
-
-                    case Node.ATTRIBUTE_NODE:
-                        if (childNode.getNodeName() == TARGET_ATTRIBUTE_NAME) {
-                            targetDatabase = DatabaseId.valueOf(childNode.getNodeValue());
-                        }
-                        break;
-
-                    default:
-                        // don't care about other types of nodes
-                        break;
+                if (childNode.getNodeType() == Node.TEXT_NODE) {
+                    selectContent.append(childNode.getNodeValue());
                 }
             }
         }
         return new SelectRequest(targetDatabase, selectContent.toString());
     }
 
-    class SelectRequest {
-        DatabaseId targetDatabase;
-        String selectText;
+    static class SelectRequest {
+        private DatabaseId targetDatabase;
+        private String selectText;
 
         public SelectRequest(DatabaseId targetDatabase, String selectText) {
             this.targetDatabase = targetDatabase;

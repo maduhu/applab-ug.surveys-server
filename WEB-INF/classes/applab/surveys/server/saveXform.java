@@ -16,6 +16,7 @@ package applab.surveys.server;
 
 import javax.servlet.http.*;
 import org.w3c.dom.*;
+
 import java.io.*;
 import java.util.*;
 
@@ -32,8 +33,8 @@ public class saveXform extends HttpServlet {
         }
         request.getInputStream().close();
         String xform_data1 = sb.toString();
-        String xform_data = configuration.manipulation.replace(xform_data1, "\'", "\\'");
-        System.out.println(configuration.manipulation.replace(xform_data, "'", "\\'"));
+        String xform_data = xform_data1.replaceAll("\'", "\\'");
+        System.out.println(xform_data.replaceAll("'", "\\'"));
         // get the survey name
         try {
             SalesforceProxy salesforceProxy = SalesforceProxy.login();
@@ -48,8 +49,7 @@ public class saveXform extends HttpServlet {
                 this.createSurveyQuestions(zebra_survey_id, xform_data);
             }
             else if (salesforceProxy.surveyIdExists(survey_id)) {
-                String creation_date = ApplabConfiguration.getDateTime();
-                DatabaseHelpers.saveXform(survey_id, xform_data, surveyName, creation_date);
+                DatabaseHelpers.saveXform(survey_id, xform_data, surveyName, DatabaseHelpers.formatDateTime(new Date()));
                 // on saving
                 int zebra_survey_id = Integer.parseInt(DatabaseHelpers.getZebraSurveyId(survey_id));
                 this.createSurveyQuestions(zebra_survey_id, xform_data);
@@ -61,84 +61,97 @@ public class saveXform extends HttpServlet {
         }
     }
 
-    protected void createSurveyQuestions(int zebra_survey_id, String xform_data) {
+    private void parseXformsGroup(Element groupNode, HashMap<String, String> parsedQuestions) {
+        for (Node childNode = groupNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
+            Element element = (Element)childNode;
+            NodeList nodes_2 = element.getElementsByTagName("xf:input");
+            NodeList nodes_3 = element.getElementsByTagName("xf:select1");
+            NodeList nodes_4 = element.getElementsByTagName("xf:select");
+            if (nodes_2.getLength() > 0) {
+                for (int j = 0; j < nodes_2.getLength(); j++) {
+                    Element element_2 = (Element)nodes_2.item(j);
+                    String parameter = element_2.getAttribute("bind");
+                    NodeList nodes_2_1 = element_2.getElementsByTagName("xf:label");
+                    Element element_2_1 = (Element)nodes_2_1.item(0);
+                    String question = this.getCharacterDataFromElement(element_2_1);
+                    parsedQuestions.put(parameter, question);
+                    //paramQtn.add(parameter);
+                }
+            }
+            if (nodes_3.getLength() > 0) {
+                for (int j = 0; j < nodes_3.getLength(); j++) {
+                    Element element_2 = (Element)nodes_3.item(j);
+                    String parameter = element_2.getAttribute("bind");
+                    NodeList nodes_3_1 = element_2.getElementsByTagName("xf:label");
+                    Element element_2_1 = (Element)nodes_3_1.item(0);
+                    String question = this.getCharacterDataFromElement(element_2_1);
+                    NodeList nodes_3_2 = element_2.getElementsByTagName("xf:item");
+                    String items = "";
+                    for (int x = 0; x < nodes_3_2.getLength(); x++) {
+                        Element element_2_3 = (Element)nodes_3_2.item(x);
+                        NodeList nodes_3_3 = element_2_3.getElementsByTagName("xf:label");
+                        NodeList nodes_3_4 = element_2_3.getElementsByTagName("xf:value");
+                        Element element_2_4 = (Element)nodes_3_3.item(0);
+                        Element element_2_5 = (Element)nodes_3_4.item(0);
+                        String option = this.getCharacterDataFromElement(element_2_4);
+                        String value = this.getCharacterDataFromElement(element_2_5);
+                        if (items.length() == 0) {
+                            items = option + ":" + value + ";" + items;
+                        }
+                        else {
+                            items = items + "" + option + ":" + value + ";";
+                        }
+                    }
+                    parsedQuestions.put(parameter, question + " - " + items);
+                    //paramQtn.add(parameter);
+                }
+            }
+            if (nodes_4.getLength() > 0) {
+                for (int j = 0; j < nodes_4.getLength(); j++) {
+                    Element element_2 = (Element)nodes_4.item(j);
+                    String parameter = element_2.getAttribute("bind");
+                    NodeList nodes_4_1 = element_2.getElementsByTagName("xf:label");
+                    Element element_2_1 = (Element)nodes_4_1.item(0);
+                    String question = this.getCharacterDataFromElement(element_2_1);
+                    NodeList nodes_3_2 = element_2.getElementsByTagName("xf:item");
+                    String items = "";
+                    for (int x = 0; x < nodes_3_2.getLength(); x++) {
+                        Element element_2_3 = (Element)nodes_3_2.item(x);
+                        NodeList nodes_3_3 = element_2_3.getElementsByTagName("xf:label");
+                        NodeList nodes_3_4 = element_2_3.getElementsByTagName("xf:value");
+                        Element element_2_4 = (Element)nodes_3_3.item(0);
+                        Element element_2_5 = (Element)nodes_3_4.item(0);
+                        String option = this.getCharacterDataFromElement(element_2_4);
+                        String value = this.getCharacterDataFromElement(element_2_5);
+                        if (items.length() == 0) {
+                            items = option + ":" + value + ";" + items;
+                        }
+                        else {
+                            items = items + "" + option + ":" + value + ";";
+                        }
+                    }
+                    parsedQuestions.put(parameter, question + " - " + items);
+                    //paramQtn.add(parameter);
+                }
+            }
+        }
+    }
+
+    protected void createSurveyQuestions(int backendSurveyId, String xformData) {
         try {
             // check if survey exists in zebra
-            Hashtable<String, String> zebraQuestions = DatabaseHelpers.getZebraSurveyQuestions(zebra_survey_id);
-            Hashtable<String, String> saveQuestions = new Hashtable<String, String>();
+            Hashtable<String, String> zebraQuestions = DatabaseHelpers.getZebraSurveyQuestions(backendSurveyId);
+            HashMap<String, String> saveQuestions = new HashMap<String, String>();
             ArrayList<String> paramQtn = new ArrayList<String>();
-            Document doc = XmlHelpers.parseXml(xform_data);
-            NodeList nodes = doc.getElementsByTagName("xf:group");
-            for (int i = 0; i < nodes.getLength(); i++) {
-                Element element = (Element)nodes.item(i);
-                NodeList nodes_2 = element.getElementsByTagName("xf:input");
-                NodeList nodes_3 = element.getElementsByTagName("xf:select1");
-                NodeList nodes_4 = element.getElementsByTagName("xf:select");
-                if (nodes_2.getLength() > 0) {
-                    for (int j = 0; j < nodes_2.getLength(); j++) {
-                        Element element_2 = (Element)nodes_2.item(j);
-                        String parameter = element_2.getAttribute("bind");
-                        NodeList nodes_2_1 = element_2.getElementsByTagName("xf:label");
-                        Element element_2_1 = (Element)nodes_2_1.item(0);
-                        String question = this.getCharacterDataFromElement(element_2_1);
-                        saveQuestions.put(parameter, question);
-                        paramQtn.add(parameter);
-                    }
-                }
-                if (nodes_3.getLength() > 0) {
-                    for (int j = 0; j < nodes_3.getLength(); j++) {
-                        Element element_2 = (Element)nodes_3.item(j);
-                        String parameter = element_2.getAttribute("bind");
-                        NodeList nodes_3_1 = element_2.getElementsByTagName("xf:label");
-                        Element element_2_1 = (Element)nodes_3_1.item(0);
-                        String question = this.getCharacterDataFromElement(element_2_1);
-                        NodeList nodes_3_2 = element_2.getElementsByTagName("xf:item");
-                        String items = "";
-                        for (int x = 0; x < nodes_3_2.getLength(); x++) {
-                            Element element_2_3 = (Element)nodes_3_2.item(x);
-                            NodeList nodes_3_3 = element_2_3.getElementsByTagName("xf:label");
-                            NodeList nodes_3_4 = element_2_3.getElementsByTagName("xf:value");
-                            Element element_2_4 = (Element)nodes_3_3.item(0);
-                            Element element_2_5 = (Element)nodes_3_4.item(0);
-                            String option = this.getCharacterDataFromElement(element_2_4);
-                            String value = this.getCharacterDataFromElement(element_2_5);
-                            if (items.length() == 0) {
-                                items = option + ":" + value + ";" + items;
-                            }
-                            else {
-                                items = items + "" + option + ":" + value + ";";
-                            }
-                        }
-                        saveQuestions.put(parameter, question + " - " + items);
-                        paramQtn.add(parameter);
-                    }
-                }
-                if (nodes_4.getLength() > 0) {
-                    for (int j = 0; j < nodes_4.getLength(); j++) {
-                        Element element_2 = (Element)nodes_4.item(j);
-                        String parameter = element_2.getAttribute("bind");
-                        NodeList nodes_4_1 = element_2.getElementsByTagName("xf:label");
-                        Element element_2_1 = (Element)nodes_4_1.item(0);
-                        String question = this.getCharacterDataFromElement(element_2_1);
-                        NodeList nodes_3_2 = element_2.getElementsByTagName("xf:item");
-                        String items = "";
-                        for (int x = 0; x < nodes_3_2.getLength(); x++) {
-                            Element element_2_3 = (Element)nodes_3_2.item(x);
-                            NodeList nodes_3_3 = element_2_3.getElementsByTagName("xf:label");
-                            NodeList nodes_3_4 = element_2_3.getElementsByTagName("xf:value");
-                            Element element_2_4 = (Element)nodes_3_3.item(0);
-                            Element element_2_5 = (Element)nodes_3_4.item(0);
-                            String option = this.getCharacterDataFromElement(element_2_4);
-                            String value = this.getCharacterDataFromElement(element_2_5);
-                            if (items.length() == 0) {
-                                items = option + ":" + value + ";" + items;
-                            }
-                            else {
-                                items = items + "" + option + ":" + value + ";";
-                            }
-                        }
-                        saveQuestions.put(parameter, question + " - " + items);
-                        paramQtn.add(parameter);
+            Document xmlDocument = XmlHelpers.parseXml(xformData);
+            xmlDocument.normalizeDocument();
+
+            Element rootNode = xmlDocument.getDocumentElement();
+            for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
+                if (childNode.getNodeType() == Node.ELEMENT_NODE) {
+                    // Purcforms group tag
+                    if ("xf:group".equals(childNode.getNodeName())) {
+                        parseXformsGroup((Element)childNode, saveQuestions);
                     }
                 }
             }
@@ -154,26 +167,24 @@ public class saveXform extends HttpServlet {
                 }
                 if (cursor == 0) {
                     // this parameter was deleted during the design
-                    if (!DatabaseHelpers.surveyQuestionHasSubmissions(zebra_survey_id, key)) {
-                        DatabaseHelpers.deleteSurveyQuestion(zebra_survey_id, key);
+                    if (!DatabaseHelpers.surveyQuestionHasSubmissions(backendSurveyId, key)) {
+                        DatabaseHelpers.deleteSurveyQuestion(backendSurveyId, key);
                     }
                 }
             }
-            Enumeration<String> keys = saveQuestions.keys();
-            while (keys.hasMoreElements()) {
-                String key = keys.nextElement();
-                if (DatabaseHelpers.verifySurveyField(key, zebra_survey_id)) {
-                    if (!DatabaseHelpers.surveyQuestionHasSubmissions(zebra_survey_id, key)) {
+            for (String key : saveQuestions.keySet()) {
+                if (DatabaseHelpers.verifySurveyField(key, backendSurveyId)) {
+                    if (!DatabaseHelpers.surveyQuestionHasSubmissions(backendSurveyId, key)) {
                         // compare the questions
                         if (!saveQuestions.get(key).equals(zebraQuestions.get(key))) {
                             // update the question only
-                            DatabaseHelpers.updateSurveyQuestion(key, saveQuestions.get(key), zebra_survey_id);
+                            DatabaseHelpers.updateSurveyQuestion(key, saveQuestions.get(key), backendSurveyId);
                         }
                     }
                 }
                 else {
                     // does not exist.
-                    DatabaseHelpers.saveZebraSurveyQuestions(zebra_survey_id, saveQuestions.get(key), key);
+                    DatabaseHelpers.saveZebraSurveyQuestions(backendSurveyId, saveQuestions.get(key), key);
                 }
             }
         }

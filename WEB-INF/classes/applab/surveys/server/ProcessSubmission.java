@@ -45,6 +45,7 @@ public class ProcessSubmission extends HttpServlet {
             while (fileIterator.hasNext()) {
                 FileItem fileItem = (FileItem)fileIterator.next();
                 String contentType = fileItem.getContentType().toLowerCase(Locale.ENGLISH);
+                contentType = contentType.intern(); // so that == works for comparison
 
                 // survey answer content
                 if (contentType == "text/xml") {
@@ -110,14 +111,13 @@ public class ProcessSubmission extends HttpServlet {
 
             // make sure we have valid questions
             if (answerColumnsCommandText.length() > 0) {
-                String currentTime = ApplabConfiguration.getDateTime();
                 StringBuilder commandText = new StringBuilder();
                 commandText.append("insert into zebrasurveysubmissions ");
                 commandText.append("survey_id,server_entry_time,handset_submit_time,handset_id,interviewee_name,result_hash,location");
                 commandText.append(answerColumnsCommandText);
                 commandText.append(") values (");
                 commandText.append(surveyId);
-                commandText.append(",'" + currentTime + "'");
+                commandText.append(",'" + DatabaseHelpers.formatDateTime(new Date()) + "'");
                 commandText.append(",'" + handsetSubmissionTimestamp + "'");
                 commandText.append(",'" + handsetId + "'");
                 commandText.append(",'" + intervieweeName + "'");

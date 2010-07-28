@@ -20,9 +20,16 @@ import org.xml.sax.SAXException;
  * 
  */
 public class XmlHelpers {
-    static DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+    static DocumentBuilderFactory documentBuilderFactory = CreateDocumentBuilderFactory();
     static TransformerFactory transformerFactory = TransformerFactory.newInstance();
 
+    private static DocumentBuilderFactory CreateDocumentBuilderFactory() {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        // need to set this to true so that getLocalName and getNamespaceURI function correctly
+        factory.setNamespaceAware(true);
+        return factory;
+    }
+    
     /**
      * Convert the given string into an XML DOM
      */

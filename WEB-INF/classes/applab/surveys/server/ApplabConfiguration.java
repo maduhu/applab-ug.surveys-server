@@ -14,9 +14,12 @@ the License.
 package applab.surveys.server;
 
 import java.util.*;
-import java.text.*;
 import java.io.*;
 
+/**
+ * Provides helper methods for getting access to the values stored in our configuration file (application.xml)
+ * 
+ */
 public class ApplabConfiguration {
 
     static ApplabConfiguration singletonValue = new ApplabConfiguration();
@@ -27,26 +30,23 @@ public class ApplabConfiguration {
         this.configurationProperties = new Properties();
 
         try {
-            FileInputStream configurationFile = new FileInputStream("../../../application.xml");
-            configurationProperties.loadFromXML(configurationFile);
+            InputStream configurationFile = ClassLoader.getSystemResourceAsStream("application.xml");
+            if (configurationFile == null) {
+                configurationFile = new FileInputStream("../webapps/zebra/WEB-INF/classes/application.xml");
+            }
+            this.configurationProperties.loadFromXML(configurationFile);
         }
         catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public static String getDateTime() {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        Date date = new Date();
-        return dateFormat.format(date);
-    }
-
     public static String getSurveysUsername() {
-        return singletonValue.configurationProperties.getProperty("database-username");
+        return singletonValue.configurationProperties.getProperty("surveys-username");
     }
 
     public static String getSurveysPassword() {
-        return singletonValue.configurationProperties.getProperty("database-password");
+        return singletonValue.configurationProperties.getProperty("surveys-password");
     }
 
     public static String getReaderUsername() {

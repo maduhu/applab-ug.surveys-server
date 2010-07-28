@@ -15,9 +15,15 @@ the License.
 package applab.surveys.server;
 
 import java.sql.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Date;
 
-
+/**
+ * Helper methods for interacting with our survey and search databases
+ * 
+ */
 public class DatabaseHelpers {
 
     final static String JDBC_DRIVER = "com.mysql.jdbc.Driver";
@@ -25,54 +31,66 @@ public class DatabaseHelpers {
     static String getDatabaseUrl(DatabaseId targetDatabase) {
         String SURVEY_DATABASE_URL = "jdbc:mysql://localhost:3306/zebra";
         String SEARCH_DATABASE_URL = "jdbc:mysql://localhost:3306/ycppquiz";
-        
+
         switch (targetDatabase) {
             case Search:
                 return SEARCH_DATABASE_URL;
-                
+
             case Surveys:
                 return SURVEY_DATABASE_URL;
         }
-        
+
         return "";
     }
-    
+
     static String getDatabaseUsername(DatabaseId targetDatabase) {
         switch (targetDatabase) {
             case Search:
                 return ApplabConfiguration.getSearchUsername();
-                
+
             case Surveys:
                 return ApplabConfiguration.getSurveysUsername();
         }
-        
+
         return "";
     }
-    
+
     static String getDatabasePassword(DatabaseId targetDatabase) {
         switch (targetDatabase) {
             case Search:
                 return ApplabConfiguration.getSearchPassword();
-                
+
             case Surveys:
                 return ApplabConfiguration.getSurveysPassword();
         }
-        
+
         return "";
     }
-    
+
     // helper function to create a connection to our local database
     public static Connection createConnection(DatabaseId targetDatabase) throws ClassNotFoundException, SQLException {
         // make sure the JDBC driver is loaded into memory
         Class.forName(JDBC_DRIVER);
-        return DriverManager.getConnection(getDatabaseUrl(targetDatabase), getDatabaseUsername(targetDatabase), getDatabasePassword(targetDatabase));
+        return DriverManager.getConnection(getDatabaseUrl(targetDatabase), getDatabaseUsername(targetDatabase),
+                getDatabasePassword(targetDatabase));
     }
 
     // like createConnection, except it uses a read-only account
     public static Connection createReaderConnection(DatabaseId targetDatabase) throws ClassNotFoundException, SQLException {
+// we don't have deployment setup correctly, so use the read-write account for now
+        return createConnection(targetDatabase);
         // make sure the JDBC driver is loaded into memory
-        Class.forName(JDBC_DRIVER);
-        return DriverManager.getConnection(getDatabaseUrl(targetDatabase), ApplabConfiguration.getReaderUsername(), ApplabConfiguration.getReaderPassword());
+//        Class.forName(JDBC_DRIVER);
+//        return DriverManager.getConnection(getDatabaseUrl(targetDatabase), ApplabConfiguration.getReaderUsername(), ApplabConfiguration
+//                .getReaderPassword());
+    }
+
+    /**
+     * Helper method to ensure consistent date formatting in our database
+     */
+    public static String formatDateTime(Date date) {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        return dateFormat.format(date);
     }
 
     public static boolean verifySurveyID(int survey_id) {
@@ -438,5 +456,47 @@ public class DatabaseHelpers {
             e.printStackTrace();
         }
         return false;
+    }
+
+    public HashMap<String, String> getHandsetIdsWithNullInterviewers() throws Exception {
+        Connection connection = createReaderConnection(DatabaseId.Surveys);
+        Statement statement = connection.createStatement();
+
+        String sqlQuery = "SELECT id,handset_id from zebrasurveysubmsissions where interviewer_id = ''";
+        ResultSet queryResults = statement.executeQuery(sqlQuery);
+        // in the order of interviewer_name,interviewer_id,handset_id
+        HashMap<String, String> handsetList = new HashMap<String, String>();
+        while (queryResults.next()) {
+            handsetList.put(queryResults.getString("id"), queryResults.getString("handset_id"));
+        }
+        statement.close();
+        connection.close();
+        return handsetList;
+    }
+
+    public String setInterviewerNameAndId(int submissionId, String interviewerName, String interviewerId) throws ClassNotFoundException,
+            SQLException {
+        Connection connection = createConnection(DatabaseId.Surveys);
+        Statement statement = connection.createStatement();
+        String sqlQuery = "UPDATE zebrasurveysubmissions set interviewer_name='" + interviewerName + "', interviewer_id='" + interviewerId
+                + "' where id=" + submissionId;
+        statement.executeUpdate(sqlQuery);
+        statement.close();
+        connection.close();
+        return "Success";
+    }
+
+    public String getSurveyStatus(int submissionId) throws SQLException, ClassNotFoundException {
+        Connection connection = createReaderConnection(DatabaseId.Surveys);
+        Statement statement = connection.createStatement();
+        String sqlQuery = "SELECT survey_status from zebrasurveysubmissions where id=" + submissionId;
+        ResultSet queryResults = statement.executeQuery(sqlQuery);
+        String survey_status = "";
+        while (queryResults.next()) {
+            survey_status = queryResults.getString("survey_status");
+        }
+        statement.close();
+        connection.close();
+        return survey_status;
     }
 }
