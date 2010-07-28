@@ -25,13 +25,14 @@ public class saveXform extends HttpServlet {
 
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String survey_id = request.getParameter("formId");
-        BufferedReader reader = new BufferedReader(new InputStreamReader(request.getInputStream()));
+        
+        BufferedReader reader = request.getReader();
         StringBuilder sb = new StringBuilder();
         String line = null;
         while ((line = reader.readLine()) != null) {
             sb.append(line + "\n");
         }
-        request.getInputStream().close();
+        reader.close();
         String xform_data1 = sb.toString();
         String xform_data = xform_data1.replaceAll("\'", "\\'");
         System.out.println(xform_data.replaceAll("'", "\\'"));
@@ -40,13 +41,12 @@ public class saveXform extends HttpServlet {
             SalesforceProxy salesforceProxy = SalesforceProxy.login();
             String surveyName = salesforceProxy.getSurveyName(survey_id);
             // check if id exists in zebrasurvey
-            if (DatabaseHelpers.zebraSurveyIdExists(survey_id)) {
-                // System.out.println(xform_data);
+            String databaseId = DatabaseHelpers.getZebraSurveyId(survey_id);
+            if (databaseId != null) {
                 DatabaseHelpers.saveXform(survey_id, surveyName, xform_data);
                 // on saving check with zebrasurveyquestions
-                int zebra_survey_id = Integer.parseInt(DatabaseHelpers.getZebraSurveyId(survey_id));
                 // configuration.DbConnect.deleteSurveyFromSurveyQuestions(zebra_survey_id);
-                this.createSurveyQuestions(zebra_survey_id, xform_data);
+                this.createSurveyQuestions(Integer.parseInt(databaseId), xform_data);
             }
             else if (salesforceProxy.surveyIdExists(survey_id)) {
                 DatabaseHelpers.saveXform(survey_id, xform_data, surveyName, DatabaseHelpers.formatDateTime(new Date()));
@@ -137,7 +137,7 @@ public class saveXform extends HttpServlet {
         }
     }
 
-    protected void createSurveyQuestions(int backendSurveyId, String xformData) {
+    private void createSurveyQuestions(int backendSurveyId, String xformData) {
         try {
             // check if survey exists in zebra
             Hashtable<String, String> zebraQuestions = DatabaseHelpers.getZebraSurveyQuestions(backendSurveyId);

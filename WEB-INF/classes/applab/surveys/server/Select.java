@@ -39,9 +39,8 @@ public class Select extends HttpServlet {
             SelectRequest parsedRequest = parseRequest(requestXml);
             String selectCommandText = parsedRequest.getSelectText();
             if (selectCommandText.length() == 0) {
-                response
-                        .sendError(HttpServletResponse.SC_BAD_REQUEST,
-                                "Expect a request of the form <SelectRequest xmlns=\"http://schemas.applab.org/2010/07\">SQL command text</SelectRequest>");
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                        "Expect a request of the form <SelectRequest xmlns=\"http://schemas.applab.org/2010/07\">SQL command text</SelectRequest>");
                 return;
             }
 
@@ -59,7 +58,7 @@ public class Select extends HttpServlet {
             int columnCount = columnMetadata.getColumnCount();
             while (resultSet.next()) {
                 responseStream.print("<row>");
-                
+
                 // JDBC references are 1-based, not 0-based
                 for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
                     String columnName = columnMetadata.getColumnName(columnIndex);
@@ -108,7 +107,7 @@ public class Select extends HttpServlet {
         if (NAMESPACE.equals(rootNode.getNamespaceURI()) && SELECT_REQUEST_ELEMENT_NAME.equals(rootNode.getLocalName())) {
             String targetDatabaseValue = rootNode.getAttribute(TARGET_ATTRIBUTE_NAME);
             if (targetDatabaseValue.length() > 0) {
-                targetDatabase = DatabaseId.valueOf(targetDatabaseValue);                
+                targetDatabase = DatabaseId.valueOf(targetDatabaseValue);
             }
 
             // and look through the child node for the text content
