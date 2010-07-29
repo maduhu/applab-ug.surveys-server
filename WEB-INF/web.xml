@@ -16,8 +16,8 @@
    </servlet>
    <servlet>
      <description>Returns the requested survey form to the mobile client</description>
-     <servlet-name>downloadForm</servlet-name>
-     <servlet-class>applab.surveys.server.DownloadForm</servlet-class>
+     <servlet-name>getForm</servlet-name>
+     <servlet-class>applab.surveys.server.GetForm</servlet-class>
    </servlet>
    <servlet>
      <servlet-name>getSub</servlet-name>
@@ -28,8 +28,8 @@
      <servlet-class>processSubmissions</servlet-class>
    </servlet>
    <servlet>
-     <servlet-name>getXform</servlet-name>
-     <servlet-class>applab.surveys.server.getXform</servlet-class>
+     <servlet-name>GetDesignerForm</servlet-name>
+     <servlet-class>applab.surveys.server.GetDesignerForm</servlet-class>
    </servlet>
    <servlet>
      <servlet-name>saveXform</servlet-name>
@@ -50,7 +50,7 @@
      <url-pattern>/formList</url-pattern>
    </servlet-mapping>
    <servlet-mapping>
-     <servlet-name>downloadForm</servlet-name>
+     <servlet-name>getForm</servlet-name>
      <url-pattern>/getForm</url-pattern>
    </servlet-mapping>
    <servlet-mapping>
@@ -62,7 +62,7 @@
      <url-pattern>/processSubmissions</url-pattern>
    </servlet-mapping>
    <servlet-mapping>
-     <servlet-name>getXform</servlet-name>
+     <servlet-name>GetDesignerForm</servlet-name>
      <url-pattern>/getXform</url-pattern>
    </servlet-mapping>
    <servlet-mapping>
