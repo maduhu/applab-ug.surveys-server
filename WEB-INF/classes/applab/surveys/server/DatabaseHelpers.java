@@ -1,15 +1,14 @@
 /*
-
-Copyright (C) 2010 Grameen Foundation
-Licensed under the Apache License, Version 2.0 (the "License"); you may not
-use this file except in compliance with the License. You may obtain a copy of
-the License at
-http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-License for the specific language governing permissions and limitations under
-the License.
+ * Copyright (C) 2010 Grameen Foundation
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 
 package applab.surveys.server;
@@ -28,61 +27,23 @@ public class DatabaseHelpers {
 
     final static String JDBC_DRIVER = "com.mysql.jdbc.Driver";
 
-    static String getDatabaseUrl(DatabaseId targetDatabase) {
-        String SURVEY_DATABASE_URL = "jdbc:mysql://localhost:3306/zebra";
-        String SEARCH_DATABASE_URL = "jdbc:mysql://localhost:3306/ycppquiz";
-
-        switch (targetDatabase) {
-            case Search:
-                return SEARCH_DATABASE_URL;
-
-            case Surveys:
-                return SURVEY_DATABASE_URL;
-        }
-
-        return "";
-    }
-
-    static String getDatabaseUsername(DatabaseId targetDatabase) {
-        switch (targetDatabase) {
-            case Search:
-                return ApplabConfiguration.getSearchUsername();
-
-            case Surveys:
-                return ApplabConfiguration.getSurveysUsername();
-        }
-
-        return "";
-    }
-
-    static String getDatabasePassword(DatabaseId targetDatabase) {
-        switch (targetDatabase) {
-            case Search:
-                return ApplabConfiguration.getSearchPassword();
-
-            case Surveys:
-                return ApplabConfiguration.getSurveysPassword();
-        }
-
-        return "";
-    }
-
     // helper function to create a connection to our local database
     public static Connection createConnection(DatabaseId targetDatabase) throws ClassNotFoundException, SQLException {
         // make sure the JDBC driver is loaded into memory
         Class.forName(JDBC_DRIVER);
-        return DriverManager.getConnection(getDatabaseUrl(targetDatabase), getDatabaseUsername(targetDatabase),
-                getDatabasePassword(targetDatabase));
+        return DriverManager.getConnection(ApplabConfiguration.getDatabaseUrl(targetDatabase), 
+                ApplabConfiguration.getDatabaseUsername(targetDatabase),
+                ApplabConfiguration.getDatabasePassword(targetDatabase));
     }
 
     // like createConnection, except it uses a read-only account
     public static Connection createReaderConnection(DatabaseId targetDatabase) throws ClassNotFoundException, SQLException {
-// we don't have deployment setup correctly, so use the read-write account for now
-        return createConnection(targetDatabase);
+        // we don't have deployment setup correctly, so use the read-write account for now
         // make sure the JDBC driver is loaded into memory
-//        Class.forName(JDBC_DRIVER);
-//        return DriverManager.getConnection(getDatabaseUrl(targetDatabase), ApplabConfiguration.getReaderUsername(), ApplabConfiguration
-//                .getReaderPassword());
+        Class.forName(JDBC_DRIVER);
+        return DriverManager.getConnection(ApplabConfiguration.getDatabaseUrl(targetDatabase), 
+                ApplabConfiguration.getReaderUsername(targetDatabase), 
+                ApplabConfiguration.getReaderPassword(targetDatabase));
     }
 
     /**
@@ -152,50 +113,6 @@ public class DatabaseHelpers {
         return null;
     }
 
-    public static Hashtable<String, String> getSurveyQuestionParameter(int surveyId) {
-        Hashtable<String, String> questionAnswer = new Hashtable<String, String>();
-        try {
-            Connection connection = createReaderConnection(DatabaseId.Surveys);
-            Statement statement = connection.createStatement();
-            String sqlQuery = "SELECT xform_param_name,xform_param_var from zebrasurveyquestions where survey_id=" + surveyId;
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            while (resultSet.next()) {
-                questionAnswer.put(resultSet.getString("xform_param_name"), resultSet.getString("xform_param_var"));
-            }
-            statement.close();
-            connection.close();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return questionAnswer;
-    }
-
-    public static Hashtable<Integer, String[]> getAnswer(String parameter, int surveyId, String status) {
-        Hashtable<Integer, String[]> answer = new Hashtable<Integer, String[]>();
-        String split[] = parameter.split(",");
-        try {
-            Connection connection = createReaderConnection(DatabaseId.Surveys);
-            Statement statement = connection.createStatement();
-            String sqlQuery = "SELECT " + parameter + " from zebrasurveysubmissions where survey_id=" + surveyId
-                    + " and survey_status='" + status + "'";
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            int cursor = 0;
-            while (resultSet.next()) {
-                String values[] = new String[split.length];
-                for (int i = 0; i < values.length; i++) {
-                    values[i] = resultSet.getString(split[i]);
-                }
-                answer.put(cursor, values);
-                cursor++;
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return answer;
-    }
-
     public static String getXformData(String surveyId) {
         try {
             Connection connection = createReaderConnection(DatabaseId.Surveys);
@@ -215,22 +132,6 @@ public class DatabaseHelpers {
         return null;
     }
 
-    public static boolean updateSurveySubmissionStatus(int submissionId, String surveyStatus) {
-        try {
-            Connection con = createConnection(DatabaseId.Surveys);
-            Statement stmt = con.createStatement();
-            String sqlQuery = "UPDATE zebrasurveysubmissions set survey_status='" + surveyStatus + "' where id=" + submissionId;
-            stmt.executeUpdate(sqlQuery);
-            stmt.close();
-            con.close();
-            return true;
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
     public static boolean verifySurveyField(String xform_param_var, int surveyId) {
         try {
             Connection connection = createReaderConnection(DatabaseId.Surveys);
@@ -246,24 +147,6 @@ public class DatabaseHelpers {
                     return true;
                 }
             }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    /**
-     * returns true if the submission was successful
-     */
-    public static boolean postSubmission(String sqlQuery) {
-        try {
-            Connection connection = createConnection(DatabaseId.Surveys);
-            Statement statement = connection.createStatement();
-            statement.executeUpdate(sqlQuery);
-            statement.close();
-            connection.close();
-            return true;
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -337,26 +220,6 @@ public class DatabaseHelpers {
             e.printStackTrace();
         }
         return false;
-    }
-
-    public static int getNumberOfSubmissions(int surveyId, String surveyStatus) {
-        try {
-            Connection connection = createReaderConnection(DatabaseId.Surveys);
-            Statement statement = connection.createStatement();
-            String sqlQuery = "SELECT count(survey_status) as status from zebrasurveysubmissions where survey_status='" + surveyStatus
-                    + "' and survey_id=" + surveyId;
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            while (resultSet.next()) {
-                int status = Integer.parseInt(resultSet.getString("status"));
-                statement.close();
-                connection.close();
-                return status;
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
     }
 
     public static Hashtable<String, String> getZebraSurveyQuestions(int surveyId) {

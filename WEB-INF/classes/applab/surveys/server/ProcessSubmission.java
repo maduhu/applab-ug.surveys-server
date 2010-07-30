@@ -1,14 +1,29 @@
 package applab.surveys.server;
 
 import java.io.*;
+import java.math.BigInteger;
+
 import javax.servlet.*;
 import javax.servlet.http.*;
+import javax.xml.rpc.ServiceException;
+
 import org.w3c.dom.*;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.*;
 
+import com.sforce.soap.enterprise.fault.InvalidIdFault;
+import com.sforce.soap.enterprise.fault.LoginFault;
+import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
 
+import applab.surveys.Interviewer;
+
+import java.rmi.RemoteException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -73,67 +88,94 @@ public class ProcessSubmission extends HttpServlet {
     }
 
     private int storeSurveySubmission(HashMap<String, SurveyItemResponse> surveyResponses, HashMap<String, String> attachmentReferences)
-            throws Exception {
-        int surveyId = Integer.parseInt(surveyResponses.get("survey_id").getEncodedAnswer(attachmentReferences));
-        if (DatabaseHelpers.verifySurveyID(surveyId)) {
-            // The following permanent fields should not be included in creating a hex string
-            String handsetSubmissionTimestamp = surveyResponses.remove("handset_submit_time").getEncodedAnswer(attachmentReferences);
-            String surveyLocation = surveyResponses.get("location").getEncodedAnswer(attachmentReferences);
+            throws NoSuchAlgorithmException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ServiceException,
+            ClassNotFoundException, SQLException {
+        int backendSurveyId = Integer.parseInt(surveyResponses.get("survey_id").getEncodedAnswer(attachmentReferences));
+        if (!DatabaseHelpers.verifySurveyID(backendSurveyId)) {
+            return HttpServletResponse.SC_NOT_FOUND;
+        }
+        // The following permanent fields should not be included in creating a hex string
+        String handsetSubmissionTimestamp = surveyResponses.remove("handset_submit_time").getEncodedAnswer(attachmentReferences);
+        String surveyLocation = surveyResponses.get("location").getEncodedAnswer(attachmentReferences);
 
-            // create hex string
-            String hashSource = "";
-            for (SurveyItemResponse responseValue : surveyResponses.values()) {
-                hashSource += responseValue.getEncodedAnswer(attachmentReferences);
-            }
-            String duplicateDetectionHash = configuration.md5.getMD5Hash(hashSource);
+        // create hex string
+        String hashSource = "";
+        for (SurveyItemResponse responseValue : surveyResponses.values()) {
+            hashSource += responseValue.getEncodedAnswer(attachmentReferences);
+        }
+        String duplicateDetectionHash = createMD5Hash(hashSource);
 
-            // extract the permanent fields
-            // TODO: in 2.8 we'll be passing the IMEI as an HTTP header
-            String handsetId = surveyResponses.remove("handset_id").getEncodedAnswer(attachmentReferences);
+        // extract the permanent fields
+        // TODO: in 2.8 we'll be passing the IMEI as an HTTP header
+        String handsetId = surveyResponses.remove("handset_id").getEncodedAnswer(attachmentReferences);
+        SalesforceProxy salesforceProxy = SalesforceProxy.login();
+        Interviewer interviewer = salesforceProxy.lookupInterviewer(handsetId);
+        salesforceProxy.logout();
 
-            // even though the "question name" is interviewer_id, that was a typo and it actually stores the
-            // interviewee's name
-            String intervieweeName = surveyResponses.remove("interviewer_id").getEncodedAnswer(attachmentReferences);
-            surveyResponses.remove("survey_id");
+        // even though the question name is interviewer_id, that is a typo and it actually stores the
+        // interviewee's name
+        String intervieweeName = surveyResponses.remove("interviewer_id").getEncodedAnswer(attachmentReferences);
 
-            String answerColumnsCommandText = "";
-            String answerValueCommandText = "";
-            for (Entry<String, SurveyItemResponse> surveyAnswer : surveyResponses.entrySet()) {
-                // the question name is used as our column names for survey answers
-                String answerColumn = surveyAnswer.getKey();
-                // verify that these questions have been created
-                if (DatabaseHelpers.verifySurveyField(answerColumn, surveyId)) {
+        // lastly, we need to remove the survey id, since we're storing that explicitly already
+        surveyResponses.remove("survey_id");
 
-                    answerColumnsCommandText += "," + surveyAnswer.getKey();
-                    answerValueCommandText += ",'" + surveyAnswer.getValue().getEncodedAnswer(attachmentReferences) + "'";
-                }
-            }
-
-            // make sure we have valid questions
-            if (answerColumnsCommandText.length() > 0) {
-                StringBuilder commandText = new StringBuilder();
-                commandText.append("insert into zebrasurveysubmissions ");
-                commandText.append("survey_id,server_entry_time,handset_submit_time,handset_id,interviewee_name,result_hash,location");
-                commandText.append(answerColumnsCommandText);
-                commandText.append(") values (");
-                commandText.append(surveyId);
-                commandText.append(",'" + DatabaseHelpers.formatDateTime(new Date()) + "'");
-                commandText.append(",'" + handsetSubmissionTimestamp + "'");
-                commandText.append(",'" + handsetId + "'");
-                commandText.append(",'" + intervieweeName + "'");
-                commandText.append(",'" + duplicateDetectionHash + "'");
-                commandText.append(",'" + surveyLocation + "'");
-                commandText.append(answerValueCommandText + ")");
-                if (DatabaseHelpers.postSubmission(commandText.toString())) {
-                    return HttpServletResponse.SC_CREATED;
-                }
-                else {
-                    return HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
-                }
+        String answerColumnsCommandText = "";
+        String answerValueCommandText = "";
+        for (Entry<String, SurveyItemResponse> surveyAnswer : surveyResponses.entrySet()) {
+            // the question name is used as our column names for survey answers
+            String answerColumn = surveyAnswer.getKey();
+            // verify that these questions have been created
+            if (DatabaseHelpers.verifySurveyField(answerColumn, backendSurveyId)) {
+                answerColumnsCommandText += "," + answerColumn;
+                answerValueCommandText += ",'" + surveyAnswer.getValue().getEncodedAnswer(attachmentReferences) + "'";
             }
         }
 
-        return HttpServletResponse.SC_NOT_FOUND;
+        // make sure we have valid questions
+        if (answerColumnsCommandText.length() > 0) {
+            StringBuilder commandText = new StringBuilder();
+            commandText.append("insert into zebrasurveysubmissions ");
+            commandText.append("survey_id, server_entry_time, handset_submit_time, handset_id, interviewer_id, ");
+            commandText.append("interviewer_name, interviewee_name, result_hash, location");
+            commandText.append(answerColumnsCommandText);
+            commandText.append(") values (");
+            commandText.append(backendSurveyId);
+            commandText.append(",'" + DatabaseHelpers.formatDateTime(new Date()) + "'");
+            commandText.append(",'" + handsetSubmissionTimestamp + "'");
+            commandText.append(",'" + handsetId + "'");
+            commandText.append(",'" + interviewer.getId() + "'");
+            commandText.append(",'" + interviewer.getFullName() + "'");
+            commandText.append(",'" + intervieweeName + "'");
+            commandText.append(",'" + duplicateDetectionHash + "'");
+            commandText.append(",'" + surveyLocation + "'");
+            commandText.append(answerValueCommandText + ")");
+
+            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
+            Statement statement = connection.createStatement();
+            statement.executeUpdate(commandText.toString());
+            statement.close();
+            connection.close();
+            return HttpServletResponse.SC_CREATED;
+        }
+        else {
+            return HttpServletResponse.SC_BAD_REQUEST;
+        }
+    }
+
+    static String createMD5Hash(String hashSource) throws NoSuchAlgorithmException {
+        MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+        byte[] data;
+        try {
+            data = hashSource.getBytes("UTF-8");
+        }
+        catch (UnsupportedEncodingException e) {
+            data = hashSource.getBytes();
+        }
+
+        messageDigest.update(data, 0, data.length);
+        BigInteger i = new BigInteger(1, messageDigest.digest());
+        // format the integer as a zero-padded 32 digit hexi-decimal number
+        return String.format("%1$032X", i);
     }
 
     private void saveAttachment(FileItem attachment, HashMap<String, String> attachmentReferences) throws Exception {
@@ -152,13 +194,14 @@ public class ProcessSubmission extends HttpServlet {
 
         String fullPath = this.getServletContext().getRealPath(attachmentReference);
         File targetFile = new File(fullPath);
-        
+
         // create the directory if necessary
         targetFile.mkdir();
         attachment.write(targetFile);
-        
-        // TODO: we should store the full public path here, not the relative one. 
-        attachmentReferences.put(attachment.getName(), attachmentReference);
+
+        // store the full public path here, not the relative one. Need to remove the leading '/' from the path reference
+        String publicAttachmentReference = ApplabConfiguration.getHostUrl() + attachmentReference.substring(1);
+        attachmentReferences.put(attachment.getName(), publicAttachmentReference);
     }
 
     /**
@@ -358,18 +401,20 @@ public class ProcessSubmission extends HttpServlet {
             if (childResponses.size() != 1) {
                 encodedAnswer.append("s");
             }
-            encodedAnswer.append(" (");
-            boolean firstChild = true;
-            for (String childQuestionName : this.childResponses.keySet()) {
-                if (firstChild) {
-                    firstChild = false;
+            if (childResponses.size() > 0) {
+                encodedAnswer.append(" (");
+                boolean firstChild = true;
+                for (String childQuestionName : this.childResponses.keySet()) {
+                    if (firstChild) {
+                        firstChild = false;
+                    }
+                    else {
+                        encodedAnswer.append(", ");
+                    }
+                    encodedAnswer.append(childQuestionName);
                 }
-                else {
-                    encodedAnswer.append(", ");
-                }
-                encodedAnswer.append(childQuestionName);
+                encodedAnswer.append(")");
             }
-            encodedAnswer.append(")");
             return encodedAnswer.toString();
         }
 

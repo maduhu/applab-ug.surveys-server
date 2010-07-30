@@ -3,15 +3,18 @@ package applab.surveys.server;
 import java.io.*;
 
 import javax.servlet.http.*;
+import javax.xml.parsers.ParserConfigurationException;
+
 import java.sql.*;
 
 import org.w3c.dom.*;
+import org.xml.sax.SAXException;
 
 /**
  * Executes a select query against our databases using a SQL account with read-only access
  * 
  */
-public class Select extends HttpServlet {
+public class Select extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     private final static String NAMESPACE = "http://schemas.applab.org/2010/07";
@@ -33,57 +36,46 @@ public class Select extends HttpServlet {
     //
     // Security Concern: DoS due to expensive selects.
     // Possible mitigations: HTTP auth, HTTPS, closed query space
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
-        try {
-            Document requestXml = XmlHelpers.parseXml(request.getReader());
-            SelectRequest parsedRequest = parseRequest(requestXml);
-            String selectCommandText = parsedRequest.getSelectText();
-            if (selectCommandText.length() == 0) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST,
-                        "Expect a request of the form <SelectRequest xmlns=\"http://schemas.applab.org/2010/07\">SQL command text</SelectRequest>");
-                return;
-            }
-
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.setContentType("text/xml");
-            PrintWriter responseStream = response.getWriter();
-
-            responseStream.println("<?xml version=\"1.0\"?>");
-            responseStream.println("<SelectResponse xmlns=\"http://schemas.applab.org/2010/07\">");
-
-            Connection databaseConnection = DatabaseHelpers.createReaderConnection(parsedRequest.getDatabaseId());
-            Statement selectStatement = databaseConnection.createStatement();
-            ResultSet resultSet = selectStatement.executeQuery(selectCommandText);
-            ResultSetMetaData columnMetadata = resultSet.getMetaData();
-            int columnCount = columnMetadata.getColumnCount();
-            while (resultSet.next()) {
-                responseStream.print("<row>");
-
-                // JDBC references are 1-based, not 0-based
-                for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
-                    String columnName = columnMetadata.getColumnName(columnIndex);
-                    responseStream.print("<" + columnName + ">");
-                    responseStream.print(resultSet.getString(columnIndex));
-                    responseStream.print("</" + columnName + ">");
-                }
-                responseStream.println("</row>");
-            }
-            responseStream.print("</SelectResponse>");
-            responseStream.close();
-            selectStatement.close();
-            databaseConnection.close();
+    @Override
+    protected void doApplabPost(HttpServletRequest request, HttpServletResponse response) throws IOException, SAXException, ParserConfigurationException, ClassNotFoundException, SQLException {
+        Document requestXml = XmlHelpers.parseXml(request.getReader());
+        SelectRequest parsedRequest = parseRequest(requestXml);
+        String selectCommandText = parsedRequest.getSelectText();
+        if (selectCommandText.length() == 0) {
+            response
+                    .sendError(HttpServletResponse.SC_BAD_REQUEST,
+                            "Expect a request of the form <SelectRequest xmlns=\"http://schemas.applab.org/2010/07\">SQL command text</SelectRequest>");
+            return;
         }
-        catch (Exception exception) {
-            StringWriter stringWriter = new StringWriter();
-            exception.printStackTrace(new PrintWriter(stringWriter));
 
-            try {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, stringWriter.toString());
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType("text/xml");
+        PrintWriter responseStream = response.getWriter();
+
+        responseStream.println("<?xml version=\"1.0\"?>");
+        responseStream.println("<SelectResponse xmlns=\"http://schemas.applab.org/2010/07\">");
+
+        Connection databaseConnection = DatabaseHelpers.createReaderConnection(parsedRequest.getDatabaseId());
+        Statement selectStatement = databaseConnection.createStatement();
+        ResultSet resultSet = selectStatement.executeQuery(selectCommandText);
+        ResultSetMetaData columnMetadata = resultSet.getMetaData();
+        int columnCount = columnMetadata.getColumnCount();
+        while (resultSet.next()) {
+            responseStream.print("<row>");
+
+            // JDBC references are 1-based, not 0-based
+            for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
+                String columnName = columnMetadata.getColumnName(columnIndex);
+                responseStream.print("<" + columnName + ">");
+                responseStream.print(resultSet.getString(columnIndex));
+                responseStream.print("</" + columnName + ">");
             }
-            catch (IOException ioException) {
-                ioException.printStackTrace();
-            }
+            responseStream.println("</row>");
         }
+        responseStream.print("</SelectResponse>");
+        responseStream.close();
+        selectStatement.close();
+        databaseConnection.close();
     }
 
     // Test methods

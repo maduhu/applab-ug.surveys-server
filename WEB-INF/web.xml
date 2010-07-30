@@ -6,34 +6,38 @@
 
    <servlet>
      <description>Receives a completed survey</description>
-     <servlet-name>submitFormResponse</servlet-name>
+     <servlet-name>ProcessSubmission</servlet-name>
      <servlet-class>applab.surveys.server.ProcessSubmission</servlet-class>
    </servlet>
    <servlet>
      <description>Lists all of the available survey forms</description>
-     <servlet-name>getFormList</servlet-name>
-     <servlet-class>applab.surveys.server.formList</servlet-class>
+     <servlet-name>GetFormList</servlet-name>
+     <servlet-class>applab.surveys.server.GetFormList</servlet-class>
    </servlet>
    <servlet>
      <description>Returns the requested survey form to the mobile client</description>
-     <servlet-name>getForm</servlet-name>
+     <servlet-name>GetForm</servlet-name>
      <servlet-class>applab.surveys.server.GetForm</servlet-class>
    </servlet>
    <servlet>
-     <servlet-name>getSub</servlet-name>
-     <servlet-class>getSubmissions</servlet-class>
+     <description>Used from the survey validation tool to list the submissions for a particular survey</description>
+     <servlet-name>ReviewSubmissions</servlet-name>
+     <servlet-class>applab.surveys.server.ReviewSubmissions</servlet-class>
    </servlet>
    <servlet>
-     <servlet-name>processSub</servlet-name>
-     <servlet-class>processSubmissions</servlet-class>
+     <description>Used from the survey validation tool to update the status of survey submissions</description>
+     <servlet-name>UpdateSubmissionStatus</servlet-name>
+     <servlet-class>applab.surveys.server.UpdateSubmissionStatus</servlet-class>
    </servlet>
    <servlet>
+     <description>Fetch Purcforms data from our surveys database for editing</description>
      <servlet-name>GetDesignerForm</servlet-name>
      <servlet-class>applab.surveys.server.GetDesignerForm</servlet-class>
    </servlet>
    <servlet>
-     <servlet-name>saveXform</servlet-name>
-     <servlet-class>applab.surveys.server.saveXform</servlet-class>
+     <description>Save Purcforms output into our surveys database</description>
+     <servlet-name>SaveDesignerForm</servlet-name>
+     <servlet-class>applab.surveys.server.SaveDesignerForm</servlet-class>
    </servlet>
    <servlet>
      <description>Allows callers to perform a remote select call</description>
@@ -42,31 +46,31 @@
    </servlet>
    
    <servlet-mapping>
-     <servlet-name>submitFormResponse</servlet-name>
+     <servlet-name>ProcessSubmission</servlet-name>
      <url-pattern>/submission</url-pattern>
    </servlet-mapping>
    <servlet-mapping>
-     <servlet-name>getFormList</servlet-name>
+     <servlet-name>GetFormList</servlet-name>
      <url-pattern>/formList</url-pattern>
    </servlet-mapping>
    <servlet-mapping>
-     <servlet-name>getForm</servlet-name>
+     <servlet-name>GetForm</servlet-name>
      <url-pattern>/getForm</url-pattern>
    </servlet-mapping>
    <servlet-mapping>
-     <servlet-name>getSub</servlet-name>
+     <servlet-name>ReviewSubmissions</servlet-name>
      <url-pattern>/getSubmissions</url-pattern>
    </servlet-mapping>
    <servlet-mapping>
-     <servlet-name>processSub</servlet-name>
-     <url-pattern>/processSubmissions</url-pattern>
+     <servlet-name>UpdateSubmissionStatus</servlet-name>
+     <url-pattern>/updateSubmissionStatus</url-pattern>
    </servlet-mapping>
    <servlet-mapping>
      <servlet-name>GetDesignerForm</servlet-name>
      <url-pattern>/getXform</url-pattern>
    </servlet-mapping>
    <servlet-mapping>
-     <servlet-name>saveXform</servlet-name>
+     <servlet-name>SaveDesignerForm</servlet-name>
      <url-pattern>/saveXform</url-pattern>
    </servlet-mapping>
    <servlet-mapping>

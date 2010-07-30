@@ -5,15 +5,18 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 import applab.surveys.server.ApplabConfiguration;
+import applab.surveys.server.DatabaseId;
 
 public class TestConfiguration {
-    @Test public void testApplabConfiguration() { 
-        assertNotNull(ApplabConfiguration.getSurveysUsername());
-        assertNotNull(ApplabConfiguration.getSurveysPassword());
-        assertNotNull(ApplabConfiguration.getSearchUsername());
-        assertNotNull(ApplabConfiguration.getSearchPassword());
+    @Test
+    public void testApplabConfiguration() {
+        for (DatabaseId databaseId : DatabaseId.values()) {
+            assertNotNull(ApplabConfiguration.getDatabaseUrl(databaseId));
+            assertNotNull(ApplabConfiguration.getDatabaseUsername(databaseId));
+            assertNotNull(ApplabConfiguration.getDatabasePassword(databaseId));
+        }
         assertNotNull(ApplabConfiguration.getSalesforceUsername());
         assertNotNull(ApplabConfiguration.getSalesforcePassword());
         assertNotNull(ApplabConfiguration.getSalesforceToken());
-    } 
+    }
 }
