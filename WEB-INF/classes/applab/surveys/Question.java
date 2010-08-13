@@ -61,14 +61,14 @@ public class Question {
                         semicolonIndex = encodedChoices.length() - 1;
                     }
                     String choiceValue = encodedChoices.substring(0, colonIndex);
-                    // there are cases where the answers are prefixed by "--- " that we strip for display purposes
+                    // there are cases where the answers are prefixed by "--- " to work around a pre-1.6 android display issue.
+                    // We strip these for any processing purposes
                     if (choiceValue.startsWith("---")) {
                         choiceValue = choiceValue.substring(3).trim();
                     }
                     
-                    // we need to clean up the data base so that we only use integers as the choices,
-                    // but right now we have a number of legacy cases where it's  "optionX" instead of "X" 
-                    //int choiceIndex = Integer.parseInt(encodedChoices.substring(colonIndex + 1, semicolonIndex));
+                    // While by convention our data collection team uses integers as the option names,
+                    // the tool and schema are based on string representations and we cannot always expect an integer 
                     String choiceIndex = encodedChoices.substring(colonIndex + 1, semicolonIndex);
                     this.choices.put(choiceIndex, choiceValue);
                     encodedChoices = encodedChoices.substring(semicolonIndex + 1);

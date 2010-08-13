@@ -2,6 +2,10 @@ package applab.surveys.server;
 
 import javax.servlet.http.*;
 
+import applab.server.ApplabConfiguration;
+import applab.server.ApplabServlet;
+import applab.server.DatabaseId;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;

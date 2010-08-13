@@ -11,10 +11,11 @@
  * the License.
  */
 
-package applab.surveys.server;
+package applab.server;
 
 import java.util.*;
 import java.io.*;
+
 
 /**
  * Provides helper methods for getting access to the values stored in our configuration file (application.xml)

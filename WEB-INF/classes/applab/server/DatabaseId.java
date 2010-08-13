@@ -1,4 +1,4 @@
-package applab.surveys.server;
+package applab.server;
 
 /**
  * enum used to identify database targets

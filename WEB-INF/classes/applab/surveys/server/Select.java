@@ -10,6 +10,10 @@ import java.sql.*;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
+import applab.server.ApplabServlet;
+import applab.server.DatabaseId;
+import applab.server.XmlHelpers;
+
 /**
  * Executes a select query against our databases using a SQL account with read-only access
  * 
@@ -17,9 +21,11 @@ import org.xml.sax.SAXException;
 public class Select extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
-    private final static String NAMESPACE = "http://schemas.applab.org/2010/07";
-    private final static String SELECT_REQUEST_ELEMENT_NAME = "SelectRequest";
-    private final static String TARGET_ATTRIBUTE_NAME = "target";
+    public final static String NAMESPACE = "http://schemas.applab.org/2010/07";
+    public final static String SELECT_REQUEST_ELEMENT_NAME = "SelectRequest";
+    public final static String SELECT_RESPONSE_ELEMENT_NAME = "SelectResponse";
+    public final static String ROW_ELEMENT_NAME = "row";
+    public final static String TARGET_ATTRIBUTE_NAME = "target";
 
     // given a post body like:
     // <?xml version="1.0"?>
@@ -42,9 +48,8 @@ public class Select extends ApplabServlet {
         SelectRequest parsedRequest = parseRequest(requestXml);
         String selectCommandText = parsedRequest.getSelectText();
         if (selectCommandText.length() == 0) {
-            response
-                    .sendError(HttpServletResponse.SC_BAD_REQUEST,
-                            "Expect a request of the form <SelectRequest xmlns=\"http://schemas.applab.org/2010/07\">SQL command text</SelectRequest>");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Expect a request of the form <SelectRequest xmlns=\"" + NAMESPACE + "\">SQL command text</SelectRequest>");
             return;
         }
 
@@ -53,7 +58,8 @@ public class Select extends ApplabServlet {
         PrintWriter responseStream = response.getWriter();
 
         responseStream.println("<?xml version=\"1.0\"?>");
-        responseStream.println("<SelectResponse xmlns=\"http://schemas.applab.org/2010/07\">");
+        responseStream.print("<" + SELECT_RESPONSE_ELEMENT_NAME);
+        responseStream.println("xmlns=\"" + NAMESPACE + "\">");
 
         Connection databaseConnection = DatabaseHelpers.createReaderConnection(parsedRequest.getDatabaseId());
         Statement selectStatement = databaseConnection.createStatement();
@@ -61,21 +67,31 @@ public class Select extends ApplabServlet {
         ResultSetMetaData columnMetadata = resultSet.getMetaData();
         int columnCount = columnMetadata.getColumnCount();
         while (resultSet.next()) {
-            responseStream.print("<row>");
+            printStartElement(responseStream, ROW_ELEMENT_NAME);
 
             // JDBC references are 1-based, not 0-based
             for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
                 String columnName = columnMetadata.getColumnName(columnIndex);
-                responseStream.print("<" + columnName + ">");
+                printStartElement(responseStream, columnName);
                 responseStream.print(resultSet.getString(columnIndex));
-                responseStream.print("</" + columnName + ">");
+                printEndElement(responseStream, columnName);
             }
-            responseStream.println("</row>");
+            printEndElement(responseStream, ROW_ELEMENT_NAME);
+            responseStream.println();
         }
-        responseStream.print("</SelectResponse>");
+        printEndElement(responseStream, SELECT_RESPONSE_ELEMENT_NAME);
         responseStream.close();
         selectStatement.close();
         databaseConnection.close();
+    }
+    
+    // used for standard start elements without any attributes 
+    private static void printStartElement(PrintWriter stream, String elementName) {
+        stream.print("<" + elementName + ">");
+    }
+
+    private static void printEndElement(PrintWriter stream, String elementName) {
+        stream.print("</" + elementName + ">");
     }
 
     // Test methods
@@ -94,22 +110,19 @@ public class Select extends ApplabServlet {
         assert (requestXml != null);
 
         DatabaseId targetDatabase = DatabaseId.Surveys;
-        StringBuilder selectContent = new StringBuilder();
+        String selectContent = "";
         Element rootNode = requestXml.getDocumentElement();
         if (NAMESPACE.equals(rootNode.getNamespaceURI()) && SELECT_REQUEST_ELEMENT_NAME.equals(rootNode.getLocalName())) {
+            // see if a specific database has been requested
             String targetDatabaseValue = rootNode.getAttribute(TARGET_ATTRIBUTE_NAME);
             if (targetDatabaseValue.length() > 0) {
                 targetDatabase = DatabaseId.valueOf(targetDatabaseValue);
             }
 
-            // and look through the child node for the text content
-            for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
-                if (childNode.getNodeType() == Node.TEXT_NODE) {
-                    selectContent.append(childNode.getNodeValue());
-                }
-            }
+            // and get the XML content for our SELECT statement
+            selectContent = XmlHelpers.getContent(rootNode);
         }
-        return new SelectRequest(targetDatabase, selectContent.toString());
+        return new SelectRequest(targetDatabase, selectContent);
     }
 
     static class SelectRequest {

@@ -19,6 +19,8 @@ import java.util.*;
 
 import org.w3c.dom.*;
 
+import applab.server.XmlHelpers;
+
 /**
  * Server method that returns the XML for a survey
  * 

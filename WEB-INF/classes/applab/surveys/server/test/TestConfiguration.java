@@ -4,8 +4,8 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-import applab.surveys.server.ApplabConfiguration;
-import applab.surveys.server.DatabaseId;
+import applab.server.ApplabConfiguration;
+import applab.server.DatabaseId;
 
 public class TestConfiguration {
     @Test

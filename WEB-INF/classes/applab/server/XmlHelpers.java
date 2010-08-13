@@ -1,8 +1,5 @@
-package applab.surveys.server;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
-import java.io.StringWriter;
+package applab.server;
+import java.io.*;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -11,7 +8,7 @@ import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.w3c.dom.Document;
+import org.w3c.dom.*;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -44,6 +41,26 @@ public class XmlHelpers {
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
         InputSource inputSource = new InputSource(reader);
         return documentBuilder.parse(inputSource);
+    }
+    
+    /**
+     * Uses our shared document builder factory to create a new DOM
+     */
+    public static Document createDocument() throws ParserConfigurationException {
+        return documentBuilderFactory.newDocumentBuilder().newDocument();
+    }
+
+    /**
+     * Get the content value for the given XML element
+     */
+    public static String getContent(Element xmlElement) {
+        StringBuilder content = new StringBuilder();
+        for (Node childNode = xmlElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
+            if (childNode.getNodeType() == Node.TEXT_NODE) {
+                content.append(childNode.getNodeValue());
+            }
+        }
+        return content.toString();
     }
 
     /**

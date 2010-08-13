@@ -14,8 +14,10 @@ import com.sforce.soap.enterprise.fault.InvalidIdFault;
 import com.sforce.soap.enterprise.fault.LoginFault;
 import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
 
+import applab.server.DatabaseId;
+import applab.server.DatabaseTable;
+import applab.server.SelectCommand;
 import applab.surveys.server.DatabaseHelpers;
-import applab.surveys.server.DatabaseId;
 import applab.surveys.server.SalesforceProxy;
 
 public class Survey {
@@ -115,24 +117,29 @@ public class Survey {
      */
     int loadPrimaryKey() throws ClassNotFoundException, SQLException {
         assert (this.salesforceId != null) : "We should only reach this code if we have a valid salesforce id";
-        Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
-        Statement statement = connection.createStatement();
-        String commandText = "SELECT id AS PrimaryKey from zebrasurvey where survey_id=" + this.salesforceId;
-        ResultSet resultSet = statement.executeQuery(commandText);
-        if (!resultSet.next()) {
-            // we should have exactly one row, with our primary key in it
-            throw new SQLDataException("Salesforce ID (survey_id) not found: " + this.salesforceId);
-        }
+        SelectCommand selectCommand = new SelectCommand(DatabaseTable.Survey);
 
-        int primaryKey = resultSet.getInt("PrimaryKey");
+        try {
+            selectCommand.addField("id", "PrimaryKey");
+            selectCommand.whereEquals("survey_id", this.salesforceId);
+            ResultSet resultSet = selectCommand.execute();
+            if (!resultSet.next()) {
+                // we should have exactly one row, with our primary key in it
+                throw new SQLDataException("Salesforce ID (survey_id) not found: " + this.salesforceId);
+            }
 
-        if (resultSet.next()) {
-            // we should have exactly one row, with our primary key in it
-            throw new SQLDataException("Found more than one row with this Salesforce ID: " + this.salesforceId);
+            int primaryKey = resultSet.getInt("PrimaryKey");
+
+            if (resultSet.next()) {
+                // we should have exactly one row, with our primary key in it
+                throw new SQLDataException("Found more than one row with this Salesforce ID: " + this.salesforceId);
+            }
+
+            return primaryKey;
         }
-        statement.close();
-        connection.close();
-        return primaryKey;
+        finally {
+            selectCommand.dispose();
+        }
     }
 
     /**

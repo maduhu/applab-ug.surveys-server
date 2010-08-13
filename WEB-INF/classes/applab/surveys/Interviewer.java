@@ -6,6 +6,9 @@ public class Interviewer {
     private String id;
 
     public Interviewer(String firstName, String lastName, String id) {
+        if (id == null || id.length() == 0) {
+            throw new IllegalArgumentException("id must be non-empty");
+        }
         this.firstName = firstName;
         this.lastName = lastName;
         this.id = id;

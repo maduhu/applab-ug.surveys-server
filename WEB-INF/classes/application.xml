@@ -3,29 +3,39 @@
 <properties>
   <comment>Configuration information for applab servers</comment>
 
-  <!-- use http://ckwapps.applab.org:8888/zebra/ in production -->
-  <entry key="host-url">http://applab.yo.co.ug:8888/zebra/</entry>
-  <entry key="surveys-database-url">jdbc:mysql://localhost:3306/zebra</entry>
-  <entry key="search-database-url">jdbc:mysql://localhost:3306/ycppquiz</entry>
+  <!-- common settings between production and test server -->
   
   <!-- Surveys database configuration -->
+  <entry key="surveys-database-url">jdbc:mysql://localhost:3306/zebra</entry>
   <entry key="surveys-username">zebra</entry>
   <entry key="surveys-password">zebra</entry>
-  <!-- Use reader/r3ad3r12# in production -->
-  <entry key="surveys-reader-username">zebra</entry>
-  <entry key="surveys-reader-password">zebra</entry>
 
   <!-- Search database configuration -->
+  <entry key="search-database-url">jdbc:mysql://localhost:3306/ycppquiz</entry>
   <entry key="search-username">ycppquiz</entry>
   <entry key="search-password">ycppquiz</entry>
-  <!-- Use reader/r3ad3r12# in production -->
+
+  <!-- production settings, commented out for development -->
+  <!--
+  <entry key="host-url">http://ckwapps.applab.org:8888/zebra/</entry>
+  <entry key="surveys-reader-username">reader</entry>
+  <entry key="surveys-reader-password">r3ad3r12#</entry>
+  <entry key="search-reader-username">reader</entry>
+  <entry key="search-reader-password">r3ad3r12#</entry>
+  <entry key="salesforce-username">crmapi@applab.org</entry>
+  <entry key="salesforce-password">yoteam2010</entry>
+  <entry key="salesforce-token">7DsJf1XPYI877Ria4bmlQMcIO</entry>
+  -->
+
+  <!-- test server settings, enabled for development, remove for production deployment -->
+  <entry key="host-url">http://applab.yo.co.ug:8888/zebra/</entry>
+  <entry key="surveys-reader-username">zebra</entry>
+  <entry key="surveys-reader-password">zebra</entry>
   <entry key="search-reader-username">ycppquiz</entry>
   <entry key="search-reader-password">ycppquiz</entry>
 
   <!-- Salesforce configuration -->
-  <!-- use crmadmin@applab.org in production -->
-  <entry key="salesforce-username">crmadmin@applab.org.ckwtest</entry>
-  <entry key="salesforce-password">applabug2010</entry>
-  <!-- use lCuGXxlQDQ2REgIBA6m5GoJUx in production -->
-  <entry key="salesforce-token">rzNlXfhzyHZMz0qrawVHnhLG</entry>
+  <entry key="salesforce-username">crmapi@applab.org.ckwtest</entry>
+  <entry key="salesforce-password">yoteam2010</entry>
+  <entry key="salesforce-token">XpMb9kdxRYvDBk9AUw0Zpt9xz</entry>
 </properties>

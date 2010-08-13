@@ -16,6 +16,9 @@ import com.sforce.soap.enterprise.fault.InvalidIdFault;
 import com.sforce.soap.enterprise.fault.LoginFault;
 import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
 
+import applab.server.ApplabConfiguration;
+import applab.server.DatabaseId;
+import applab.server.XmlHelpers;
 import applab.surveys.Interviewer;
 
 import java.rmi.RemoteException;
@@ -179,10 +182,28 @@ public class ProcessSubmission extends HttpServlet {
     }
 
     private void saveAttachment(FileItem attachment, HashMap<String, String> attachmentReferences) throws Exception {
+        String attachmentReference = createAttachmentReference(attachment.getContentType());
+
+        String fullPath = this.getServletContext().getRealPath(attachmentReference);
+        File targetFile = new File(fullPath);
+
+        // create the parent directories if necessary
+        File parentDirectory = targetFile.getParentFile();
+        if (parentDirectory != null) {
+            parentDirectory.mkdirs();
+        }
+        attachment.write(targetFile);
+
+        // store the full public path here, not the relative one. Need to remove the leading '/' from the path reference
+        String publicAttachmentReference = ApplabConfiguration.getHostUrl() + attachmentReference.substring(1);
+        attachmentReferences.put(attachment.getName(), publicAttachmentReference);
+    }
+    
+    // given a content type, generate a relative file reference to the generated name
+    // public so that we can test this functionality
+    public static String createAttachmentReference(String contentType) {
         // grab everything after the forward slash and convert to file extension (e.g. image/gif -> .gif)
         // use everything before the forward slash and use it for our directory (e.g. image/gif -> survey_images)
-        String contentType = attachment.getContentType();
-
         int separatorIndex = contentType.lastIndexOf("/");
         assert (separatorIndex > 0 && separatorIndex < contentType.length()) : "callers should only pass valid content types";
 
@@ -190,18 +211,7 @@ public class ProcessSubmission extends HttpServlet {
         String fileExtension = "." + contentType.substring(separatorIndex + 1);
         // for certain extensions, we can make substitutions here if it proves necessary (e.g. jpeg->jpg)
 
-        String attachmentReference = directoryName + new configuration.images().generateImageName() + fileExtension;
-
-        String fullPath = this.getServletContext().getRealPath(attachmentReference);
-        File targetFile = new File(fullPath);
-
-        // create the directory if necessary
-        targetFile.mkdir();
-        attachment.write(targetFile);
-
-        // store the full public path here, not the relative one. Need to remove the leading '/' from the path reference
-        String publicAttachmentReference = ApplabConfiguration.getHostUrl() + attachmentReference.substring(1);
-        attachmentReferences.put(attachment.getName(), publicAttachmentReference);
+        return directoryName + new configuration.images().generateImageName() + fileExtension;
     }
 
     /**

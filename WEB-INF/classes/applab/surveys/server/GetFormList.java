@@ -15,32 +15,46 @@ package applab.surveys.server;
  */
 
 import javax.servlet.http.*;
+import javax.xml.rpc.ServiceException;
+
+import com.sforce.soap.enterprise.fault.InvalidIdFault;
+import com.sforce.soap.enterprise.fault.LoginFault;
+import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
+
+import applab.server.ApplabConfiguration;
+import applab.server.ApplabServlet;
+
 import java.io.PrintWriter;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 
 public class GetFormList extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     protected void doApplabGet(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        PrintWriter responseWriter = response.getWriter();
-        responseWriter.write("<forms>");
+        writeFormsList(response.getWriter());
+    }
+    
+    public static void writeFormsList(PrintWriter writer) throws Exception {
+        writer.write("<forms>");
         SalesforceProxy salesforceProxy = SalesforceProxy.login();
 
-        // get the list of published survey IDs
+        // get the list of published survey IDs 
+        // TODO: also get their associated names from salesforce instead of all these extra lookups
         ArrayList<String> publishedSurveyIds = salesforceProxy.getPublishedSurveys();
         if (publishedSurveyIds.size() > 0) {
             for (String surveyId : publishedSurveyIds) {
                 String surveyName = DatabaseHelpers.getSurveyName(surveyId);
                 if (surveyName != null) {
-                    responseWriter.write("<form url=\"" + ApplabConfiguration.getHostUrl() + "getForm?surveyid=" + surveyId + "\" >"
+                    writer.write("<form url=\"" + ApplabConfiguration.getHostUrl() + "getForm?surveyid=" + surveyId + "\" >"
                             + surveyName + "</form>");
                 }
             }
         }
         else {
-            responseWriter.write("<form>Don't Click</form>");
+            writer.write("<form>Don't Click</form>");
         }
-        responseWriter.write("</forms>");
-        salesforceProxy.logout();
+        writer.write("</forms>");
+        salesforceProxy.logout();        
     }
 }
