@@ -1,8 +1,6 @@
 package applab.surveys.server;
 
-import applab.server.ApplabConfiguration;
-import applab.server.ApplabServlet;
-import applab.server.DatabaseId;
+import applab.server.*;
 import applab.surveys.*;
 
 import javax.servlet.http.*;

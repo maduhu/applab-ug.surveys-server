@@ -10,10 +10,7 @@ import java.sql.*;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
-import applab.server.ApplabServlet;
-import applab.server.DatabaseId;
-import applab.server.XmlHelpers;
-import applab.surveys.server.*;
+import applab.server.*;
 
 /**
  * TEST-ONLY: method used by our tests to perform remote updates against the test-database so that developers don't all

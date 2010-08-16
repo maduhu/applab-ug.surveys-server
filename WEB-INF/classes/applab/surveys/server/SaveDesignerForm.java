@@ -19,7 +19,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
-import applab.server.XmlHelpers;
+import applab.server.*;
 
 import java.io.*;
 import java.util.*;
@@ -57,17 +57,17 @@ public class SaveDesignerForm extends HttpServlet {
             SalesforceProxy salesforceProxy = SalesforceProxy.login();
             String surveyName = salesforceProxy.getSurveyName(survey_id);
             // check if id exists in zebrasurvey
-            String databaseId = DatabaseHelpers.getZebraSurveyId(survey_id);
+            String databaseId = SurveyDatabaseHelpers.getZebraSurveyId(survey_id);
             if (databaseId != null) {
-                DatabaseHelpers.saveXform(survey_id, surveyName, xform_data);
+                SurveyDatabaseHelpers.saveXform(survey_id, surveyName, xform_data);
                 // on saving check with zebrasurveyquestions
                 // configuration.DbConnect.deleteSurveyFromSurveyQuestions(zebra_survey_id);
                 this.createSurveyQuestions(Integer.parseInt(databaseId), xform_data);
             }
             else if (salesforceProxy.surveyIdExists(survey_id)) {
-                DatabaseHelpers.saveXform(survey_id, xform_data, surveyName, DatabaseHelpers.formatDateTime(new Date()));
+                SurveyDatabaseHelpers.saveXform(survey_id, xform_data, surveyName, DatabaseHelpers.formatDateTime(new Date()));
                 // on saving
-                int zebra_survey_id = Integer.parseInt(DatabaseHelpers.getZebraSurveyId(survey_id));
+                int zebra_survey_id = Integer.parseInt(SurveyDatabaseHelpers.getZebraSurveyId(survey_id));
                 this.createSurveyQuestions(zebra_survey_id, xform_data);
             }
             salesforceProxy.logout();
@@ -210,7 +210,7 @@ public class SaveDesignerForm extends HttpServlet {
     private void createSurveyQuestions(int backendSurveyId, String xformData) throws SAXException, IOException,
             ParserConfigurationException {
         // check if survey exists in zebra
-        Hashtable<String, String> backendQuestions = DatabaseHelpers.getZebraSurveyQuestions(backendSurveyId);
+        Hashtable<String, String> backendQuestions = SurveyDatabaseHelpers.getZebraSurveyQuestions(backendSurveyId);
         HashMap<String, String> parsedQuestions = new HashMap<String, String>();
 
         // first parse the x-form
@@ -230,26 +230,26 @@ public class SaveDesignerForm extends HttpServlet {
         for (String key : backendQuestions.keySet()) {
             if (!parsedQuestions.containsKey(key)) {
                 // this parameter was deleted during the design
-                if (!DatabaseHelpers.surveyQuestionHasSubmissions(backendSurveyId, key)) {
-                    DatabaseHelpers.deleteSurveyQuestion(backendSurveyId, key);
+                if (!SurveyDatabaseHelpers.surveyQuestionHasSubmissions(backendSurveyId, key)) {
+                    SurveyDatabaseHelpers.deleteSurveyQuestion(backendSurveyId, key);
                 }
             }
         }
 
         // and finally deal with add/update of questions
         for (Entry<String, String> question : parsedQuestions.entrySet()) {
-            if (DatabaseHelpers.verifySurveyField(question.getKey(), backendSurveyId)) {
-                if (!DatabaseHelpers.surveyQuestionHasSubmissions(backendSurveyId, question.getKey())) {
+            if (SurveyDatabaseHelpers.verifySurveyField(question.getKey(), backendSurveyId)) {
+                if (!SurveyDatabaseHelpers.surveyQuestionHasSubmissions(backendSurveyId, question.getKey())) {
                     // compare the question values
                     if (!question.getValue().equals(backendQuestions.get(question.getKey()))) {
                         // update the question only
-                        DatabaseHelpers.updateSurveyQuestion(question.getKey(), question.getValue(), backendSurveyId);
+                        SurveyDatabaseHelpers.updateSurveyQuestion(question.getKey(), question.getValue(), backendSurveyId);
                     }
                 }
             }
             else {
                 // does not exist.
-                DatabaseHelpers.saveZebraSurveyQuestions(backendSurveyId, question.getValue(), question.getKey());
+                SurveyDatabaseHelpers.saveZebraSurveyQuestions(backendSurveyId, question.getValue(), question.getKey());
             }
         }
     }

@@ -26,7 +26,7 @@ public class GetDesignerForm extends HttpServlet {
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String formId = request.getParameter("formId");
-        String xformData = DatabaseHelpers.getXformData(formId);
+        String xformData = SurveyDatabaseHelpers.getXformData(formId);
         response.getWriter().write(xformData);
     }
 }

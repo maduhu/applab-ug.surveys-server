@@ -17,5 +17,6 @@
 	<classpathentry kind="lib" path="WEB-INF/lib/activation.jar"/>
 	<classpathentry kind="lib" path="../externals/tomcat/servlet-api.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/Common Server"/>
 	<classpathentry kind="output" path="WEB-INF/classes"/>
 </classpath>

@@ -10,9 +10,7 @@ import java.sql.*;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
-import applab.server.ApplabServlet;
-import applab.server.DatabaseId;
-import applab.server.XmlHelpers;
+import applab.server.*;
 
 /**
  * Executes a select query against our databases using a SQL account with read-only access

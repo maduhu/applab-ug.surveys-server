@@ -16,9 +16,7 @@ import com.sforce.soap.enterprise.fault.InvalidIdFault;
 import com.sforce.soap.enterprise.fault.LoginFault;
 import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
 
-import applab.server.ApplabConfiguration;
-import applab.server.DatabaseId;
-import applab.server.XmlHelpers;
+import applab.server.*;
 import applab.surveys.Interviewer;
 
 import java.rmi.RemoteException;
@@ -94,7 +92,7 @@ public class ProcessSubmission extends HttpServlet {
             throws NoSuchAlgorithmException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ServiceException,
             ClassNotFoundException, SQLException {
         int backendSurveyId = Integer.parseInt(surveyResponses.get("survey_id").getEncodedAnswer(attachmentReferences));
-        if (!DatabaseHelpers.verifySurveyID(backendSurveyId)) {
+        if (!SurveyDatabaseHelpers.verifySurveyID(backendSurveyId)) {
             return HttpServletResponse.SC_NOT_FOUND;
         }
         // The following permanent fields should not be included in creating a hex string
@@ -128,7 +126,7 @@ public class ProcessSubmission extends HttpServlet {
             // the question name is used as our column names for survey answers
             String answerColumn = surveyAnswer.getKey();
             // verify that these questions have been created
-            if (DatabaseHelpers.verifySurveyField(answerColumn, backendSurveyId)) {
+            if (SurveyDatabaseHelpers.verifySurveyField(answerColumn, backendSurveyId)) {
                 answerColumnsCommandText += "," + answerColumn;
                 answerValueCommandText += ",'" + surveyAnswer.getValue().getEncodedAnswer(attachmentReferences) + "'";
             }

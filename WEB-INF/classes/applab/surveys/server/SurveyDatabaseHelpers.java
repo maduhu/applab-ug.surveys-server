@@ -14,52 +14,20 @@
 package applab.surveys.server;
 
 import java.sql.*;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.Date;
-
-import applab.server.ApplabConfiguration;
-import applab.server.DatabaseId;
+import applab.server.*;
 
 /**
  * Helper methods for interacting with our survey and search databases
  * 
  */
-public class DatabaseHelpers {
+public class SurveyDatabaseHelpers {
 
     final static String JDBC_DRIVER = "com.mysql.jdbc.Driver";
 
-    // helper function to create a connection to our local database
-    public static Connection createConnection(DatabaseId targetDatabase) throws ClassNotFoundException, SQLException {
-        // make sure the JDBC driver is loaded into memory
-        Class.forName(JDBC_DRIVER);
-        return DriverManager.getConnection(ApplabConfiguration.getDatabaseUrl(targetDatabase), 
-                ApplabConfiguration.getDatabaseUsername(targetDatabase),
-                ApplabConfiguration.getDatabasePassword(targetDatabase));
-    }
-
-    // like createConnection, except it uses a read-only account
-    public static Connection createReaderConnection(DatabaseId targetDatabase) throws ClassNotFoundException, SQLException {
-        // we don't have deployment setup correctly, so use the read-write account for now
-        // make sure the JDBC driver is loaded into memory
-        Class.forName(JDBC_DRIVER);
-        return DriverManager.getConnection(ApplabConfiguration.getDatabaseUrl(targetDatabase), 
-                ApplabConfiguration.getReaderUsername(targetDatabase), 
-                ApplabConfiguration.getReaderPassword(targetDatabase));
-    }
-
-    /**
-     * Helper method to ensure consistent date formatting in our database
-     */
-    public static String formatDateTime(Date date) {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        return dateFormat.format(date);
-    }
-
     public static boolean verifySurveyID(int surveyPrimaryKey) {
         try {
-            Connection connection = createReaderConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "SELECT id from zebrasurvey where id=" + surveyPrimaryKey;
             ResultSet resultSet = statement.executeQuery(sqlQuery);
@@ -80,7 +48,7 @@ public class DatabaseHelpers {
 
     public static String getSurveyName(String surveyId) {
         try {
-            Connection connection = createReaderConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "SELECT survey_name from zebrasurvey where survey_id='" + surveyId + "'";
             ResultSet resultSet = statement.executeQuery(sqlQuery);
@@ -99,7 +67,7 @@ public class DatabaseHelpers {
 
     public static String getZebraSurveyId(String salesforceSurveyId) {
         try {
-            Connection connection = createReaderConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "SELECT id from zebrasurvey where survey_id='" + salesforceSurveyId + "'";
             ResultSet resultSet = statement.executeQuery(sqlQuery);
@@ -118,7 +86,7 @@ public class DatabaseHelpers {
 
     public static String getXformData(String surveyId) {
         try {
-            Connection connection = createReaderConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "SELECT xform from zebrasurvey where survey_id='" + surveyId + "'";
             ResultSet resultSet = statement.executeQuery(sqlQuery);
@@ -137,7 +105,7 @@ public class DatabaseHelpers {
 
     public static boolean verifySurveyField(String xform_param_var, int surveyId) {
         try {
-            Connection connection = createReaderConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "SELECT xform_param_var from zebrasurveyquestions where xform_param_var='" + xform_param_var
                     + "' and survey_id=" + surveyId;
@@ -159,7 +127,7 @@ public class DatabaseHelpers {
 
     public static boolean saveXform(String surveyId, String surveyName, String xformData) {
         try {
-            Connection connection = createConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "UPDATE zebrasurvey set survey_name='" + surveyName + "',xform='" + xformData + "' where survey_id='"
                     + surveyId + "'";
@@ -176,7 +144,7 @@ public class DatabaseHelpers {
 
     public static boolean saveXform(String surveyId, String xform_data, String surveyName, String creationDate) {
         try {
-            Connection connection = createConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "INSERT into zebrasurvey (survey_name,survey_id,created_at,xform) values ('" + surveyName + "','" + surveyId
                     + "','" + creationDate + "','" + xform_data + "')";
@@ -194,7 +162,7 @@ public class DatabaseHelpers {
 
     public static boolean saveZebraSurveyQuestions(int surveyId, String xform_param_name, String xform_param_var) {
         try {
-            Connection connection = createConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "INSERT into zebrasurveyquestions (survey_id,xform_param_name,xform_param_var,xform_param_options) values ("
                     + surveyId + ",'" + xform_param_name + "','" + xform_param_var + "','')";
@@ -211,7 +179,7 @@ public class DatabaseHelpers {
 
     public static boolean deleteSurveyFromSurveyQuestions(int surveyId) {
         try {
-            Connection connection = createConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "DELETE from zebrasurveyquestions where survey_id=" + surveyId;
             statement.executeUpdate(sqlQuery);
@@ -228,7 +196,7 @@ public class DatabaseHelpers {
     public static Hashtable<String, String> getZebraSurveyQuestions(int surveyId) {
         Hashtable<String, String> questions = new Hashtable<String, String>();
         try {
-            Connection connection = createReaderConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "select xform_param_name,xform_param_var from zebrasurveyquestions where survey_id=" + surveyId;
             ResultSet resultSet = statement.executeQuery(sqlQuery);
@@ -248,7 +216,7 @@ public class DatabaseHelpers {
 
     public static boolean updateSurveyQuestion(String xform_param_var, String xform_param_name, int surveyId) {
         try {
-            Connection connection = createConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "UPDATE zebrasurveyquestions set xform_param_name='" + xform_param_name + "' where survey_id="
                     + surveyId + " and xform_param_var='" + xform_param_var + "'";
@@ -265,7 +233,7 @@ public class DatabaseHelpers {
 
     public static boolean surveyQuestionHasSubmissions(int surveyId, String parameter) {
         try {
-            Connection connection = createReaderConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "SELECT " + parameter + " from zebrasurveysubmissions where survey_id=" + surveyId;
             ResultSet resultSet = statement.executeQuery(sqlQuery);
@@ -289,7 +257,7 @@ public class DatabaseHelpers {
 
     public static boolean deleteSurveyQuestion(int surveyId, String parameter) {
         try {
-            Connection connection = createConnection(DatabaseId.Surveys);
+            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
             String sqlQuery = "DELETE from zebrasurveyquestions where xform_param_var='" + parameter + "' and survey_id=" + surveyId;
             statement.executeUpdate(sqlQuery);
@@ -301,46 +269,5 @@ public class DatabaseHelpers {
             e.printStackTrace();
         }
         return false;
-    }
-
-    public HashMap<String, String> getHandsetIdsWithNullInterviewers() throws Exception {
-        Connection connection = createReaderConnection(DatabaseId.Surveys);
-        Statement statement = connection.createStatement();
-
-        String sqlQuery = "SELECT id,handset_id from zebrasurveysubmsissions where interviewer_id = ''";
-        ResultSet queryResults = statement.executeQuery(sqlQuery);
-        // in the order of interviewer_name,interviewer_id,handset_id
-        HashMap<String, String> handsetList = new HashMap<String, String>();
-        while (queryResults.next()) {
-            handsetList.put(queryResults.getString("id"), queryResults.getString("handset_id"));
-        }
-        statement.close();
-        connection.close();
-        return handsetList;
-    }
-
-    public void setInterviewerNameAndId(int submissionId, String interviewerName, String interviewerId) throws ClassNotFoundException,
-            SQLException {
-        Connection connection = createConnection(DatabaseId.Surveys);
-        Statement statement = connection.createStatement();
-        String sqlQuery = "UPDATE zebrasurveysubmissions set interviewer_name='" + interviewerName + "', interviewer_id='" + interviewerId
-                + "' where id=" + submissionId;
-        statement.executeUpdate(sqlQuery);
-        statement.close();
-        connection.close();
-    }
-
-    public String getSurveyStatus(int submissionId) throws SQLException, ClassNotFoundException {
-        Connection connection = createReaderConnection(DatabaseId.Surveys);
-        Statement statement = connection.createStatement();
-        String sqlQuery = "SELECT survey_status from zebrasurveysubmissions where id=" + submissionId;
-        ResultSet queryResults = statement.executeQuery(sqlQuery);
-        String surveyStatus = "";
-        while (queryResults.next()) {
-            surveyStatus = queryResults.getString("survey_status");
-        }
-        statement.close();
-        connection.close();
-        return surveyStatus;
     }
 }

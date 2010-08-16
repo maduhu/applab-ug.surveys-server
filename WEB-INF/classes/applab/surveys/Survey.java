@@ -14,10 +14,7 @@ import com.sforce.soap.enterprise.fault.InvalidIdFault;
 import com.sforce.soap.enterprise.fault.LoginFault;
 import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
 
-import applab.server.DatabaseId;
-import applab.server.DatabaseTable;
-import applab.server.SelectCommand;
-import applab.surveys.server.DatabaseHelpers;
+import applab.server.*;
 import applab.surveys.server.SalesforceProxy;
 
 public class Survey {
