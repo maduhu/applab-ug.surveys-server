@@ -31,8 +31,8 @@ public class RemoteResultSet implements ResultSet {
         Element rootNode = remoteResultsXml.getDocumentElement();
 
         // validate the root name/namespace
-        if (!Select.NAMESPACE.equals(rootNode.getNamespaceURI()) || !Select.SELECT_RESPONSE_ELEMENT_NAME.equals(rootNode.getLocalName())) {
-            throw new IllegalArgumentException("Root element must have name='" + Select.SELECT_RESPONSE_ELEMENT_NAME + "' and namespace='"
+        if (!Select.NAMESPACE.equals(rootNode.getNamespaceURI()) || !Select.RESPONSE_ELEMENT_NAME.equals(rootNode.getLocalName())) {
+            throw new IllegalArgumentException("Root element must have name='" + Select.RESPONSE_ELEMENT_NAME + "' and namespace='"
                     + Select.NAMESPACE + "'");
         }
 

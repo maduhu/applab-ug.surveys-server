@@ -1,7 +1,6 @@
 package applab.surveys.server.test;
 
 import java.io.*;
-import java.net.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -9,6 +8,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.xml.sax.SAXException;
 
+import applab.net.*;
 import applab.server.*;
 
 public class RemoteSqlImplementation extends SqlImplementation {
@@ -27,26 +27,17 @@ public class RemoteSqlImplementation extends SqlImplementation {
 
         @Override
         public ResultSet executeQuery(DatabaseId database, String commandText) throws SQLException {
-            // make a query to our Select servlet
-            URL url;
             try {
-                url = new URL(ApplabConfiguration.getHostUrl() + "select");
-                URLConnection connection = url.openConnection();
-                // since we're doing a POST, need to configure a few settings
-                connection.setDoOutput(true);
-                connection.setRequestProperty("Content-Type", "text/xml");
-                DataOutputStream requestStream = new DataOutputStream(connection.getOutputStream());
+                // make a query to our Select servlet
+                HttpPost postRequest = new HttpPost(ApplabConfiguration.getHostUrl() + "select");
+                postRequest.appendToBody("<?xml version=\"1.0\"?>");
+                postRequest.appendToBody("<SelectRequest xmlns=\"http://schemas.applab.org/2010/07\" target=\"");
+                postRequest.appendToBody(database.toString());
+                postRequest.appendToBody("\">");
+                postRequest.appendToBody(commandText);
+                postRequest.appendToBody("</SelectRequest>");                
 
-                requestStream.writeBytes("<?xml version=\"1.0\"?>");
-                requestStream.writeBytes("<SelectRequest xmlns=\"http://schemas.applab.org/2010/07\" target=\"");
-                requestStream.writeBytes(database.toString());
-                requestStream.writeBytes("\">");
-                requestStream.writeBytes(commandText);
-                requestStream.writeBytes("</SelectRequest>");                
-                requestStream.close();
-
-                Reader responseBody = new InputStreamReader(connection.getInputStream());
-                return new RemoteResultSet(XmlHelpers.parseXml(responseBody));
+                return new RemoteResultSet(XmlHelpers.parseXml(postRequest.getResponse().getBodyReader()));
             }
             catch (SAXException e) {
                 throw new SQLException("executeQuery error: " + e.getMessage());

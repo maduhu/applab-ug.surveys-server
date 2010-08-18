@@ -36,7 +36,7 @@ public class Update extends ApplabServlet {
     // <number of rows updated>
     // </UpdateResponse>
     
-    protected void doApplabPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ClassNotFoundException, SQLException, SAXException, ParserConfigurationException {
+    protected void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, ClassNotFoundException, SQLException, SAXException, ParserConfigurationException {
         Document requestXml = XmlHelpers.parseXml(request.getReader());
         UpdateRequest parsedRequest = parseRequest(requestXml);
         String updateCommandText = parsedRequest.getUpdateText();

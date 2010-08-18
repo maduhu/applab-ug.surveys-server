@@ -17,7 +17,7 @@ import java.util.*;
 public class UpdateSubmissionStatus extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
-    public void doApplabPost(HttpServletRequest request, HttpServletResponse response) throws IOException, ClassNotFoundException, SQLException {
+    public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, ClassNotFoundException, SQLException {
         // parse our parameters to get the relevant set of submissions to update
         Enumeration<?> names = request.getParameterNames();
         while (names.hasMoreElements()) {

@@ -20,7 +20,7 @@ public class ReviewSubmissions extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     @Override
-    public void doApplabGet(HttpServletRequest request, HttpServletResponse response) throws ClassNotFoundException, SQLException,
+    public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws ClassNotFoundException, SQLException,
             IOException, ServiceException {
         String salesforceSurveyId = request.getParameter("surveyId");
         SubmissionStatistics statistics = SubmissionStatistics.getStatistics(salesforceSurveyId);

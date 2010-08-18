@@ -20,28 +20,28 @@ public class Select extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     public final static String NAMESPACE = "http://schemas.applab.org/2010/07";
-    public final static String SELECT_REQUEST_ELEMENT_NAME = "SelectRequest";
-    public final static String SELECT_RESPONSE_ELEMENT_NAME = "SelectResponse";
+    public final static String REQUEST_ELEMENT_NAME = "SelectRequest";
+    public final static String RESPONSE_ELEMENT_NAME = "SelectResponse";
     public final static String ROW_ELEMENT_NAME = "row";
     public final static String TARGET_ATTRIBUTE_NAME = "target";
 
     // given a post body like:
     // <?xml version="1.0"?>
     // <SelectRequest xmlns="http://schemas.applab.org/2010/07" target="Search"> <!-- or "Surveys" -->
-    // SELECT * from ycppquiz.OktopusSearchLog
+    //   SELECT * from ycppquiz.OktopusSearchLog
     // </SelectRequest>
     // 
     // returns a response like:
     // <?xml version="1.0"?>
     // <SelectResponse xmlns="http://schemas.applab.org/2010/07">
-    // <row><column1Name>data</column1Name><column2Name>data2</column2Name></row>
-    // <row><column1Name>data</column1Name><column2Name>data2</column2Name></row>
+    //   <row><column1Name>data</column1Name><column2Name>data2</column2Name></row>
+    //   <row><column1Name>data</column1Name><column2Name>data2</column2Name></row>
     // </SelectResponse>
     //
     // Security Concern: DoS due to expensive selects.
     // Possible mitigations: HTTP auth, HTTPS, closed query space
     @Override
-    protected void doApplabPost(HttpServletRequest request, HttpServletResponse response) throws IOException, SAXException, ParserConfigurationException, ClassNotFoundException, SQLException {
+    protected void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, SAXException, ParserConfigurationException, ClassNotFoundException, SQLException {
         Document requestXml = XmlHelpers.parseXml(request.getReader());
         SelectRequest parsedRequest = parseRequest(requestXml);
         String selectCommandText = parsedRequest.getSelectText();
@@ -52,12 +52,11 @@ public class Select extends ApplabServlet {
         }
 
         response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType("text/xml");
-        PrintWriter responseStream = response.getWriter();
+        context.writeXmlHeader();
+        context.writeStartElement(RESPONSE_ELEMENT_NAME, NAMESPACE);
 
-        responseStream.println("<?xml version=\"1.0\"?>");
-        responseStream.print("<" + SELECT_RESPONSE_ELEMENT_NAME);
-        responseStream.println("xmlns=\"" + NAMESPACE + "\">");
+        
+        PrintWriter responseStream = response.getWriter();
 
         Connection databaseConnection = DatabaseHelpers.createReaderConnection(parsedRequest.getDatabaseId());
         Statement selectStatement = databaseConnection.createStatement();
@@ -65,33 +64,24 @@ public class Select extends ApplabServlet {
         ResultSetMetaData columnMetadata = resultSet.getMetaData();
         int columnCount = columnMetadata.getColumnCount();
         while (resultSet.next()) {
-            printStartElement(responseStream, ROW_ELEMENT_NAME);
+            context.writeStartElement(ROW_ELEMENT_NAME);
 
             // JDBC references are 1-based, not 0-based
             for (int columnIndex = 1; columnIndex <= columnCount; columnIndex++) {
                 String columnName = columnMetadata.getColumnName(columnIndex);
-                printStartElement(responseStream, columnName);
+                context.writeStartElement(columnName);
                 responseStream.print(resultSet.getString(columnIndex));
-                printEndElement(responseStream, columnName);
+                context.writeEndElement(columnName);
             }
-            printEndElement(responseStream, ROW_ELEMENT_NAME);
+            context.writeEndElement(ROW_ELEMENT_NAME);
             responseStream.println();
         }
-        printEndElement(responseStream, SELECT_RESPONSE_ELEMENT_NAME);
+        context.writeEndElement(RESPONSE_ELEMENT_NAME);
         responseStream.close();
         selectStatement.close();
         databaseConnection.close();
     }
     
-    // used for standard start elements without any attributes 
-    private static void printStartElement(PrintWriter stream, String elementName) {
-        stream.print("<" + elementName + ">");
-    }
-
-    private static void printEndElement(PrintWriter stream, String elementName) {
-        stream.print("</" + elementName + ">");
-    }
-
     // Test methods
     // TODO: how do we hide these from production?
     public static String getQueryFromRequest(Document requestXml) {
@@ -110,7 +100,7 @@ public class Select extends ApplabServlet {
         DatabaseId targetDatabase = DatabaseId.Surveys;
         String selectContent = "";
         Element rootNode = requestXml.getDocumentElement();
-        if (NAMESPACE.equals(rootNode.getNamespaceURI()) && SELECT_REQUEST_ELEMENT_NAME.equals(rootNode.getLocalName())) {
+        if (NAMESPACE.equals(rootNode.getNamespaceURI()) && REQUEST_ELEMENT_NAME.equals(rootNode.getLocalName())) {
             // see if a specific database has been requested
             String targetDatabaseValue = rootNode.getAttribute(TARGET_ATTRIBUTE_NAME);
             if (targetDatabaseValue.length() > 0) {

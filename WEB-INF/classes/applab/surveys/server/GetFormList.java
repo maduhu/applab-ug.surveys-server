@@ -24,7 +24,7 @@ import java.util.ArrayList;
 public class GetFormList extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
-    protected void doApplabGet(HttpServletRequest request, HttpServletResponse response) throws Exception {
+    protected void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
         writeFormsList(response.getWriter());
     }
     
