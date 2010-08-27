@@ -17,6 +17,7 @@ package applab.surveys.server;
 import javax.servlet.http.*;
 
 import applab.server.*;
+import applab.surveys.Survey;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -26,28 +27,27 @@ public class GetFormList extends ApplabServlet {
 
     protected void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
         writeFormsList(response.getWriter());
+        context.close();
     }
-    
-    public static void writeFormsList(PrintWriter writer) throws Exception {
-        writer.write("<forms>");
-        SalesforceProxy salesforceProxy = SalesforceProxy.login();
 
-        // get the list of published survey IDs 
-        // TODO: also get their associated names from salesforce instead of all these extra lookups
-        ArrayList<String> publishedSurveyIds = salesforceProxy.getPublishedSurveys();
-        if (publishedSurveyIds.size() > 0) {
-            for (String surveyId : publishedSurveyIds) {
-                String surveyName = SurveyDatabaseHelpers.getSurveyName(surveyId);
-                if (surveyName != null) {
-                    writer.write("<form url=\"" + ApplabConfiguration.getHostUrl() + "getForm?surveyid=" + surveyId + "\" >"
-                            + surveyName + "</form>");
+    public static void writeFormsList(PrintWriter writer) throws Exception {
+        SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
+        try {
+            writer.write("<forms>");
+            ArrayList<Survey> publishedSurveys = salesforceProxy.getPublishedSurveys();
+            if (publishedSurveys.size() > 0) {
+                for (Survey survey : publishedSurveys) {
+                    writer.write("<form url=\"" + ApplabConfiguration.getHostUrl() + "getForm?surveyid=" + survey.getSalesforceId()
+                            + "\" >" + survey.getName() + "</form>");
                 }
             }
+            else {
+                writer.write("<form>No Surveys available</form>");
+            }
+            writer.write("</forms>");
         }
-        else {
-            writer.write("<form>Don't Click</form>");
+        finally {
+            salesforceProxy.dispose();
         }
-        writer.write("</forms>");
-        salesforceProxy.logout();        
     }
 }

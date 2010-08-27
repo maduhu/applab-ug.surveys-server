@@ -36,10 +36,10 @@ import java.util.Map.Entry;
  * Namespace = http://www.w3.org/2002/xforms
  *
  */
-public class SaveDesignerForm extends HttpServlet {
+public class SaveDesignerForm extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
-    public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
         String survey_id = request.getParameter("formId");
 
         BufferedReader reader = request.getReader();
@@ -51,10 +51,10 @@ public class SaveDesignerForm extends HttpServlet {
         reader.close();
         String xform_data1 = sb.toString();
         String xform_data = xform_data1.replaceAll("\'", "\\'");
-        System.out.println(xform_data.replaceAll("'", "\\'"));
+
+        SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
         // get the survey name
         try {
-            SalesforceProxy salesforceProxy = SalesforceProxy.login();
             String surveyName = salesforceProxy.getSurveyName(survey_id);
             // check if id exists in zebrasurvey
             String databaseId = SurveyDatabaseHelpers.getZebraSurveyId(survey_id);
@@ -70,10 +70,9 @@ public class SaveDesignerForm extends HttpServlet {
                 int zebra_survey_id = Integer.parseInt(SurveyDatabaseHelpers.getZebraSurveyId(survey_id));
                 this.createSurveyQuestions(zebra_survey_id, xform_data);
             }
-            salesforceProxy.logout();
         }
-        catch (Exception e) {
-            e.printStackTrace();
+        finally {
+            salesforceProxy.dispose();
         }
     }
 

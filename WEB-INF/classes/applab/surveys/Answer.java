@@ -1,13 +1,21 @@
 package applab.surveys;
 
 /**
- * Object that represents an answer to a question in a survey submission
+ * in memory representation of the answer to a question in a survey submission. 
+ * Usually this just contains a text answer, but in the case of repeat questions, 
+ * it can contain a collection of responses as the answer.
  * 
+ * Single answer example:
+ * 
+ * <q1>My answer</q1>
+ * 
+ * Repeat answer example:
+ * 
+ * <q3> <q4>Answer 4</q4><q5>Answer 5</q5> </q3> <q3> <q4>Answer 4 #2</q4><q5>Answer 5 #2</q5> </q3>
  */
 public abstract class Answer {
     private Question question;
     private String rawAnswerText;
-
 
     Answer(Question question, String rawAnswerText) {
         assert (question != null) : "internal callers must ensure question is non-null";

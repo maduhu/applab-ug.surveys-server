@@ -15,18 +15,20 @@ the License.
 
 import javax.servlet.http.*;
 import java.io.*;
+import applab.server.*;
 
 /**
  * Fetches the XML for a survey form from our zebrasurveys table
  * and returns it to Purcforms
  *
  */
-public class GetDesignerForm extends HttpServlet {
+public class GetDesignerForm extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
-    public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String formId = request.getParameter("formId");
+    public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException {
+        String formId = context.getRequestParameter("formId");
         String xformData = SurveyDatabaseHelpers.getXformData(formId);
-        response.getWriter().write(xformData);
+        context.writeText(xformData);
+        context.close();
     }
 }

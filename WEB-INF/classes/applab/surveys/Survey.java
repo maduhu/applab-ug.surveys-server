@@ -15,7 +15,7 @@ import com.sforce.soap.enterprise.fault.LoginFault;
 import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
 
 import applab.server.*;
-import applab.surveys.server.SalesforceProxy;
+import applab.surveys.server.SurveysSalesforceProxy;
 
 public class Survey {
     private int primaryKey;
@@ -44,6 +44,15 @@ public class Survey {
         this.salesforceId = salesforceId;
     }
 
+    public Survey(String salesforceId, String name) {
+        this(salesforceId);
+        
+        if (name == null) {
+            throw new IllegalArgumentException("name must be non-null");
+        }
+        this.name = name;
+    }
+
     public Survey(int primaryKey, String salesforceId) {
         this(primaryKey);
         if (salesforceId == null) {
@@ -55,9 +64,13 @@ public class Survey {
     public String getName() throws InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ServiceException,
             ClassNotFoundException, SQLException {
         if (this.name == null) {
-            SalesforceProxy salesforceProxy = SalesforceProxy.login();
-            this.name = salesforceProxy.getSurveyName(this.getSalesforceId());
-            salesforceProxy.logout();
+            SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
+            try {
+                this.name = salesforceProxy.getSurveyName(this.getSalesforceId());
+            }
+            finally {
+                salesforceProxy.dispose();
+            }
         }
 
         return this.name;

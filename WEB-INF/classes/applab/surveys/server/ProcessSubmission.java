@@ -1,9 +1,7 @@
 package applab.surveys.server;
 
 import java.io.*;
-import java.math.BigInteger;
 
-import javax.servlet.*;
 import javax.servlet.http.*;
 import javax.xml.rpc.ServiceException;
 
@@ -16,11 +14,10 @@ import com.sforce.soap.enterprise.fault.InvalidIdFault;
 import com.sforce.soap.enterprise.fault.LoginFault;
 import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
 
+import applab.CommunityKnowledgeWorker;
 import applab.server.*;
-import applab.surveys.Interviewer;
 
 import java.rmi.RemoteException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -36,56 +33,49 @@ import java.util.Map.Entry;
  * Output: Empty body, status code distinguishes success from failure
  * 
  */
-public class ProcessSubmission extends HttpServlet {
+public class ProcessSubmission extends ApplabServlet {
 
     private static final long serialVersionUID = 1L;
-    final String DATE_FORMAT_NOW = "yyyy-MM-dd HH:mm:ss";
+    private static Random attachmentNameGenerator = new Random();
 
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
         response.setContentType("text/html");
-        // pessimistic default
         response.setHeader("Location", request.getRequestURI());
-        try {
-            // we are only expecting multi-part content
-            if (!ServletFileUpload.isMultipartContent(request)) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "request must be MIME encoded");
-                return;
-            }
-            ServletFileUpload servletFileUpload = new ServletFileUpload(new DiskFileItemFactory());
-            List<?> fileList = servletFileUpload.parseRequest(request);
-            HashMap<String, SurveyItemResponse> surveyResponses = null;
-
-            // store the paths to the attachments in attachment path
-            HashMap<String, String> attachmentPaths = new HashMap<String, String>();
-            Iterator<?> fileIterator = fileList.iterator();
-            while (fileIterator.hasNext()) {
-                FileItem fileItem = (FileItem)fileIterator.next();
-                String contentType = fileItem.getContentType().toLowerCase(Locale.ENGLISH);
-                contentType = contentType.intern(); // so that == works for comparison
-
-                // survey answer content
-                if (contentType == "text/xml") {
-                    Document xmlDocument = XmlHelpers.parseXml(fileItem.getString());
-                    surveyResponses = parseSurveySubmission(xmlDocument);
-                }
-                // attachments (TODO: open this further?)
-                else if (contentType == "image/jpeg" || contentType == "image/gif" || contentType == "image/png"
-                        || contentType == "image/bmp" || contentType == "video/3gp" || contentType == "video/mp4"
-                        || contentType == "video/3gpp" || contentType == "audio/3gp" || contentType == "audio/mp4"
-                        || contentType == "audio/m4a" || contentType == "audio/3gpp") {
-                    saveAttachment(fileItem, attachmentPaths);
-                }
-            }
-
-            // now that we've processed all of the data, insert the contents into our database
-            // and construct the HTTP response
-            int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths);
-            response.setStatus(httpResponseCode);
+        // we are only expecting multi-part content
+        if (!ServletFileUpload.isMultipartContent(request)) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "request must be MIME encoded");
+            return;
         }
-        catch (Exception e) {
-            e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        ServletFileUpload servletFileUpload = new ServletFileUpload(new DiskFileItemFactory());
+        List<?> fileList = servletFileUpload.parseRequest(request);
+        HashMap<String, SurveyItemResponse> surveyResponses = null;
+
+        // store the paths to the attachments in attachment path
+        HashMap<String, String> attachmentPaths = new HashMap<String, String>();
+        Iterator<?> fileIterator = fileList.iterator();
+        while (fileIterator.hasNext()) {
+            FileItem fileItem = (FileItem)fileIterator.next();
+            String contentType = fileItem.getContentType().toLowerCase(Locale.ENGLISH);
+            contentType = contentType.intern(); // so that == works for comparison
+
+            // survey answer content
+            if (contentType == "text/xml") {
+                Document xmlDocument = XmlHelpers.parseXml(fileItem.getString());
+                surveyResponses = parseSurveySubmission(xmlDocument);
+            }
+            // attachments (TODO: open this further?)
+            else if (contentType == "image/jpeg" || contentType == "image/gif" || contentType == "image/png" || contentType == "image/bmp"
+                    || contentType == "video/3gp" || contentType == "video/mp4" || contentType == "video/3gpp"
+                    || contentType == "audio/3gp" || contentType == "audio/mp4" || contentType == "audio/m4a"
+                    || contentType == "audio/3gpp") {
+                saveAttachment(fileItem, attachmentPaths);
+            }
         }
+
+        // now that we've processed all of the data, insert the contents into our database
+        // and construct the HTTP response
+        int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths);
+        response.setStatus(httpResponseCode);
     }
 
     private int storeSurveySubmission(HashMap<String, SurveyItemResponse> surveyResponses, HashMap<String, String> attachmentReferences)
@@ -104,14 +94,14 @@ public class ProcessSubmission extends HttpServlet {
         for (SurveyItemResponse responseValue : surveyResponses.values()) {
             hashSource += responseValue.getEncodedAnswer(attachmentReferences);
         }
-        String duplicateDetectionHash = createMD5Hash(hashSource);
+        String duplicateDetectionHash = HashHelpers.createMD5(hashSource);
 
         // extract the permanent fields
         // TODO: in 2.8 we'll be passing the IMEI as an HTTP header
         String handsetId = surveyResponses.remove("handset_id").getEncodedAnswer(attachmentReferences);
-        SalesforceProxy salesforceProxy = SalesforceProxy.login();
-        Interviewer interviewer = salesforceProxy.lookupInterviewer(handsetId);
-        salesforceProxy.logout();
+        SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
+        CommunityKnowledgeWorker interviewer = salesforceProxy.getCkw(handsetId);
+        salesforceProxy.dispose();
 
         // even though the question name is interviewer_id, that is a typo and it actually stores the
         // interviewee's name
@@ -144,7 +134,7 @@ public class ProcessSubmission extends HttpServlet {
             commandText.append(",'" + DatabaseHelpers.formatDateTime(new Date()) + "'");
             commandText.append(",'" + handsetSubmissionTimestamp + "'");
             commandText.append(",'" + handsetId + "'");
-            commandText.append(",'" + interviewer.getId() + "'");
+            commandText.append(",'" + interviewer.getCkwId() + "'");
             commandText.append(",'" + interviewer.getFullName() + "'");
             commandText.append(",'" + intervieweeName + "'");
             commandText.append(",'" + duplicateDetectionHash + "'");
@@ -161,22 +151,6 @@ public class ProcessSubmission extends HttpServlet {
         else {
             return HttpServletResponse.SC_BAD_REQUEST;
         }
-    }
-
-    static String createMD5Hash(String hashSource) throws NoSuchAlgorithmException {
-        MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-        byte[] data;
-        try {
-            data = hashSource.getBytes("UTF-8");
-        }
-        catch (UnsupportedEncodingException e) {
-            data = hashSource.getBytes();
-        }
-
-        messageDigest.update(data, 0, data.length);
-        BigInteger i = new BigInteger(1, messageDigest.digest());
-        // format the integer as a zero-padded 32 digit hexi-decimal number
-        return String.format("%1$032X", i);
     }
 
     private void saveAttachment(FileItem attachment, HashMap<String, String> attachmentReferences) throws Exception {
@@ -196,7 +170,7 @@ public class ProcessSubmission extends HttpServlet {
         String publicAttachmentReference = ApplabConfiguration.getHostUrl() + attachmentReference.substring(1);
         attachmentReferences.put(attachment.getName(), publicAttachmentReference);
     }
-    
+
     // given a content type, generate a relative file reference to the generated name
     // public so that we can test this functionality
     public static String createAttachmentReference(String contentType) {
@@ -209,7 +183,19 @@ public class ProcessSubmission extends HttpServlet {
         String fileExtension = "." + contentType.substring(separatorIndex + 1);
         // for certain extensions, we can make substitutions here if it proves necessary (e.g. jpeg->jpg)
 
-        return directoryName + new configuration.images().generateImageName() + fileExtension;
+        return directoryName + generateAttachmentName() + fileExtension;
+    }
+    
+    /**
+     * Generates a random number to use as the file name for attachments
+     */
+    private static String generateAttachmentName() {
+        StringBuilder imageName = new StringBuilder();
+        for (int digitIndex = 0; digitIndex < 30; digitIndex++) {
+            int nextRandomNumber = attachmentNameGenerator.nextInt(10);
+            imageName.append(Integer.toString(nextRandomNumber));
+        }
+        return imageName.toString();
     }
 
     /**
