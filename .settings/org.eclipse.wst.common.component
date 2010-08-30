@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="Surveys Server">
+        <wb-resource deploy-path="/" source-path="/WebContent"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src"/>
+        <dependent-module archiveName="Common_Server.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/Common Server/Common Server">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <property name="context-root" value="Surveys Server"/>
+        <property name="java-output-path" value="/Surveys Server/build/classes"/>
+    </wb-module>
+</project-modules>
