@@ -38,6 +38,7 @@ public class ProcessSubmission extends ApplabServlet {
     private static final long serialVersionUID = 1L;
     private static Random attachmentNameGenerator = new Random();
 
+    @Override
     protected void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
         response.setContentType("text/html");
         response.setHeader("Location", request.getRequestURI());
@@ -134,7 +135,7 @@ public class ProcessSubmission extends ApplabServlet {
             commandText.append(",'" + DatabaseHelpers.formatDateTime(new Date()) + "'");
             commandText.append(",'" + handsetSubmissionTimestamp + "'");
             commandText.append(",'" + handsetId + "'");
-            commandText.append(",'" + interviewer.getCkwId() + "'");
+            commandText.append(",'" + interviewer.getCkwSalesforceName() + "'");
             commandText.append(",'" + interviewer.getFullName() + "'");
             commandText.append(",'" + intervieweeName + "'");
             commandText.append(",'" + duplicateDetectionHash + "'");
