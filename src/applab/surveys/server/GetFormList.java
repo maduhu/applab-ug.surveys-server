@@ -26,15 +26,15 @@ public class GetFormList extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     protected void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
-        writeFormsList(response.getWriter());
+        writeFormsList(response.getWriter(), context.getHandsetId());
         context.close();
     }
 
-    public static void writeFormsList(PrintWriter writer) throws Exception {
+    public static void writeFormsList(PrintWriter writer, String imei) throws Exception {
         SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
         try {
             writer.write("<forms>");
-            ArrayList<Survey> publishedSurveys = salesforceProxy.getPublishedSurveys();
+            ArrayList<Survey> publishedSurveys = salesforceProxy.getPublishedSurveys(imei);
             if (publishedSurveys.size() > 0) {
                 for (Survey survey : publishedSurveys) {
                     writer.write("<form url=\"" + ApplabConfiguration.getHostUrl() + "getForm?surveyid=" + survey.getSalesforceId()
