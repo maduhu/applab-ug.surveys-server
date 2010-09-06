@@ -15,6 +15,8 @@ the License.
 
 import javax.servlet.http.*;
 import java.io.*;
+import java.sql.SQLException;
+
 import applab.server.*;
 
 /**
@@ -25,7 +27,7 @@ import applab.server.*;
 public class GetDesignerForm extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
-    public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException {
+    public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, SQLException, ClassNotFoundException {
         String formId = context.getRequestParameter("formId");
         String xformData = SurveyDatabaseHelpers.getXformData(formId);
         context.writeText(xformData);

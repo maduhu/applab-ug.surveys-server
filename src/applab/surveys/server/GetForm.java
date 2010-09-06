@@ -19,6 +19,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
 import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 
 import org.w3c.dom.*;
@@ -55,23 +57,43 @@ public class GetForm extends ApplabServlet {
 
     /**
      * Given the salesforce Id of a survey, fetch the XML for that survey
+     * @throws ClassNotFoundException 
+     * @throws SQLException 
      * 
      */
     private static String getSurveyForm(String salesforceSurveyId) throws TransformerException, SAXException, IOException,
-            ParserConfigurationException {
+            ParserConfigurationException, SQLException, ClassNotFoundException {
         if (salesforceSurveyId == null || salesforceSurveyId.isEmpty()) {
             return null;
         }
-        String xformData = SurveyDatabaseHelpers.getXformData(salesforceSurveyId);
+        String xformData;
+        String surveyName;
+        String zebra_survey_id;
+        
+        SelectCommand selectCommand = new SelectCommand(DatabaseTable.Survey);
+        try {
+            selectCommand.addField("xform");
+            selectCommand.addField("survey_name");
+            selectCommand.addField("id");
+            selectCommand.whereEquals("survey_id", "'" + salesforceSurveyId + "'");
+            ResultSet resultSet = selectCommand.execute();
+            if (resultSet.next()) {
+                xformData = resultSet.getString("xform");
+                surveyName = resultSet.getString("survey_name");
+                zebra_survey_id = resultSet.getString("id");
+            }
+            else {
+                return null;
+            }
+        }
+        finally {
+            selectCommand.dispose();
+        }
+
         if (xformData == null || xformData.isEmpty()) {
             return null;
         }
 
-        // get the survey name
-        String surveyName = SurveyDatabaseHelpers.getSurveyName(salesforceSurveyId);
-
-        // get this survey from zebrasurvey
-        String zebra_survey_id = SurveyDatabaseHelpers.getZebraSurveyId(salesforceSurveyId);
         // fixup Purcforms generated data with a start tag that includes the survey name
         String designerGeneratedFormBeginning = "<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">";
         String targetFormBeginning = "<xf:xforms xmlns:xf=\"http://www.w3.org/2002/xforms\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:jr=\"http://openrosa.org/javarosa\" xmlns:ev=\"http://www.w3.org/2001/xml-events\"><xf:head><xf:title>"

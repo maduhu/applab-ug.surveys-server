@@ -84,23 +84,22 @@ public class SurveyDatabaseHelpers {
         return null;
     }
 
-    public static String getXformData(String surveyId) {
+    public static String getXformData(String surveyId) throws SQLException, ClassNotFoundException {
+        SelectCommand selectCommand = new SelectCommand(DatabaseTable.Survey);
         try {
-            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
-            Statement statement = connection.createStatement();
-            String sqlQuery = "SELECT xform from zebrasurvey where survey_id='" + surveyId + "'";
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            while (resultSet.next()) {
-                String xformData = resultSet.getString("xform");
-                statement.close();
-                connection.close();
-                return xformData;
+            selectCommand.addField("xform");
+            selectCommand.whereEquals("survey_id", "'" + surveyId + "'");
+            ResultSet resultSet = selectCommand.execute();
+            if (resultSet.next()) {
+                return resultSet.getString("xform");
+            }
+            else {
+                return null;
             }
         }
-        catch (Exception e) {
-            e.printStackTrace();
+        finally {
+            selectCommand.dispose();
         }
-        return null;
     }
 
     public static boolean verifySurveyField(String xform_param_var, int surveyId) {
