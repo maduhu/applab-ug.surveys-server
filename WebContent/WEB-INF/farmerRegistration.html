@@ -1,0 +1,166 @@
+<p><h2>Farmer Registration</h2></p>
+<p><h3>Basic Questions</h3></p>
+<table width="100%">
+	<tr><td width="50%">Farmer ID</td> <td><input type="text" name="farmerId"></input></td></tr>
+	<tr><td>First Name</td> <td><input type="text" name="firstName"></input></td></tr>
+	<tr><td>Last Name</td> <td><input type="text" name="lastName"></input></td></tr>
+	<tr><td>Father's Name</td> <td><input type="text" name="fatherName"></input></td></tr>
+	<tr><td>Phone Number</td> <td><input type="text" name="phoneNumber"></input></td></tr>
+	<tr>
+		<td>Gender</td>
+		<td>
+			<input type="radio" name="gender" value="Male" /> Male <br/>
+			<input type="radio" name="gender" value="Female" /> Female
+		</td>
+	</tr>
+	<tr><td>Village</td> <td><input type="text" name="village"></input></td></tr>
+	<tr>
+		<td>Household Status</td>
+		<td>
+			<input type="radio" name="householdStatus" value="Head" /> Household head <br />
+			<input type="radio" name="householdStatus" value="SpouseOfHead" /> Spouse of household head <br />
+			<input type="radio" name="householdStatus" value="ChildOfHead" /> Child of household head
+		</td>
+	</tr>
+</table>
+
+<p><h3>Extended Questions <a id="extendedFormExpand" href="JavaScript:toggle('extendedForm');toggleExpando('extendedFormExpand')">(Show)</a></h3></p>
+<table width="100%" style="display:none;" id="extendedForm">
+	<tr>
+		<td width="50%">How many acres of land do you own?</td>
+		<td><input type="text" name="landSize"></input></td>
+	</tr>
+	<tr>
+		<td>Top 3 crops</td>
+		<td>						
+			<input name="topCrops" type="checkbox" VALUE="Maize">Maize</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Beans">Beans</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Peas">Peas</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Wheat">Wheat</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Cassava">Cassava</input><br>
+			<input name="topCrops" type="checkbox" VALUE="IrishPotatoes">Irish potatoes</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Groundnuts">Groundnuts</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Sorghum">Sorghum</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Rice">Rice</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Millet">Millet</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Coffee">Coffee</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Bananas">Bananas</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Barley">Barley</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Cotton">Cotton</input><br>
+			<input name="topCrops" type="checkbox" VALUE="Other">Other</input><br>						
+		</td>
+	</tr>
+	<tr>
+		<td>Top 2 types of livestock</td>
+		<td>
+			<input name="topLivestock" type="checkbox" VALUE="Cattle">Cattle</input><br>
+			<input name="topLivestock" type="checkbox" VALUE="Goats">Goats</input><br>
+			<input name="topLivestock" type="checkbox" VALUE="Chickens">Chickens</input><br>
+			<input name="topLivestock" type="checkbox" VALUE="Turkeys">Turkeys</input><br>
+			<input name="topLivestock" type="checkbox" VALUE="Donkeys">Donkeys</input><br>
+			<input name="topLivestock" type="checkbox" VALUE="Sheep">Sheep</input><br>
+			<input name="topLivestock" type="checkbox" VALUE="Pigs">Pigs</input><br>
+			<input name="topLivestock" type="checkbox" VALUE="Rabbits">Rabbits</input><br>						
+		</td>
+	</tr>
+	<tr>
+		<td>Top 3 info needs</td>
+		<td>
+			<input name="topInfoNeeds" type="checkbox" VALUE="MarketPrices">Market prices</input><br>
+			<input name="topInfoNeeds" type="checkbox" VALUE="MarketOpportunities">Market opportunities</input><br>
+			<input name="topInfoNeeds" type="checkbox" VALUE="Weather">Weather</input><br>
+			<input name="topInfoNeeds" type="checkbox" VALUE="PlantingGardenPrep">Planting/garden prep</input><br>
+			<input name="topInfoNeeds" type="checkbox" VALUE="PestDiseaseManagement">Pest/disease management</input><br>
+			<input name="topInfoNeeds" type="checkbox" VALUE="SoilManagement">Soil management</input><br>
+			<input name="topInfoNeeds" type="checkbox" VALUE="HarvestingPHH">Harvesting/PHH</input><br>
+			<input name="topInfoNeeds" type="checkbox" VALUE="FarmingAsBusiness">Farming as a business</input><br>
+			<input name="topInfoNeeds" type="checkbox" VALUE="LivestockRearing">Livestock rearing</input><br>
+			<input name="topInfoNeeds" type="checkbox" VALUE="Health">Health</input><br>
+			<input name="topInfoNeeds" type="checkbox" VALUE="Education">Education</input><br>
+			<input name="topInfoNeeds" type="checkbox" VALUE="AgriculturalFinancing">Agricultural Financing</input><br>
+			<input name="topInfoNeeds" type="checkbox" VALUE="Other">Other</input><br>
+		</td>	
+	</tr>
+	<tr>
+		<td>If other, please specify</td>
+		<td><input type="text" name="otherInfoNeed"></input></td>
+	</tr>
+</table>
+
+<p><h3>Poverty Scorecard <a id="povertyScorecardExpand" href="JavaScript:toggle('povertyScorecardForm');toggleExpando('povertyScorecardExpand');">(Show)</a></h3></p>
+<table width="100%" id="povertyScorecardForm" style="display:none;">
+	<tr>
+		<td width="50%">What is the main roof material of your house?</td>
+		<td>
+			<input type="radio" name="roofMaterial" value="thatch" /> Thatch/straw<br/>
+			<input type="radio" name="roofMaterial" value="ironSheet" /> Iron sheet/tin<br/>
+			<input type="radio" name="roofMaterial" value="cement" /> Cement/other
+		</td>
+	</tr>
+	<tr>
+		<td>What is the main material of the wall of your house?</td>
+		<td>
+			<input type="radio" name="wallMaterial" value="unburntBricks" /> Unburnt bricks<br/>
+			<input type="radio" name="wallMaterial" value="burntBricksWithMud" /> Burnt bricks with mud/mud poles<br/>
+			<input type="radio" name="wallMaterial" value="burntBricksWithCement" /> Burnt bricks with cement
+		</td>
+	</tr>
+	<tr>
+		<td>How many children under 11 live in your house?</td>
+		<td><input type="text" name="childrenUnder11"></input></td>
+	</tr>
+	<tr>
+		<td>What is the education level of the head of your household?</td>
+		<td>
+			<input type="radio" name="educationLevel" value="None" /> No grade completed<br/>
+			<input type="radio" name="educationLevel" value="Primary" /> Primary<br/>
+			<input type="radio" name="educationLevel" value="OLevel" /> O level<br/>
+			<input type="radio" name="educationLevel" value="ALevel" /> A level<br/>
+			<input type="radio" name="educationLevel" value="Certificate" /> Certificate<br/>
+			<input type="radio" name="educationLevel" value="Graduate" /> Graduate
+		</td>
+	</tr>
+	<tr>
+		<td>What type of fuel does your household primarily use for cooking?</td>
+		<td>
+			<input type="radio" name="cookingFuel" value="firewood" /> Firewood<br/>
+			<input type="radio" name="cookingFuel" value="charcoal" /> Charcoal<br/>
+			<input type="radio" name="cookingFuel" value="paraffin" /> Paraffin
+		</td>
+	</tr>
+	<tr>
+		<td>Does your household own a TV/radio/cassette?</td>
+		<td>
+			<input type="radio" name="ownsTV" value="true" /> Yes
+			<input type="radio" name="ownsTV" value="false" /> No
+		</td>
+	</tr>
+	<tr>
+		<td>Do you have a mosquito net in your household?</td>
+		<td>
+			<input type="radio" name="ownsMosquitoNet" value="true" /> Yes
+			<input type="radio" name="ownsMosquitoNet" value="false" /> No
+		</td>
+	</tr>
+	<tr>
+		<td>Does every member of your household including children have at least two sets of clothes?</td>
+		<td>
+			<input type="radio" name="ownsClothes" value="true" /> Yes
+			<input type="radio" name="ownsClothes" value="false" /> No
+		</td>
+	</tr>
+	<tr>
+		<td>Does every member of your household including children have at least one pair of shoes?</td>
+		<td>
+			<input type="radio" name="ownsShoes" value="true" /> Yes
+			<input type="radio" name="ownsShoes" value="false" /> No
+		</td>
+	</tr>
+	<tr>
+		<td>Does anyone in your household own any jewelry/watch? </td>
+		<td>
+			<input type="radio" name="ownsJewelry" value="true" /> Yes
+			<input type="radio" name="ownsJewelry" value="false" /> No
+		</td>
+	</tr>		
+</table>

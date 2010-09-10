@@ -1,89 +1,104 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<web-app xmlns="http://java.sun.com/xml/ns/javaee"
-   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-   xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
-   version="2.5">
-
-   <servlet>
-     <description>Receives a completed survey</description>
-     <servlet-name>ProcessSubmission</servlet-name>
-     <servlet-class>applab.surveys.server.ProcessSubmission</servlet-class>
-   </servlet>
-   <servlet>
-     <description>Lists all of the available survey forms</description>
-     <servlet-name>GetFormList</servlet-name>
-     <servlet-class>applab.surveys.server.GetFormList</servlet-class>
-   </servlet>
-   <servlet>
-     <description>Returns the requested survey form to the mobile client</description>
-     <servlet-name>GetForm</servlet-name>
-     <servlet-class>applab.surveys.server.GetForm</servlet-class>
-   </servlet>
-   <servlet>
-     <description>Used from the survey validation tool to list the submissions for a particular survey</description>
-     <servlet-name>ReviewSubmissions</servlet-name>
-     <servlet-class>applab.surveys.server.ReviewSubmissions</servlet-class>
-   </servlet>
-   <servlet>
-     <description>Used from the survey validation tool to update the status of survey submissions</description>
-     <servlet-name>UpdateSubmissionStatus</servlet-name>
-     <servlet-class>applab.surveys.server.UpdateSubmissionStatus</servlet-class>
-   </servlet>
-   <servlet>
-     <description>Fetch Purcforms data from our surveys database for editing</description>
-     <servlet-name>GetDesignerForm</servlet-name>
-     <servlet-class>applab.surveys.server.GetDesignerForm</servlet-class>
-   </servlet>
-   <servlet>
-     <description>Save Purcforms output into our surveys database</description>
-     <servlet-name>SaveDesignerForm</servlet-name>
-     <servlet-class>applab.surveys.server.SaveDesignerForm</servlet-class>
-   </servlet>
-   <servlet>
-     <description>Allows callers to perform a remote select call</description>
-     <servlet-name>Select</servlet-name>
-     <servlet-class>applab.surveys.server.Select</servlet-class>
-   </servlet>
-   <servlet>
-     <description>Allows callers to send bulk SMS messages</description>
-     <servlet-name>SendSms</servlet-name>
-     <servlet-class>applab.server.SendSms</servlet-class>
-   </servlet>
-   
-   <servlet-mapping>
-     <servlet-name>ProcessSubmission</servlet-name>
-     <url-pattern>/submission</url-pattern>
-   </servlet-mapping>
-   <servlet-mapping>
-     <servlet-name>GetFormList</servlet-name>
-     <url-pattern>/formList</url-pattern>
-   </servlet-mapping>
-   <servlet-mapping>
-     <servlet-name>GetForm</servlet-name>
-     <url-pattern>/getForm</url-pattern>
-   </servlet-mapping>
-   <servlet-mapping>
-     <servlet-name>ReviewSubmissions</servlet-name>
-     <url-pattern>/getSubmissions</url-pattern>
-   </servlet-mapping>
-   <servlet-mapping>
-     <servlet-name>UpdateSubmissionStatus</servlet-name>
-     <url-pattern>/updateSubmissionStatus</url-pattern>
-   </servlet-mapping>
-   <servlet-mapping>
-     <servlet-name>GetDesignerForm</servlet-name>
-     <url-pattern>/getXform</url-pattern>
-   </servlet-mapping>
-   <servlet-mapping>
-     <servlet-name>SaveDesignerForm</servlet-name>
-     <url-pattern>/saveXform</url-pattern>
-   </servlet-mapping>
-   <servlet-mapping>
-     <servlet-name>Select</servlet-name>
-     <url-pattern>/select</url-pattern>
-   </servlet-mapping>
-   <servlet-mapping>
-     <servlet-name>SendSms</servlet-name>
-     <url-pattern>/sendsms</url-pattern>
-   </servlet-mapping>
- </web-app>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" version="2.5">
+  <servlet>
+    <description>Receives a completed survey</description>
+    <servlet-name>ProcessSubmission</servlet-name>
+    <servlet-class>applab.surveys.server.ProcessSubmission</servlet-class>
+  </servlet>
+  <servlet>
+    <description>Lists all of the available survey forms</description>
+    <servlet-name>GetFormList</servlet-name>
+    <servlet-class>applab.surveys.server.GetFormList</servlet-class>
+  </servlet>
+  <servlet>
+    <description>Returns the requested survey form to the mobile client</description>
+    <servlet-name>GetForm</servlet-name>
+    <servlet-class>applab.surveys.server.GetForm</servlet-class>
+  </servlet>
+  <servlet>
+    <description>Used from the survey validation tool to list the submissions for a particular survey</description>
+    <servlet-name>ReviewSubmissions</servlet-name>
+    <servlet-class>applab.surveys.server.ReviewSubmissions</servlet-class>
+  </servlet>
+  <servlet>
+    <description>Used from the survey validation tool to update the status of survey submissions</description>
+    <servlet-name>UpdateSubmissionStatus</servlet-name>
+    <servlet-class>applab.surveys.server.UpdateSubmissionStatus</servlet-class>
+  </servlet>
+  <servlet>
+    <description>Fetch Purcforms data from our surveys database for editing</description>
+    <servlet-name>GetDesignerForm</servlet-name>
+    <servlet-class>applab.surveys.server.GetDesignerForm</servlet-class>
+  </servlet>
+  <servlet>
+    <description>Save Purcforms output into our surveys database</description>
+    <servlet-name>SaveDesignerForm</servlet-name>
+    <servlet-class>applab.surveys.server.SaveDesignerForm</servlet-class>
+  </servlet>
+  <servlet>
+    <description>Allows callers to perform a remote select call</description>
+    <servlet-name>Select</servlet-name>
+    <servlet-class>applab.surveys.server.Select</servlet-class>
+  </servlet>
+  <servlet>
+    <description>Allows callers to send bulk SMS messages</description>
+    <servlet-name>SendSms</servlet-name>
+    <servlet-class>applab.server.SendSms</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ProcessSubmission</servlet-name>
+    <url-pattern>/submission</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>GetFormList</servlet-name>
+    <url-pattern>/formList</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>GetForm</servlet-name>
+    <url-pattern>/getForm</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>ReviewSubmissions</servlet-name>
+    <url-pattern>/getSubmissions</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>UpdateSubmissionStatus</servlet-name>
+    <url-pattern>/updateSubmissionStatus</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>GetDesignerForm</servlet-name>
+    <url-pattern>/getXform</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>SaveDesignerForm</servlet-name>
+    <url-pattern>/saveXform</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>Select</servlet-name>
+    <url-pattern>/select</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>SendSms</servlet-name>
+    <url-pattern>/sendsms</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <description></description>
+    <display-name>GetFarmerRegistrationForm</display-name>
+    <servlet-name>GetFarmerRegistrationForm</servlet-name>
+    <servlet-class>applab.surveys.server.GetFarmerRegistrationForm</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>GetFarmerRegistrationForm</servlet-name>
+    <url-pattern>/getFarmerRegistrationForm</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <description></description>
+    <display-name>ProcessFarmerRegistration</display-name>
+    <servlet-name>ProcessFarmerRegistration</servlet-name>
+    <servlet-class>applab.surveys.server.ProcessFarmerRegistration</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ProcessFarmerRegistration</servlet-name>
+    <url-pattern>/processFarmerRegistration</url-pattern>
+  </servlet-mapping>
+</web-app>

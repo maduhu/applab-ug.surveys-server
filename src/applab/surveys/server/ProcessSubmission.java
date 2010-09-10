@@ -101,7 +101,7 @@ public class ProcessSubmission extends ApplabServlet {
         // TODO: in 2.8 we'll be passing the IMEI as an HTTP header
         String handsetId = surveyResponses.remove("handset_id").getEncodedAnswer(attachmentReferences);
         SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
-        CommunityKnowledgeWorker interviewer = salesforceProxy.getCkw(handsetId);
+        CommunityKnowledgeWorker interviewer = CommunityKnowledgeWorker.load(handsetId);
         salesforceProxy.dispose();
 
         // even though the question name is interviewer_id, that is a typo and it actually stores the
