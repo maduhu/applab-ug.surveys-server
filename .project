@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-  <name>Surveys Server</name>
-  <comment>Server side tomcat code for Surveys application</comment>
-  <projects>
-    <project>Common Server</project>
-  </projects>
-  <buildSpec>
+	<name>Surveys Server</name>
+	<comment>Server side tomcat code for Surveys application</comment>
+	<projects>
+		<project>Common Server</project>
+	</projects>
+	<buildSpec>
 		<buildCommand>
 			<name>org.eclipse.wst.jsdt.core.javascriptValidator</name>
 			<arguments>
@@ -34,4 +34,11 @@
 		<nature>org.eclipse.jdt.core.javanature</nature>
 		<nature>org.eclipse.wst.jsdt.core.jsNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>WebContent/WEB-INF/application.xml</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Common%20Server/src/application.xml</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>
