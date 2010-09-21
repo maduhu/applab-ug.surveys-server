@@ -42,6 +42,7 @@ public class ProcessSubmission extends ApplabServlet {
     protected void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
         response.setContentType("text/html");
         response.setHeader("Location", request.getRequestURI());
+
         // we are only expecting multi-part content
         if (!ServletFileUpload.isMultipartContent(request)) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "request must be MIME encoded");
@@ -49,13 +50,18 @@ public class ProcessSubmission extends ApplabServlet {
         }
         ServletFileUpload servletFileUpload = new ServletFileUpload(new DiskFileItemFactory());
         List<?> fileList = servletFileUpload.parseRequest(request);
+
         HashMap<String, SurveyItemResponse> surveyResponses = null;
 
         // store the paths to the attachments in attachment path
         HashMap<String, String> attachmentPaths = new HashMap<String, String>();
         Iterator<?> fileIterator = fileList.iterator();
+
+        long totalSize = 0;
         while (fileIterator.hasNext()) {
             FileItem fileItem = (FileItem)fileIterator.next();
+            totalSize = totalSize + fileItem.getSize();
+
             String contentType = fileItem.getContentType().toLowerCase(Locale.ENGLISH);
             contentType = contentType.intern(); // so that == works for comparison
 
@@ -64,6 +70,7 @@ public class ProcessSubmission extends ApplabServlet {
                 Document xmlDocument = XmlHelpers.parseXml(fileItem.getString());
                 surveyResponses = parseSurveySubmission(xmlDocument);
             }
+
             // attachments (TODO: open this further?)
             else if (contentType == "image/jpeg" || contentType == "image/gif" || contentType == "image/png" || contentType == "image/bmp"
                     || contentType == "video/3gp" || contentType == "video/mp4" || contentType == "video/3gpp"
@@ -73,6 +80,12 @@ public class ProcessSubmission extends ApplabServlet {
             }
         }
 
+        // Create the size object and add to the submission.
+        SurveyItemResponse submissionSize = new SurveyItemResponse("submission_size",null);
+        String size = String.valueOf(totalSize);
+        submissionSize.addAnswerText(size);
+        surveyResponses.put("submission_size", submissionSize);
+ 
         // now that we've processed all of the data, insert the contents into our database
         // and construct the HTTP response
         int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths);
@@ -108,7 +121,9 @@ public class ProcessSubmission extends ApplabServlet {
         // interviewee's name
         String intervieweeName = surveyResponses.remove("interviewer_id").getEncodedAnswer(attachmentReferences);
 
-        // lastly, we need to remove the survey id, since we're storing that explicitly already
+        int submissionSize = Integer.parseInt(surveyResponses.remove("submission_size").getEncodedAnswer(attachmentReferences));
+
+        // Lastly, we need to remove the survey id, since we're storing that explicitly already
         surveyResponses.remove("survey_id");
 
         String answerColumnsCommandText = "";
@@ -128,7 +143,7 @@ public class ProcessSubmission extends ApplabServlet {
             StringBuilder commandText = new StringBuilder();
             commandText.append("insert into zebrasurveysubmissions ");
             commandText.append("survey_id, server_entry_time, handset_submit_time, handset_id, interviewer_id, ");
-            commandText.append("interviewer_name, interviewee_name, result_hash, location");
+            commandText.append("interviewer_name, interviewee_name, result_hash, location, submission_size");
             commandText.append(answerColumnsCommandText);
             commandText.append(") values (");
             commandText.append(backendSurveyId);
@@ -140,6 +155,7 @@ public class ProcessSubmission extends ApplabServlet {
             commandText.append(",'" + intervieweeName + "'");
             commandText.append(",'" + duplicateDetectionHash + "'");
             commandText.append(",'" + surveyLocation + "'");
+            commandText.append("," + submissionSize);
             commandText.append(answerValueCommandText + ")");
 
             Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
@@ -209,7 +225,7 @@ public class ProcessSubmission extends ApplabServlet {
         // normalize the root node
         Element rootNode = xmlDocument.getDocumentElement();
         rootNode.normalize();
-
+        
         HashMap<String, SurveyItemResponse> parsedSubmission = new HashMap<String, SurveyItemResponse>();
 
         // now parse the tree and populate surveyResponses with the raw data

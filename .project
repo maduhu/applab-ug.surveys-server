@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>Surveys Server</name>
+	<name>SurveysServer</name>
 	<comment>Server side tomcat code for Surveys application</comment>
 	<projects>
 		<project>Common Server</project>
