@@ -84,6 +84,9 @@ public class ProcessSubmission extends ApplabServlet {
             if (contentType == "text/xml") {
                 Document xmlDocument = XmlHelpers.parseXml(fileItem.getString());
                 surveyResponses = parseSurveySubmission(xmlDocument);
+
+                // Log the XML input
+                log(fileItem.getString());
             }
 
             // attachments (TODO: open this further?)
