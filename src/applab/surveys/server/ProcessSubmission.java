@@ -94,8 +94,8 @@ public class ProcessSubmission extends ApplabServlet {
                 saveAttachment(fileItem, attachmentPaths);
             }
         }
-
-        // Create the size object and add to the submission.
+        
+        // add the size as a response item to the responses, so that it gets saved to the db
         SurveyItemResponse submissionSize = new SurveyItemResponse("submission_size",null);
         String size = String.valueOf(totalSize);
         submissionSize.addAnswerText(size);
