@@ -1,29 +1,44 @@
 package applab.surveys.server;
 
-import java.io.*;
-
-import javax.servlet.http.*;
-import javax.xml.rpc.ServiceException;
-
-import org.w3c.dom.*;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.apache.commons.fileupload.*;
-
-import com.sforce.soap.enterprise.fault.InvalidIdFault;
-import com.sforce.soap.enterprise.fault.LoginFault;
-import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
-
-import applab.CommunityKnowledgeWorker;
-import applab.server.*;
-
+import java.io.File;
 import java.rmi.RemoteException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Random;
 import java.util.Map.Entry;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.xml.rpc.ServiceException;
+
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+
+import applab.CommunityKnowledgeWorker;
+import applab.server.ApplabConfiguration;
+import applab.server.ApplabServlet;
+import applab.server.DatabaseHelpers;
+import applab.server.DatabaseId;
+import applab.server.HashHelpers;
+import applab.server.ServletRequestContext;
+import applab.server.XmlHelpers;
+import applab.surveys.SurveyAnswerGroup;
+import applab.surveys.SurveyItemResponse;
+
+import com.sforce.soap.enterprise.fault.InvalidIdFault;
+import com.sforce.soap.enterprise.fault.LoginFault;
+import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
 
 /**
  * Server method that receives a survey submission and inserts the data into our database
@@ -92,7 +107,7 @@ public class ProcessSubmission extends ApplabServlet {
         response.setStatus(httpResponseCode);
     }
 
-    private int storeSurveySubmission(HashMap<String, SurveyItemResponse> surveyResponses, HashMap<String, String> attachmentReferences)
+    public static int storeSurveySubmission(HashMap<String, SurveyItemResponse> surveyResponses, HashMap<String, String> attachmentReferences)
             throws NoSuchAlgorithmException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ServiceException,
             ClassNotFoundException, SQLException {
         int backendSurveyId = Integer.parseInt(surveyResponses.get("survey_id").getEncodedAnswer(attachmentReferences));
@@ -109,7 +124,7 @@ public class ProcessSubmission extends ApplabServlet {
             hashSource += responseValue.getEncodedAnswer(attachmentReferences);
         }
         String duplicateDetectionHash = HashHelpers.createMD5(hashSource);
-
+        
         // extract the permanent fields
         // TODO: in 2.8 we'll be passing the IMEI as an HTTP header
         String handsetId = surveyResponses.remove("handset_id").getEncodedAnswer(attachmentReferences);
@@ -125,6 +140,7 @@ public class ProcessSubmission extends ApplabServlet {
 
         // Lastly, we need to remove the survey id, since we're storing that explicitly already
         surveyResponses.remove("survey_id");
+        surveyResponses.remove("location");
 
         String answerColumnsCommandText = "";
         String answerValueCommandText = "";
@@ -142,7 +158,7 @@ public class ProcessSubmission extends ApplabServlet {
         if (answerColumnsCommandText.length() > 0) {
             StringBuilder commandText = new StringBuilder();
             commandText.append("insert into zebrasurveysubmissions ");
-            commandText.append("survey_id, server_entry_time, handset_submit_time, handset_id, interviewer_id, ");
+            commandText.append("(survey_id, server_entry_time, handset_submit_time, handset_id, interviewer_id, ");
             commandText.append("interviewer_name, interviewee_name, result_hash, location, submission_size");
             commandText.append(answerColumnsCommandText);
             commandText.append(") values (");
@@ -160,9 +176,25 @@ public class ProcessSubmission extends ApplabServlet {
 
             Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
             Statement statement = connection.createStatement();
-            statement.executeUpdate(commandText.toString());
-            statement.close();
-            connection.close();
+
+            // Catch this to see if there is a duplicate hash 
+            try {
+                statement.executeUpdate(commandText.toString());
+            }
+            catch (SQLException e) {
+                if (e.getErrorCode() == 1062) {
+
+                    // The error is a duplicate key error so allow to be told as good
+                    return HttpServletResponse.SC_CREATED;
+                }
+                else {
+                    throw new SQLException(e.getMessage());
+                }
+            }
+            finally {
+                statement.close();
+                connection.close();
+            }
             return HttpServletResponse.SC_CREATED;
         }
         else {
@@ -277,161 +309,4 @@ public class ProcessSubmission extends ApplabServlet {
         }
     }
 
-    /**
-     * in memory representation of a survey item response. Usually this just contains a text answer, but in the case of
-     * repeat questions, it can contain a collection of responses as the answer.
-     * 
-     * Single answer example:
-     * 
-     * <q1>My answer</q1>
-     * 
-     * Repeat answer example:
-     * 
-     * <q3> <q4>Answer 4</q4><q5>Answer 5</q5> </q3> <q3> <q4>Answer 4 #2</q4><q5>Answer 5 #2</q5> </q3>
-     */
-    private static class SurveyItemResponse {
-        private String questionName;
-
-        // we use two fields here for performance, so that we don't need to allocate an array
-        // for simple text answers
-        private String singletonAnswer;
-        private ArrayList<String> multipleAnswers;
-
-        // will be non-null if this is the child of a repeat question
-        private SurveyAnswerGroup parent;
-
-        public SurveyItemResponse(String questionName, SurveyAnswerGroup parent) {
-            if (questionName == null) {
-                questionName = "";
-            }
-            this.questionName = questionName;
-            this.parent = parent;
-
-            if (this.parent != null) {
-                this.parent.addChild(this);
-            }
-        }
-
-        public String getQuestionName() {
-            return this.questionName;
-        }
-
-        public void addAnswerText(String answerText) {
-            if (answerText != null) {
-                // see if we need to promote to a list
-                if (this.singletonAnswer != null) {
-                    // we should only get to this case when we have a valid parent group
-                    assert (this.parent != null) : "we should only get multiple answers when contained in a parent group";
-
-                    this.multipleAnswers = new ArrayList<String>();
-                    this.multipleAnswers.add(this.singletonAnswer);
-                    this.singletonAnswer = null;
-                }
-
-                if (this.multipleAnswers != null) {
-                    this.multipleAnswers.add(answerText);
-                }
-                else {
-                    this.singletonAnswer = answerText;
-                }
-            }
-        }
-
-        /**
-         * The encoding for a single answer is simply the text.
-         * 
-         * The encoding for multiple answers is, for example. [child:q6][1]answer\n[2]answer
-         */
-        public String getEncodedAnswer(HashMap<String, String> attachments) {
-            StringBuilder encodedAnswer = new StringBuilder();
-            if (this.parent != null) {
-                encodedAnswer.append("[child:");
-                encodedAnswer.append(this.parent.getQuestionName());
-                encodedAnswer.append("]");
-            }
-            if (this.multipleAnswers != null) {
-                int prefix = 1;
-                for (String answerText : this.multipleAnswers) {
-                    if (prefix > 1) {
-                        encodedAnswer.append("\n");
-                    }
-                    encodedAnswer.append("[");
-                    encodedAnswer.append(prefix);
-                    encodedAnswer.append("]");
-                    encodedAnswer.append(resolveAnswerText(answerText, attachments));
-                    prefix++;
-                }
-            }
-            else if (this.singletonAnswer != null) {
-                encodedAnswer.append(resolveAnswerText(this.singletonAnswer, attachments));
-            }
-
-            return encodedAnswer.toString();
-        }
-
-        /**
-         * Helper function to turn an attachment reference into the correct path if necessary
-         */
-        private final String resolveAnswerText(String answerText, HashMap<String, String> attachments) {
-            String resolvedAnswer = answerText;
-            // see if the element is referencing an attachment
-            if (attachments != null) {
-                String attachmentPath = attachments.get(resolvedAnswer);
-                if (attachmentPath != null) {
-                    resolvedAnswer = attachmentPath;
-                }
-            }
-            return resolvedAnswer;
-        }
-    }
-
-    /**
-     * used for the case of multiple-response groups, this does not have any user-provided text, but has child
-     * responses.
-     */
-    private static class SurveyAnswerGroup extends SurveyItemResponse {
-        HashMap<String, SurveyItemResponse> childResponses;
-
-        public SurveyAnswerGroup(String questionName, SurveyAnswerGroup parent) {
-            super(questionName, parent);
-            this.childResponses = new HashMap<String, SurveyItemResponse>();
-        }
-
-        public void addChild(SurveyItemResponse child) {
-            this.childResponses.put(child.getQuestionName(), child);
-        }
-
-        /**
-         * The encoding for a submission group is a string like: 3 responses (q8, q9, q10)
-         */
-        @Override
-        public String getEncodedAnswer(HashMap<String, String> attachments) {
-            StringBuilder encodedAnswer = new StringBuilder();
-            encodedAnswer.append(childResponses.size());
-            encodedAnswer.append(" response");
-            if (childResponses.size() != 1) {
-                encodedAnswer.append("s");
-            }
-            if (childResponses.size() > 0) {
-                encodedAnswer.append(" (");
-                boolean firstChild = true;
-                for (String childQuestionName : this.childResponses.keySet()) {
-                    if (firstChild) {
-                        firstChild = false;
-                    }
-                    else {
-                        encodedAnswer.append(", ");
-                    }
-                    encodedAnswer.append(childQuestionName);
-                }
-                encodedAnswer.append(")");
-            }
-            return encodedAnswer.toString();
-        }
-
-        @Override
-        public void addAnswerText(String answerText) {
-            assert false : "We should never get answer text for a submission group";
-        }
-    }
 }

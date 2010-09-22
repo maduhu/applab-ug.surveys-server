@@ -16,7 +16,7 @@ CREATE TABLE `ZebraSurveyQuestions` (
   `xform_param_name`    varchar(255)     NOT NULL default '',
   `xform_param_var`     varchar(255)     NOT NULL default '',
   `xform_param_type`    enum('NUMBER','TEXT','DATE','RADIO','DROPDOWN','CHECKBOX','GPS','IMAGE') NOT NULL default 'TEXT',
-  `xform_param_options` text             NOT NULL default '',
+  `xform_param_options` text             NOT NULL,
   PRIMARY KEY  (`id`),
   KEY `survey_id` (`survey_id`),
   CONSTRAINT `ZebraSurveyQuestions_ibfk_1` FOREIGN KEY (`survey_id`) REFERENCES `ZebraSurvey` (`id`)
@@ -170,7 +170,6 @@ CREATE TABLE `ZebraSurveySubmissions` (
   `q134` text,
   `q135` text,
   `q136` text,
-  `q137` text,
   `q137` text,
   `q138` text,
   `q139` text,

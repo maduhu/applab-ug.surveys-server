@@ -45,7 +45,7 @@ public class SurveyDatabaseHelpers {
         }
         return false;
     }
-
+      
     public static String getSurveyName(String surveyId) {
         try {
             Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
