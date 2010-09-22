@@ -30,7 +30,9 @@ public class GetDesignerForm extends ApplabServlet {
     public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, SQLException, ClassNotFoundException {
         String formId = context.getRequestParameter("formId");
         String xformData = SurveyDatabaseHelpers.getXformData(formId);
-        context.writeText(xformData);
-        context.close();
+        if(xformData != null) {
+            context.writeText(xformData);
+        }
+        // We send a blank response if the data is null, and the purcforms client will use the empty response to indicate a new form
     }
 }

@@ -38,7 +38,7 @@
   <servlet>
     <description>Allows callers to perform a remote select call</description>
     <servlet-name>Select</servlet-name>
-    <servlet-class>applab.surveys.server.Select</servlet-class>
+    <servlet-class>applab.server.Select</servlet-class>
   </servlet>
   <servlet>
     <description>Allows callers to send bulk SMS messages</description>
