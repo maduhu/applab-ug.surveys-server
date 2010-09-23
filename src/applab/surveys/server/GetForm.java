@@ -51,6 +51,7 @@ public class GetForm extends ApplabServlet {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Survey ID does not exist: " + salesforceSurveyId);
         }
         else {
+            log(surveyFormXml);
             response.getWriter().write(surveyFormXml);
         }
     }

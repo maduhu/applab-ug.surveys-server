@@ -13,11 +13,14 @@ License for the specific language governing permissions and limitations under
 the License.
  */
 
-import javax.servlet.http.*;
-import java.io.*;
+import java.io.IOException;
 import java.sql.SQLException;
 
-import applab.server.*;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import applab.server.ApplabServlet;
+import applab.server.ServletRequestContext;
 
 /**
  * Fetches the XML for a survey form from our zebrasurveys table
@@ -31,7 +34,8 @@ public class GetDesignerForm extends ApplabServlet {
         String formId = context.getRequestParameter("formId");
         String xformData = SurveyDatabaseHelpers.getXformData(formId);
         if(xformData != null) {
-            context.writeText(xformData);
+            log(xformData);
+            response.getWriter().print(xformData);           
         }
         // We send a blank response if the data is null, and the purcforms client will use the empty response to indicate a new form
     }
