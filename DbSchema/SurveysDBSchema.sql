@@ -23,17 +23,20 @@ CREATE TABLE `ZebraSurveyQuestions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 CREATE TABLE `ZebraSurveySubmissions` (
-  `id`                  bigint(20) unsigned NOT NULL auto_increment,
-  `survey_id`           int(10) unsigned    NOT NULL default '0',
-  `server_entry_time`   datetime            NOT NULL default '0000-00-00 00:00:00',
-  `handset_submit_time` datetime            NOT NULL default '0000-00-00 00:00:00',
-  `handset_id`          varchar(255)        NOT NULL default '',
-  `interviewer_id`      varchar(255)        NOT NULL default '',
-  `interviewer_name`    varchar(255)        NOT NULL default '',
-  `interviewee_name`    varchar(255)        NOT NULL default '',
-  `result_hash`         varchar(128)        NOT NULL default '',
-  `location`            varchar(70),
-  `survey_status`       varchar(20),
+  `id`                     bigint(20) unsigned NOT NULL auto_increment,
+  `survey_id`              int(10) unsigned    NOT NULL default '0',
+  `server_entry_time`      datetime            NOT NULL default '0000-00-00 00:00:00',
+  `handset_submit_time`    datetime            NOT NULL default '0000-00-00 00:00:00',
+  `handset_id`             varchar(255)        NOT NULL default '',
+  `interviewer_id`         varchar(255)        NOT NULL default '',
+  `interviewer_name`       varchar(255)        NOT NULL default '',
+  `interviewee_name`       varchar(255)        NOT NULL default '',
+  `result_hash_deprecated` varchar(128)        NOT NULL default '',
+  `result_hash`            varchar(128)        NOT NULL default '',
+  `location`               varchar(70),
+  `survey_status`          varchar(20),
+  `submission_size`        bigint(15), NOT NULL default 0,
+  `mobile_number`          varchar(19), NOT NULL default 0,
   `q1` text,
   `q2` text,
   `q3` text,
@@ -235,5 +238,6 @@ CREATE TABLE `ZebraSurveySubmissions` (
   `q199` text,
   PRIMARY KEY  (`id`),
   KEY `survey_id` (`survey_id`),
-  CONSTRAINT `ZebraSurveySubmissions_ibfk_1` FOREIGN KEY (`survey_id`) REFERENCES `ZebraSurvey` (`id`)
+  CONSTRAINT `ZebraSurveySubmissions_ibfk_1` FOREIGN KEY (`survey_id`) REFERENCES `ZebraSurvey` (`id`),
+  CONSTRAINT `ZebraSurveySubmissions_uidx_1` UNIQUE(result_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;

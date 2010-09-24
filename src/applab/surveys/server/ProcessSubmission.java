@@ -106,11 +106,27 @@ public class ProcessSubmission extends ApplabServlet {
  
         // now that we've processed all of the data, insert the contents into our database
         // and construct the HTTP response
-        int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths);
+        String imei = context.getHandsetId();
+        int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths, imei);
         response.setStatus(httpResponseCode);
     }
 
-    public static int storeSurveySubmission(HashMap<String, SurveyItemResponse> surveyResponses, HashMap<String, String> attachmentReferences)
+    /**
+     * 
+     * @param surveyResponses
+     * @param attachmentReferences
+     * @param handsetId
+     * @return
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidIdFault
+     * @throws UnexpectedErrorFault
+     * @throws LoginFault
+     * @throws RemoteException
+     * @throws ServiceException
+     * @throws ClassNotFoundException
+     * @throws SQLException
+     */
+    public static int storeSurveySubmission(HashMap<String, SurveyItemResponse> surveyResponses, HashMap<String, String> attachmentReferences, String handsetId)
             throws NoSuchAlgorithmException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ServiceException,
             ClassNotFoundException, SQLException {
         int backendSurveyId = Integer.parseInt(surveyResponses.get("survey_id").getEncodedAnswer(attachmentReferences));
@@ -119,8 +135,20 @@ public class ProcessSubmission extends ApplabServlet {
         }
         // The following permanent fields should not be included in creating a hex string
         String handsetSubmissionTimestamp = surveyResponses.remove("handset_submit_time").getEncodedAnswer(attachmentReferences);
-        String surveyLocation = surveyResponses.get("location").getEncodedAnswer(attachmentReferences);
 
+        // Check that the location has been added to the survey
+        String location = "";
+        if (surveyResponses.containsKey("location")) {
+            location = surveyResponses.remove("location").getEncodedAnswer(attachmentReferences);
+        }
+        
+        // Check that the interviewee name has been submitted.
+        // Note this Node is no longer automatically added to the form.
+        String intervieweeName = "";
+        if (surveyResponses.containsKey("interviewee_name")) {
+            intervieweeName = surveyResponses.remove("interviewee_name").getEncodedAnswer(attachmentReferences);
+        }
+        
         // create hex string
         String hashSource = "";
         for (SurveyItemResponse responseValue : surveyResponses.values()) {
@@ -129,21 +157,14 @@ public class ProcessSubmission extends ApplabServlet {
         String duplicateDetectionHash = HashHelpers.createMD5(hashSource);
         
         // extract the permanent fields
-        // TODO: in 2.8 we'll be passing the IMEI as an HTTP header
-        String handsetId = surveyResponses.remove("handset_id").getEncodedAnswer(attachmentReferences);
         SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
         CommunityKnowledgeWorker interviewer = CommunityKnowledgeWorker.load(handsetId);
         salesforceProxy.dispose();
-
-        // even though the question name is interviewer_id, that is a typo and it actually stores the
-        // interviewee's name
-        String intervieweeName = surveyResponses.remove("interviewer_id").getEncodedAnswer(attachmentReferences);
 
         int submissionSize = Integer.parseInt(surveyResponses.remove("submission_size").getEncodedAnswer(attachmentReferences));
 
         // Lastly, we need to remove the survey id, since we're storing that explicitly already
         surveyResponses.remove("survey_id");
-        surveyResponses.remove("location");
 
         String answerColumnsCommandText = "";
         String answerValueCommandText = "";
@@ -162,7 +183,10 @@ public class ProcessSubmission extends ApplabServlet {
             StringBuilder commandText = new StringBuilder();
             commandText.append("insert into zebrasurveysubmissions ");
             commandText.append("(survey_id, server_entry_time, handset_submit_time, handset_id, interviewer_id, ");
-            commandText.append("interviewer_name, interviewee_name, result_hash, location, submission_size");
+            commandText.append("interviewer_name, result_hash, submission_size");
+            commandText.append(", mobile_number");
+            commandText.append(", location");
+            commandText.append(", interviewee_name");
             commandText.append(answerColumnsCommandText);
             commandText.append(") values (");
             commandText.append(backendSurveyId);
@@ -171,10 +195,11 @@ public class ProcessSubmission extends ApplabServlet {
             commandText.append(",'" + handsetId + "'");
             commandText.append(",'" + interviewer.getCkwSalesforceName() + "'");
             commandText.append(",'" + interviewer.getFullName() + "'");
-            commandText.append(",'" + intervieweeName + "'");
             commandText.append(",'" + duplicateDetectionHash + "'");
-            commandText.append(",'" + surveyLocation + "'");
             commandText.append("," + submissionSize);
+            commandText.append(", '" + interviewer.getMobileNumber() + "'");
+            commandText.append(", '" + location + "'");
+            commandText.append(", '" + intervieweeName + "'");
             commandText.append(answerValueCommandText + ")");
 
             Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);

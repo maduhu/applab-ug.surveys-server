@@ -78,6 +78,11 @@ public class TestSurveySubmission extends TestCase {
         answers.put("interviewer_id", interviewerId);
         answers2.put("interviewer_id", interviewerId);
         
+        SurveyItemResponse submissionSize = new SurveyItemResponse("submission_size", null);
+        submissionSize.addAnswerText("407");
+        answers.put("submission_size", submissionSize);
+        answers2.put("submission_size", submissionSize);
+        
 
         // Add the answers
         SurveyItemResponse q1 = new SurveyItemResponse("q1", null);
@@ -98,14 +103,14 @@ public class TestSurveySubmission extends TestCase {
         answers2.put("q4", q4);
        
         // Submit the survey the first time. Should work
-        int firstResult  = ProcessSubmission.storeSurveySubmission(answers, attachments);
+        int firstResult  = ProcessSubmission.storeSurveySubmission(answers, attachments, "359444022449943");
 
         // Submit the survey the second time. Should get an error
-        int secondResult = ProcessSubmission.storeSurveySubmission(answers2, attachments);
+        int secondResult = ProcessSubmission.storeSurveySubmission(answers2, attachments, "359444022449943");
         
         // Conduct the tests
-        Assert.assertEquals(firstResult, 400);
-        Assert.assertEquals(secondResult, 201);
+        Assert.assertEquals(201, firstResult);
+        Assert.assertEquals(400, secondResult);
         
     }
 }

@@ -6,3 +6,4 @@ alter table zebrasurveysubmissions add unique key ZebraSurveySubmissions_uidx_1 
 
 -- Add a column to record the size in bytes of a submitted survey.
 ALTER TABLE `zebrasurveysubmissions` ADD `submission_size` BIGINT(15) NOT NULL default 0;
+ALTER TABLE `zebrasurveysubmissions` ADD `mobile_number` varchar(19) NOT NULL default 0;

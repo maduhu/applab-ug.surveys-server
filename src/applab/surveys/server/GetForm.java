@@ -165,31 +165,6 @@ public class GetForm extends ApplabServlet {
             for (int j = 0; j < node_2.getLength(); j++) {
                 Element element_2 = (Element)node_2.item(j);
 
-                Node bind_handset_id = doc.createElement("xf:bind");
-                NamedNodeMap handset_id_attr = bind_handset_id.getAttributes();
-
-                Attr nodeset_handset_id = doc.createAttribute("nodeset");
-                nodeset_handset_id.setValue("/new_form1/handset_id");
-                handset_id_attr.setNamedItem(nodeset_handset_id);
-
-                Attr type_handset_id = doc.createAttribute("type");
-                type_handset_id.setValue("string");
-                handset_id_attr.setNamedItem(type_handset_id);
-
-                Attr jr_handset_id = doc.createAttribute("jr:preload");
-                jr_handset_id.setValue("property");
-                handset_id_attr.setNamedItem(jr_handset_id);
-
-                Attr jr_preload_handset_id = doc.createAttribute("jr:preloadParams");
-                jr_preload_handset_id.setValue("deviceid");
-                handset_id_attr.setNamedItem(jr_preload_handset_id);
-
-                Attr id_handset_id = doc.createAttribute("id");
-                id_handset_id.setValue("handset_id");
-                handset_id_attr.setNamedItem(id_handset_id);
-
-                element_2.appendChild(bind_handset_id);
-
                 Node bind_handset_submit_time = doc.createElement("xf:bind");
                 NamedNodeMap handset_submit_time_attr = bind_handset_submit_time.getAttributes();
 
@@ -221,16 +196,10 @@ public class GetForm extends ApplabServlet {
                     NodeList node_4 = element_3.getElementsByTagName("new_form1");
                     for (int y = 0; y < node_4.getLength(); y++) {
                         Element element_4 = (Element)node_4.item(y);
-                        Node handset_id = doc.createElement("handset_id");
                         Node handset_submit_time = doc.createElement("handset_submit_time");
-                        Node interviewee_name = doc.createElement("interviewee_name");
-                        Node location = doc.createElement("location");
                         Node xform_survey_id = doc.createElement("survey_id");
                         xform_survey_id.setTextContent(zebra_survey_id);
-                        element_4.appendChild(handset_id);
                         element_4.appendChild(handset_submit_time);
-                        element_4.appendChild(interviewee_name);
-                        element_4.appendChild(location);
                         element_4.appendChild(xform_survey_id);
                     }
                 }
