@@ -73,32 +73,4 @@
     <servlet-name>SaveDesignerForm</servlet-name>
     <url-pattern>/saveXform</url-pattern>
   </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>Select</servlet-name>
-    <url-pattern>/select</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>SendSms</servlet-name>
-    <url-pattern>/sendsms</url-pattern>
-  </servlet-mapping>
-  <servlet>
-    <description></description>
-    <display-name>GetFarmerRegistrationForm</display-name>
-    <servlet-name>GetFarmerRegistrationForm</servlet-name>
-    <servlet-class>applab.surveys.server.GetFarmerRegistrationForm</servlet-class>
-  </servlet>
-  <servlet-mapping>
-    <servlet-name>GetFarmerRegistrationForm</servlet-name>
-    <url-pattern>/getFarmerRegistrationForm</url-pattern>
-  </servlet-mapping>
-  <servlet>
-    <description></description>
-    <display-name>ProcessFarmerRegistration</display-name>
-    <servlet-name>ProcessFarmerRegistration</servlet-name>
-    <servlet-class>applab.surveys.server.ProcessFarmerRegistration</servlet-class>
-  </servlet>
-  <servlet-mapping>
-    <servlet-name>ProcessFarmerRegistration</servlet-name>
-    <url-pattern>/processFarmerRegistration</url-pattern>
-  </servlet-mapping>
 </web-app>

@@ -18,11 +18,13 @@ import java.util.ArrayList;
 
 import javax.xml.rpc.ServiceException;
 
+import applab.Farmer;
 import applab.surveys.*;
 
 import com.sforce.soap.enterprise.*;
 import com.sforce.soap.enterprise.fault.*;
 import com.sforce.soap.enterprise.sobject.*;
+
 import applab.server.SalesforceProxy;
 
 public class SurveysSalesforceProxy extends SalesforceProxy {
