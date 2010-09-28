@@ -24,7 +24,7 @@ CREATE TABLE `ZebraSurveyQuestions` (
 
 CREATE TABLE `ZebraSurveySubmissions` (
   `id`                     bigint(20) unsigned NOT NULL auto_increment,
-  `survey_id`              int(10) unsigned    NOT NULL default '0',
+  `survey_id`              int(10) unsigned    NOT NULL ,
   `server_entry_time`      datetime            NOT NULL default '0000-00-00 00:00:00',
   `handset_submit_time`    datetime            NOT NULL default '0000-00-00 00:00:00',
   `handset_id`             varchar(255)        NOT NULL default '',
@@ -32,11 +32,11 @@ CREATE TABLE `ZebraSurveySubmissions` (
   `interviewer_name`       varchar(255)        NOT NULL default '',
   `interviewee_name`       varchar(255)        NOT NULL default '',
   `result_hash_deprecated` varchar(128)        NOT NULL default '',
-  `result_hash`            varchar(128)        NOT NULL default '',
+  `result_hash`            varchar(128)        NOT NULL,
   `location`               varchar(70),
   `survey_status`          varchar(20),
-  `submission_size`        bigint(15), NOT NULL default 0,
-  `mobile_number`          varchar(19), NOT NULL default 0,
+  `submission_size`        bigint(15)          NOT NULL default 0,
+  `mobile_number`          varchar(19)         NOT NULL default 0,
   `q1` text,
   `q2` text,
   `q3` text,
@@ -241,3 +241,21 @@ CREATE TABLE `ZebraSurveySubmissions` (
   CONSTRAINT `ZebraSurveySubmissions_ibfk_1` FOREIGN KEY (`survey_id`) REFERENCES `ZebraSurvey` (`id`),
   CONSTRAINT `ZebraSurveySubmissions_uidx_1` UNIQUE(result_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Note that the reference table in thee fk declaration is case sensitive
+CREATE TABLE `Answers` (
+	`id`                   bigint(20)  unsigned NOT NULL auto_increment,
+	`submission_id`        bigint(20)  unsigned NOT NULL, -- Foreign key to ZebraSurveySubmissions. References the zebraSurveySubmmisions.id.
+	`question_number`      int(6)      NOT NULL, -- The question number  from the survey that the answer refers to.
+	`question_name`        varchar(10) NOT NULL, -- The question number  from the survey that the answer refers to.
+	`answer`               text,                 -- The answer to the question.
+	`parent`               varchar(128),         -- This is the name of the answer that is the parent of this answer
+	`parent_position`      int(4)      unsigned, -- This is the position instance of the parent answer
+	`position`             int(4)      unsigned NOT NULL default 0,
+PRIMARY KEY (`id`),
+KEY `submission_id` (`submission_id`),
+CONSTRAINT `ZebraAnswer_ibfk_1` FOREIGN KEY (`submission_id`) REFERENCES `zebrasurveysubmissions` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+-- Indexes for this table
+CREATE INDEX `Submission_id` ON `Answers` (`submission_id`);

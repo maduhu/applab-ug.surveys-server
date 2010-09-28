@@ -4,15 +4,17 @@ import java.io.File;
 import java.rmi.RemoteException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
-import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -33,8 +35,7 @@ import applab.server.DatabaseId;
 import applab.server.HashHelpers;
 import applab.server.ServletRequestContext;
 import applab.server.XmlHelpers;
-import applab.surveys.SurveyAnswerGroup;
-import applab.surveys.SurveyItemResponse;
+import applab.surveys.SubmissionAnswer;
 
 import com.sforce.soap.enterprise.fault.InvalidIdFault;
 import com.sforce.soap.enterprise.fault.LoginFault;
@@ -66,7 +67,7 @@ public class ProcessSubmission extends ApplabServlet {
         ServletFileUpload servletFileUpload = new ServletFileUpload(new DiskFileItemFactory());
         List<?> fileList = servletFileUpload.parseRequest(request);
 
-        HashMap<String, SurveyItemResponse> surveyResponses = null;
+        HashMap<String, SubmissionAnswer> surveyResponses = null;
 
         // store the paths to the attachments in attachment path
         HashMap<String, String> attachmentPaths = new HashMap<String, String>();
@@ -97,89 +98,75 @@ public class ProcessSubmission extends ApplabServlet {
                 saveAttachment(fileItem, attachmentPaths);
             }
         }
-        
-        // add the size as a response item to the responses, so that it gets saved to the db
-        SurveyItemResponse submissionSize = new SurveyItemResponse("submission_size",null);
-        String size = String.valueOf(totalSize);
-        submissionSize.addAnswerText(size);
-        surveyResponses.put("submission_size", submissionSize);
- 
+
         // now that we've processed all of the data, insert the contents into our database
         // and construct the HTTP response
         String imei = context.getHandsetId();
-        int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths, imei);
+        int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths, imei, totalSize);
         response.setStatus(httpResponseCode);
     }
 
     /**
      * 
-     * @param surveyResponses
-     * @param attachmentReferences
-     * @param handsetId
-     * @return
-     * @throws NoSuchAlgorithmException
-     * @throws InvalidIdFault
-     * @throws UnexpectedErrorFault
-     * @throws LoginFault
-     * @throws RemoteException
-     * @throws ServiceException
-     * @throws ClassNotFoundException
-     * @throws SQLException
      */
-    public static int storeSurveySubmission(HashMap<String, SurveyItemResponse> surveyResponses, HashMap<String, String> attachmentReferences, String handsetId)
+    public static int storeSurveySubmission(HashMap<String, SubmissionAnswer> surveyResponses,
+                                            HashMap<String, String> attachmentReferences, String handsetId, long submissionSize)
             throws NoSuchAlgorithmException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ServiceException,
             ClassNotFoundException, SQLException {
-        int backendSurveyId = Integer.parseInt(surveyResponses.get("survey_id").getEncodedAnswer(attachmentReferences));
+
+        // The <name>:0 notation for the key is used here as these are special case answers
+        // that cannot be duplicated so will always have the instance number of 0
+        int backendSurveyId = Integer.parseInt(surveyResponses.get("survey_id:0").getAnswerText(attachmentReferences));
         if (!SurveyDatabaseHelpers.verifySurveyID(backendSurveyId)) {
             return HttpServletResponse.SC_NOT_FOUND;
         }
         // The following permanent fields should not be included in creating a hex string
-        String handsetSubmissionTimestamp = surveyResponses.remove("handset_submit_time").getEncodedAnswer(attachmentReferences);
+        String handsetSubmissionTimestamp = surveyResponses.remove("handset_submit_time:0").getAnswerText(attachmentReferences);
+
+        // create hex string
+        String hashSource = "";
+        for (SubmissionAnswer responseValue : surveyResponses.values()) {
+            hashSource += responseValue.getAnswerText(attachmentReferences);
+        }
+        String duplicateDetectionHash = HashHelpers.createSHA1(hashSource);
 
         // Check that the location has been added to the survey
         String location = "";
-        if (surveyResponses.containsKey("location")) {
-            location = surveyResponses.remove("location").getEncodedAnswer(attachmentReferences);
+        if (surveyResponses.containsKey("location:0")) {
+            location = surveyResponses.remove("location:0").getAnswerText(attachmentReferences);
         }
-        
+
         // Check that the interviewee name has been submitted.
         // Note this Node is no longer automatically added to the form.
         String intervieweeName = "";
-        if (surveyResponses.containsKey("interviewee_name")) {
-            intervieweeName = surveyResponses.remove("interviewee_name").getEncodedAnswer(attachmentReferences);
+        if (surveyResponses.containsKey("interviewee_name:0")) {
+            intervieweeName = surveyResponses.remove("interviewee_name:0").getAnswerText(attachmentReferences);
         }
-        
-        // create hex string
-        String hashSource = "";
-        for (SurveyItemResponse responseValue : surveyResponses.values()) {
-            hashSource += responseValue.getEncodedAnswer(attachmentReferences);
-        }
-        String duplicateDetectionHash = HashHelpers.createMD5(hashSource);
-        
+
         // extract the permanent fields
         SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
         CommunityKnowledgeWorker interviewer = CommunityKnowledgeWorker.load(handsetId);
         salesforceProxy.dispose();
 
-        int submissionSize = Integer.parseInt(surveyResponses.remove("submission_size").getEncodedAnswer(attachmentReferences));
-
         // Lastly, we need to remove the survey id, since we're storing that explicitly already
-        surveyResponses.remove("survey_id");
+        surveyResponses.remove("survey_id:0");
 
-        String answerColumnsCommandText = "";
-        String answerValueCommandText = "";
-        for (Entry<String, SurveyItemResponse> surveyAnswer : surveyResponses.entrySet()) {
+        boolean hasAnswers = false;
+        ArrayList<String> answerColumns = new ArrayList<String>();
+        for (String answerKey : surveyResponses.keySet()) {
             // the question name is used as our column names for survey answers
-            String answerColumn = surveyAnswer.getKey();
+            SubmissionAnswer answer = surveyResponses.get(answerKey);
+            String answerColumn = answer.getQuestionName();
+
             // verify that these questions have been created
             if (SurveyDatabaseHelpers.verifySurveyField(answerColumn, backendSurveyId)) {
-                answerColumnsCommandText += "," + answerColumn;
-                answerValueCommandText += ",'" + surveyAnswer.getValue().getEncodedAnswer(attachmentReferences) + "'";
+                answerColumns.add(answerKey);
+                hasAnswers = true;
             }
         }
 
         // make sure we have valid questions
-        if (answerColumnsCommandText.length() > 0) {
+        if (hasAnswers) {
             StringBuilder commandText = new StringBuilder();
             commandText.append("insert into zebrasurveysubmissions ");
             commandText.append("(survey_id, server_entry_time, handset_submit_time, handset_id, interviewer_id, ");
@@ -187,7 +174,6 @@ public class ProcessSubmission extends ApplabServlet {
             commandText.append(", mobile_number");
             commandText.append(", location");
             commandText.append(", interviewee_name");
-            commandText.append(answerColumnsCommandText);
             commandText.append(") values (");
             commandText.append(backendSurveyId);
             commandText.append(",'" + DatabaseHelpers.formatDateTime(new Date()) + "'");
@@ -200,29 +186,84 @@ public class ProcessSubmission extends ApplabServlet {
             commandText.append(", '" + interviewer.getMobileNumber() + "'");
             commandText.append(", '" + location + "'");
             commandText.append(", '" + intervieweeName + "'");
-            commandText.append(answerValueCommandText + ")");
+            commandText.append(")");
 
             Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
-            Statement statement = connection.createStatement();
+            connection.setAutoCommit(false);
 
-            // Catch this to see if there is a duplicate hash 
+            // Add the submission.
+            Statement statementSubmission = connection.createStatement();
+
             try {
-                statement.executeUpdate(commandText.toString());
+                statementSubmission.execute(commandText.toString(), Statement.RETURN_GENERATED_KEYS);
             }
             catch (SQLException e) {
+                statementSubmission.close();
+                connection.close();
                 if (e.getErrorCode() == 1062) {
 
                     // The error is a duplicate key error so allow to be told as good
                     return HttpServletResponse.SC_CREATED;
                 }
                 else {
+                    e.printStackTrace();
                     throw new SQLException(e.getMessage());
                 }
             }
-            finally {
-                statement.close();
-                connection.close();
+
+            // Grab the key for the submission
+            ResultSet primaryKey = statementSubmission.getGeneratedKeys();
+            primaryKey.next();
+            int submissionId = Integer.parseInt(primaryKey.getString(1));
+            primaryKey.close();
+
+            // Generate a batch of SQL statements for the answers
+            Statement answerStatements = connection.createStatement();
+            String startString = "insert into answers (submission_id, question_number, question_name, answer, parent, parent_position, position) values (";
+            for (int i = 0; i < answerColumns.size(); i++) {
+
+                SubmissionAnswer answer = surveyResponses.get(answerColumns.get(i));
+
+                StringBuilder answerCommand = new StringBuilder();
+                answerCommand.append(startString);
+
+                // Get the question name and instance number
+                String questionName = answer.getQuestionName();
+
+                // Trim of the q to allow us to organise the answers in numerical order
+                String questionNumber = questionName.substring(1, questionName.length());
+                answerCommand.append(submissionId + ", " + questionNumber + ", '" + questionName + "', ");
+                answerCommand.append("'" + answer.getAnswerText(attachmentReferences) + "'");
+
+                // Check to see if there is a parent
+                if (answer.hasParent()) {
+                    answerCommand.append(", '" + answer.getParent().getQuestionName() + "', " + answer.getParent().getInstance());
+                }
+                else {
+                    answerCommand.append(", null, null");
+                }
+                answerCommand.append(", " + answer.getInstance() + ")");
+                answerStatements.addBatch(answerCommand.toString());
+
             }
+
+            // Try to execute the batch
+            try {
+                answerStatements.executeBatch();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                connection.rollback();
+                statementSubmission.close();
+                answerStatements.close();
+                connection.close();
+                return HttpServletResponse.SC_BAD_REQUEST;
+            }
+            connection.commit();
+            connection.close();
+            statementSubmission.close();
+            answerStatements.close();
+
             return HttpServletResponse.SC_CREATED;
         }
         else {
@@ -262,7 +303,7 @@ public class ProcessSubmission extends ApplabServlet {
 
         return directoryName + generateAttachmentName() + fileExtension;
     }
-    
+
     /**
      * Generates a random number to use as the file name for attachments
      */
@@ -275,23 +316,27 @@ public class ProcessSubmission extends ApplabServlet {
         return imageName.toString();
     }
 
+    public static HashMap<String, SubmissionAnswer> parseSurveySubmissionPublic(Document xmlDocument) {
+        return parseSurveySubmission(xmlDocument);
+    }
+
     /**
      * parses the XML for a survey response. Delegates most of its work to parseSurveySubmissionElement
      * 
      * @param xmlDocument
      *            DOM containing the submission XML
      */
-    private static HashMap<String, SurveyItemResponse> parseSurveySubmission(Document xmlDocument) {
+    private static HashMap<String, SubmissionAnswer> parseSurveySubmission(Document xmlDocument) {
         // normalize the root node
         Element rootNode = xmlDocument.getDocumentElement();
         rootNode.normalize();
-        
-        HashMap<String, SurveyItemResponse> parsedSubmission = new HashMap<String, SurveyItemResponse>();
 
+        HashMap<String, SubmissionAnswer> parsedSubmission = new HashMap<String, SubmissionAnswer>();
+        HashMap<String, Integer> instanceRecord = new HashMap<String, Integer>();
         // now parse the tree and populate surveyResponses with the raw data
         for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                parseSurveySubmissionElement((Element)childNode, parsedSubmission, null);
+                parseSurveySubmissionElement((Element)childNode, parsedSubmission, null, instanceRecord);
             }
             else {
                 // don't care about other types of nodes
@@ -304,30 +349,31 @@ public class ProcessSubmission extends ApplabServlet {
     /**
      * given an XML node, processes the contents into a SurveyItemResponse
      */
-    private static void parseSurveySubmissionElement(Element submissionElement, HashMap<String, SurveyItemResponse> existingSubmission,
-            SurveyAnswerGroup parentItem) {
+    private static void parseSurveySubmissionElement(Element submissionElement, HashMap<String, SubmissionAnswer> existingSubmission,
+                                                     SubmissionAnswer parentItem, HashMap<String, Integer> instanceRecord) {
         // question name is always the name of the start element
         String questionName = submissionElement.getNodeName();
 
-        SurveyItemResponse surveyItemResponse = existingSubmission.get(questionName);
-        if (surveyItemResponse == null) {
-            surveyItemResponse = new SurveyItemResponse(questionName, parentItem);
-            existingSubmission.put(questionName, surveyItemResponse);
+        int newInstance = 0;
+        if (instanceRecord.containsKey(questionName)) {
+            newInstance = instanceRecord.get(questionName) + 1;
         }
+
+        // Create a new answer and increase the instance count for this question name
+        SubmissionAnswer submissionAnswer = new SubmissionAnswer(questionName, newInstance, null, parentItem);
+        String answerKey = submissionAnswer.getKey();
+        existingSubmission.put(answerKey, submissionAnswer);
+        instanceRecord.put(questionName, newInstance);
 
         // walk the child nodes, and either populate with a text-answer, or recurse for the multiple-answer case
         for (Node childNode = submissionElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             switch (childNode.getNodeType()) {
                 case Node.ELEMENT_NODE:
-                    if (!(surveyItemResponse instanceof SurveyAnswerGroup)) {
-                        surveyItemResponse = new SurveyAnswerGroup(questionName, parentItem);
-                        existingSubmission.put(questionName, surveyItemResponse);
-                    }
-                    parseSurveySubmissionElement((Element)childNode, existingSubmission, (SurveyAnswerGroup)surveyItemResponse);
+                    parseSurveySubmissionElement((Element)childNode, existingSubmission, submissionAnswer, instanceRecord);
                     break;
 
                 case Node.TEXT_NODE:
-                    surveyItemResponse.addAnswerText(childNode.getNodeValue());
+                    submissionAnswer.setAnswerText(childNode.getNodeValue());
                     break;
 
                 default:
@@ -336,5 +382,4 @@ public class ProcessSubmission extends ApplabServlet {
             }
         }
     }
-
 }

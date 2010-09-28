@@ -165,11 +165,29 @@ public class GetForm extends ApplabServlet {
             for (int j = 0; j < node_2.getLength(); j++) {
                 Element element_2 = (Element)node_2.item(j);
 
+                NodeList node_3 = element_2.getElementsByTagName("xf:instance");
+                
+                String formName = "";
+                
+                for (int x = 0; x < node_3.getLength(); x++) {
+                    Element element_3 = (Element)node_3.item(x);
+                    formName = element_3.getAttribute("id");
+                    NodeList node_4 = element_3.getElementsByTagName(formName);
+                    for (int y = 0; y < node_4.getLength(); y++) {
+                        Element element_4 = (Element)node_4.item(y);
+                        Node handset_submit_time = doc.createElement("handset_submit_time");
+                        Node xform_survey_id = doc.createElement("survey_id");
+                        xform_survey_id.setTextContent(zebra_survey_id);
+                        element_4.appendChild(handset_submit_time);
+                        element_4.appendChild(xform_survey_id);
+                    }
+                }
+                
                 Node bind_handset_submit_time = doc.createElement("xf:bind");
                 NamedNodeMap handset_submit_time_attr = bind_handset_submit_time.getAttributes();
 
                 Attr nodeset_handset_submit_time = doc.createAttribute("nodeset");
-                nodeset_handset_submit_time.setValue("/new_form1/handset_submit_time");
+                nodeset_handset_submit_time.setValue("/" + formName + "/handset_submit_time");
                 handset_submit_time_attr.setNamedItem(nodeset_handset_submit_time);
 
                 Attr type_handset_submit_time = doc.createAttribute("type");
@@ -189,20 +207,6 @@ public class GetForm extends ApplabServlet {
                 handset_submit_time_attr.setNamedItem(id_handset_submit_time);
 
                 element_2.appendChild(bind_handset_submit_time);
-
-                NodeList node_3 = element_2.getElementsByTagName("xf:instance");
-                for (int x = 0; x < node_3.getLength(); x++) {
-                    Element element_3 = (Element)node_3.item(x);
-                    NodeList node_4 = element_3.getElementsByTagName("new_form1");
-                    for (int y = 0; y < node_4.getLength(); y++) {
-                        Element element_4 = (Element)node_4.item(y);
-                        Node handset_submit_time = doc.createElement("handset_submit_time");
-                        Node xform_survey_id = doc.createElement("survey_id");
-                        xform_survey_id.setTextContent(zebra_survey_id);
-                        element_4.appendChild(handset_submit_time);
-                        element_4.appendChild(xform_survey_id);
-                    }
-                }
             }
         }
 
