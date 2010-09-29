@@ -165,7 +165,11 @@ public class ProcessSubmission extends ApplabServlet {
                 intervieweeName = legacyIntervieweeName;
             }
         }
-
+        // Always upper case intervieweeName (farmerId)
+        if(intervieweeName != null && !intervieweeName.isEmpty()) {
+            intervieweeName = intervieweeName.toUpperCase();
+        }
+        
         // extract the permanent fields
         SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
         CommunityKnowledgeWorker interviewer = CommunityKnowledgeWorker.load(handsetId);
