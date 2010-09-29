@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -26,6 +28,8 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+
+import sun.util.logging.resources.logging;
 
 import applab.CommunityKnowledgeWorker;
 import applab.server.ApplabConfiguration;
@@ -74,6 +78,7 @@ public class ProcessSubmission extends ApplabServlet {
         Iterator<?> fileIterator = fileList.iterator();
 
         long totalSize = 0;
+        String farmerId = ""; // We extract the farmerId from the submission file name (TODO: Find better way to communicate it)
         while (fileIterator.hasNext()) {
             FileItem fileItem = (FileItem)fileIterator.next();
             totalSize = totalSize + fileItem.getSize();
@@ -83,6 +88,8 @@ public class ProcessSubmission extends ApplabServlet {
 
             // survey answer content
             if (contentType == "text/xml") {
+                String fileName = fileItem.getName(); // This has the farmerId embedded
+                farmerId = getFarmerId(fileName);
                 Document xmlDocument = XmlHelpers.parseXml(fileItem.getString());
                 surveyResponses = parseSurveySubmission(xmlDocument);
 
@@ -102,15 +109,28 @@ public class ProcessSubmission extends ApplabServlet {
         // now that we've processed all of the data, insert the contents into our database
         // and construct the HTTP response
         String imei = context.getHandsetId();
-        int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths, imei, totalSize);
+        int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths, imei, totalSize, farmerId);
         response.setStatus(httpResponseCode);
     }
 
+    public static String getFarmerId(String fileName) {
+        // Extract the farmerId from fileName
+        String farmerId = "";
+        String regex = "(.*)\\_\\[(.*)\\]\\_[0-9]{4}\\-[0-9]{2}\\-[0-9]{2}\\_[0-9]{2}\\-[0-9]{2}\\-[0-9]{2}\\.xml$";
+        Pattern pattern = Pattern.compile(regex); 
+        Matcher matcher = pattern.matcher(fileName);
+        if(matcher.matches()) {
+            farmerId = matcher.group(2);
+        }
+        return farmerId;
+    }
+
     /**
+     * @param fileName 
      * 
      */
     public static int storeSurveySubmission(HashMap<String, SubmissionAnswer> surveyResponses,
-                                            HashMap<String, String> attachmentReferences, String handsetId, long submissionSize)
+                                            HashMap<String, String> attachmentReferences, String handsetId, long submissionSize, String intervieweeName)
             throws NoSuchAlgorithmException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ServiceException,
             ClassNotFoundException, SQLException {
 
@@ -120,6 +140,7 @@ public class ProcessSubmission extends ApplabServlet {
         if (!SurveyDatabaseHelpers.verifySurveyID(backendSurveyId)) {
             return HttpServletResponse.SC_NOT_FOUND;
         }
+        
         // The following permanent fields should not be included in creating a hex string
         String handsetSubmissionTimestamp = surveyResponses.remove("handset_submit_time:0").getAnswerText(attachmentReferences);
 
@@ -136,11 +157,13 @@ public class ProcessSubmission extends ApplabServlet {
             location = surveyResponses.remove("location:0").getAnswerText(attachmentReferences);
         }
 
-        // Check that the interviewee name has been submitted.
-        // Note this Node is no longer automatically added to the form.
-        String intervieweeName = "";
+        // Check if this is a legacy form and the farmerId is within the form.
+        // If it's there and we do not have a farmerId, we use that instead
         if (surveyResponses.containsKey("interviewee_name:0")) {
-            intervieweeName = surveyResponses.remove("interviewee_name:0").getAnswerText(attachmentReferences);
+            String legacyIntervieweeName = surveyResponses.remove("interviewee_name:0").getAnswerText(attachmentReferences);
+            if(intervieweeName.isEmpty()) {
+                intervieweeName = legacyIntervieweeName;
+            }
         }
 
         // extract the permanent fields

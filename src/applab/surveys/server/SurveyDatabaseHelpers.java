@@ -24,17 +24,34 @@ import applab.server.*;
 public class SurveyDatabaseHelpers {
 
     final static String JDBC_DRIVER = "com.mysql.jdbc.Driver";
+    static Connection readerConnection;
+    static Connection writerConnection;
+    
+    public static Connection getReaderConnection () throws ClassNotFoundException, SQLException {
+        
+        if (readerConnection == null || readerConnection.isClosed()) {
+            readerConnection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
+        }
+        return readerConnection;
+    }
+    
+    public static Connection getWriterConnection () throws ClassNotFoundException, SQLException {
+        
+        if (writerConnection == null || writerConnection.isClosed()) {
+            writerConnection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
+        }
+        return writerConnection;
+    }
 
     public static boolean verifySurveyID(int surveyPrimaryKey) {
         try {
-            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
+            Connection connection = getReaderConnection();
             Statement statement = connection.createStatement();
             String sqlQuery = "SELECT id from zebrasurvey where id=" + surveyPrimaryKey;
             ResultSet resultSet = statement.executeQuery(sqlQuery);
             while (resultSet.next()) {
                 int surveyID = Integer.parseInt(resultSet.getString("id"));
                 statement.close();
-                connection.close();
                 if (surveyID == surveyPrimaryKey) {
                     return true;
                 }
@@ -48,14 +65,13 @@ public class SurveyDatabaseHelpers {
       
     public static String getSurveyName(String surveyId) {
         try {
-            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
+            Connection connection = getReaderConnection();
             Statement statement = connection.createStatement();
             String sqlQuery = "SELECT survey_name from zebrasurvey where survey_id='" + surveyId + "'";
             ResultSet resultSet = statement.executeQuery(sqlQuery);
             while (resultSet.next()) {
                 String surveyName = resultSet.getString("survey_name");
                 statement.close();
-                connection.close();
                 return surveyName;
             }
         }
@@ -67,14 +83,13 @@ public class SurveyDatabaseHelpers {
 
     public static String getZebraSurveyId(String salesforceSurveyId) {
         try {
-            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
+            Connection connection = getReaderConnection();
             Statement statement = connection.createStatement();
             String sqlQuery = "SELECT id from zebrasurvey where survey_id='" + salesforceSurveyId + "'";
             ResultSet resultSet = statement.executeQuery(sqlQuery);
             while (resultSet.next()) {
                 String databaseId = resultSet.getString("id");
                 statement.close();
-                connection.close();
                 return databaseId;
             }
         }
@@ -104,7 +119,7 @@ public class SurveyDatabaseHelpers {
 
     public static boolean verifySurveyField(String xform_param_var, int surveyId) {
         try {
-            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
+            Connection connection = getReaderConnection();
             Statement statement = connection.createStatement();
             String sqlQuery = "SELECT xform_param_var from zebrasurveyquestions where xform_param_var='" + xform_param_var
                     + "' and survey_id=" + surveyId;
@@ -113,7 +128,6 @@ public class SurveyDatabaseHelpers {
                 String xform_param_var_ = resultSet.getString("xform_param_var");
                 if (xform_param_var_.trim().equals(xform_param_var)) {
                     statement.close();
-                    connection.close();
                     return true;
                 }
             }
@@ -126,13 +140,12 @@ public class SurveyDatabaseHelpers {
 
     public static boolean saveXform(String surveyId, String surveyName, String xformData) {
         try {
-            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
+            Connection connection = getWriterConnection();
             Statement statement = connection.createStatement();
             String sqlQuery = "UPDATE zebrasurvey set survey_name='" + surveyName + "',xform='" + xformData + "' where survey_id='"
                     + surveyId + "'";
             statement.executeUpdate(sqlQuery);
             statement.close();
-            connection.close();
             return true;
         }
         catch (Exception e) {
@@ -143,14 +156,13 @@ public class SurveyDatabaseHelpers {
 
     public static boolean saveXform(String surveyId, String xform_data, String surveyName, String creationDate) {
         try {
-            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
+            Connection connection = getWriterConnection();
             Statement statement = connection.createStatement();
             String sqlQuery = "INSERT into zebrasurvey (survey_name,survey_id,created_at,xform) values ('" + surveyName + "','" + surveyId
                     + "','" + creationDate + "','" + xform_data + "')";
 
             statement.executeUpdate(sqlQuery);
             statement.close();
-            connection.close();
             return true;
         }
         catch (Exception e) {
@@ -161,13 +173,12 @@ public class SurveyDatabaseHelpers {
 
     public static boolean saveZebraSurveyQuestions(int surveyId, String xform_param_name, String xform_param_var) {
         try {
-            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
+            Connection connection = getWriterConnection();
             Statement statement = connection.createStatement();
             String sqlQuery = "INSERT into zebrasurveyquestions (survey_id,xform_param_name,xform_param_var,xform_param_options) values ("
                     + surveyId + ",'" + xform_param_name + "','" + xform_param_var + "','')";
             statement.executeUpdate(sqlQuery);
             statement.close();
-            connection.close();
             return true;
         }
         catch (Exception e) {
@@ -178,12 +189,11 @@ public class SurveyDatabaseHelpers {
 
     public static boolean deleteSurveyFromSurveyQuestions(int surveyId) {
         try {
-            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
+            Connection connection = getWriterConnection();
             Statement statement = connection.createStatement();
             String sqlQuery = "DELETE from zebrasurveyquestions where survey_id=" + surveyId;
             statement.executeUpdate(sqlQuery);
             statement.close();
-            connection.close();
             return true;
         }
         catch (Exception e) {
@@ -195,7 +205,7 @@ public class SurveyDatabaseHelpers {
     public static Hashtable<String, String> getZebraSurveyQuestions(int surveyId) {
         Hashtable<String, String> questions = new Hashtable<String, String>();
         try {
-            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
+            Connection connection = getReaderConnection();
             Statement statement = connection.createStatement();
             String sqlQuery = "select xform_param_name,xform_param_var from zebrasurveyquestions where survey_id=" + surveyId;
             ResultSet resultSet = statement.executeQuery(sqlQuery);
@@ -205,7 +215,6 @@ public class SurveyDatabaseHelpers {
                 questions.put(xform_param_var, xform_param_name);
             }
             statement.close();
-            connection.close();
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -215,13 +224,12 @@ public class SurveyDatabaseHelpers {
 
     public static boolean updateSurveyQuestion(String xform_param_var, String xform_param_name, int surveyId) {
         try {
-            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
+            Connection connection = getWriterConnection();
             Statement statement = connection.createStatement();
             String sqlQuery = "UPDATE zebrasurveyquestions set xform_param_name='" + xform_param_name + "' where survey_id="
                     + surveyId + " and xform_param_var='" + xform_param_var + "'";
             statement.executeUpdate(sqlQuery);
             statement.close();
-            connection.close();
             return true;
         }
         catch (Exception e) {
@@ -232,7 +240,7 @@ public class SurveyDatabaseHelpers {
 
     public static boolean surveyQuestionHasSubmissions(int surveyId, String parameter) {
         try {
-            Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
+            Connection connection = getReaderConnection();
             Statement statement = connection.createStatement();
             String sqlQuery = "SELECT " + parameter + " from zebrasurveysubmissions where survey_id=" + surveyId;
             ResultSet resultSet = statement.executeQuery(sqlQuery);
@@ -245,7 +253,6 @@ public class SurveyDatabaseHelpers {
             }
             finally {
                 statement.close();
-                connection.close();
             }
         }
         catch (Exception e) {
@@ -256,12 +263,11 @@ public class SurveyDatabaseHelpers {
 
     public static boolean deleteSurveyQuestion(int surveyId, String parameter) {
         try {
-            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
+            Connection connection = getWriterConnection();
             Statement statement = connection.createStatement();
             String sqlQuery = "DELETE from zebrasurveyquestions where xform_param_var='" + parameter + "' and survey_id=" + surveyId;
             statement.executeUpdate(sqlQuery);
             statement.close();
-            connection.close();
             return true;
         }
         catch (Exception e) {

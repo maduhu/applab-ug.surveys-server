@@ -45,7 +45,13 @@ public class TestSurveySubmission extends TestCase {
         targetFile.deleteOnExit();
         parentDirectory.deleteOnExit();
     }
-
+    
+    @Test
+    public void testGetFarmerId() {
+        String fileName = "Sample Form_[UA0001]_2010-23-34_00-00-00.xml";
+        String farmerId = ProcessSubmission.getFarmerId(fileName);
+        Assert.assertTrue(farmerId.equals("UA0001"));
+    }
     /*
      * @Test public void testDuplicateSubmissions() throws Exception {
      * 
@@ -109,7 +115,7 @@ public class TestSurveySubmission extends TestCase {
         // add the size as a response item to the responses, so that it gets saved to the db
         long size = submissionXML.length();
 
-        int result = ProcessSubmission.storeSurveySubmission(answers, attachments, "359444022449943", size);
+        int result = ProcessSubmission.storeSurveySubmission(answers, attachments, "359444022449943", size, "");
         Assert.assertEquals(201, result);
 
     }

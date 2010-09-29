@@ -5,14 +5,12 @@ package applab.surveys.server.test;
 
 import java.util.ArrayList;
 
-import junit.framework.TestCase;
-
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import applab.server.SalesforceProxy;
+import applab.server.test.ServerTestCase;
 import applab.surveys.Survey;
 import applab.surveys.server.SurveysSalesforceProxy;
 
@@ -20,19 +18,16 @@ import com.sforce.soap.enterprise.SaveResult;
 import com.sforce.soap.enterprise.SoapBindingStub;
 import com.sforce.soap.enterprise.sobject.*;
 
-public class TestSurveysGetPublishedSurveys extends TestCase {
-
-    // Object Ids to delete (put any ids you create in here and they'll be deleted in the tearDown)
-    private ArrayList<String> createdObjects = new ArrayList<String>();
-
+public class TestSurveysGetPublishedSurveys extends ServerTestCase {
     // Binding
-    private SoapBindingStub binding = null;
+    private SoapBindingStub binding;
 
     /**
      * @throws java.lang.Exception
      */
     @Before
     public void setUp() throws Exception {
+        super.setUp();
         binding = SalesforceProxy.createBinding();
 
         try {
@@ -46,7 +41,7 @@ public class TestSurveysGetPublishedSurveys extends TestCase {
                 throw new Exception("Test Failed: Failed to save Phone!");
             }
             else {
-                createdObjects.add(phoneSaveResult[0].getId());
+                trackCreatedSalesforceObject(phoneSaveResult[0].getId());
             }
 
             // Create Person and link to hand set
@@ -60,7 +55,7 @@ public class TestSurveysGetPublishedSurveys extends TestCase {
                 throw new Exception("Test Failed: Failed to save Person!");
             }
             else {
-                createdObjects.add(personSaveResult[0].getId());
+                trackCreatedSalesforceObject(personSaveResult[0].getId());
             }
 
             // Create group
@@ -72,7 +67,7 @@ public class TestSurveysGetPublishedSurveys extends TestCase {
                 throw new Exception("Test Failed: Failed to save Group!");
             }
             else {
-                createdObjects.add(groupSaveResult[0].getId());
+                trackCreatedSalesforceObject(groupSaveResult[0].getId());
             }
 
             // Create Person Group Association
@@ -85,7 +80,7 @@ public class TestSurveysGetPublishedSurveys extends TestCase {
                 throw new Exception("Test Failed: Failed to save Person Group Association!");
             }
             else {
-                createdObjects.add(pgaSaveResult[0].getId());
+                trackCreatedSalesforceObject(pgaSaveResult[0].getId());
             }
 
             // Create survey, publish it and add it to group
@@ -98,7 +93,7 @@ public class TestSurveysGetPublishedSurveys extends TestCase {
                 throw new Exception("Test Failed: Failed to save Survey!");
             }
             else {
-                createdObjects.add(surveySaveResult[0].getId());
+                trackCreatedSalesforceObject(surveySaveResult[0].getId());
             }
 
             Survey_Group_Association__c surveyGroupAssociation = new Survey_Group_Association__c();
@@ -110,7 +105,7 @@ public class TestSurveysGetPublishedSurveys extends TestCase {
                 throw new Exception("Test Failed: Failed to save Survey Group Association!");
             }
             else {
-                createdObjects.add(sgaSaveResult[0].getId());
+                trackCreatedSalesforceObject(sgaSaveResult[0].getId());
             }
 
             // Create second group and survey (Added to test bug with multiple groups/surveys)
@@ -123,7 +118,7 @@ public class TestSurveysGetPublishedSurveys extends TestCase {
                 throw new Exception("Test Failed: Failed to save Group2!");
             }
             else {
-                createdObjects.add(groupSaveResult2[0].getId());
+                trackCreatedSalesforceObject(groupSaveResult2[0].getId());
             }
 
             // Create Person Group Association 2
@@ -136,7 +131,7 @@ public class TestSurveysGetPublishedSurveys extends TestCase {
                 throw new Exception("Test Failed: Failed to save Person Group Association 2!");
             }
             else {
-                createdObjects.add(pgaSaveResult2[0].getId());
+                trackCreatedSalesforceObject(pgaSaveResult2[0].getId());
             }
 
             // Create survey, publish it and add it to group
@@ -149,7 +144,7 @@ public class TestSurveysGetPublishedSurveys extends TestCase {
                 throw new Exception("Test Failed: Failed to save Survey 2!");
             }
             else {
-                createdObjects.add(surveySaveResult2[0].getId());
+                trackCreatedSalesforceObject(surveySaveResult2[0].getId());
             }
 
             Survey_Group_Association__c surveyGroupAssociation2 = new Survey_Group_Association__c();
@@ -161,24 +156,13 @@ public class TestSurveysGetPublishedSurveys extends TestCase {
                 throw new Exception("Test Failed: Failed to save Survey Group Association2!");
             }
             else {
-                createdObjects.add(sgaSaveResult2[0].getId());
+                trackCreatedSalesforceObject(sgaSaveResult2[0].getId());
             }
         }
         catch (Exception e) {
             e.printStackTrace();
             tearDown();
             Assert.fail(e.toString());
-        }
-    }
-
-    /**
-     * @throws java.lang.Exception
-     */
-    @After
-    public void tearDown() throws Exception {
-        // Clean up
-        if (createdObjects.size() > 0) {
-            binding.delete(createdObjects.toArray(new String[0]));
         }
     }
 
