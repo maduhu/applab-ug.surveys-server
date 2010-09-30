@@ -4,9 +4,11 @@ import java.io.File;
 import java.rmi.RemoteException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,7 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,13 +30,10 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-import sun.util.logging.resources.logging;
-
 import applab.CommunityKnowledgeWorker;
 import applab.server.ApplabConfiguration;
 import applab.server.ApplabServlet;
 import applab.server.DatabaseHelpers;
-import applab.server.DatabaseId;
 import applab.server.HashHelpers;
 import applab.server.ServletRequestContext;
 import applab.server.XmlHelpers;
@@ -132,7 +130,7 @@ public class ProcessSubmission extends ApplabServlet {
     public static int storeSurveySubmission(HashMap<String, SubmissionAnswer> surveyResponses,
                                             HashMap<String, String> attachmentReferences, String handsetId, long submissionSize, String intervieweeName)
             throws NoSuchAlgorithmException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ServiceException,
-            ClassNotFoundException, SQLException {
+            ClassNotFoundException, SQLException, ParseException {
 
         // The <name>:0 notation for the key is used here as these are special case answers
         // that cannot be duplicated so will always have the instance number of 0
@@ -142,8 +140,8 @@ public class ProcessSubmission extends ApplabServlet {
         }
         
         // The following permanent fields should not be included in creating a hex string
-        String handsetSubmissionTimestamp = surveyResponses.remove("handset_submit_time:0").getAnswerText(attachmentReferences);
-
+        Date handsetSubmissionTime = DatabaseHelpers.parseDate(surveyResponses.remove("handset_submit_time:0").getAnswerText(attachmentReferences));
+        
         // create hex string
         String hashSource = "";
         for (SubmissionAnswer responseValue : surveyResponses.values()) {
@@ -194,6 +192,11 @@ public class ProcessSubmission extends ApplabServlet {
 
         // make sure we have valid questions
         if (hasAnswers) {
+            
+            // Create the connection to the database
+            Connection connection = SurveyDatabaseHelpers.getWriterConnection();
+            connection.setAutoCommit(false);
+            
             StringBuilder commandText = new StringBuilder();
             commandText.append("insert into zebrasurveysubmissions ");
             commandText.append("(survey_id, server_entry_time, handset_submit_time, handset_id, interviewer_id, ");
@@ -201,32 +204,30 @@ public class ProcessSubmission extends ApplabServlet {
             commandText.append(", mobile_number");
             commandText.append(", location");
             commandText.append(", interviewee_name");
-            commandText.append(") values (");
-            commandText.append(backendSurveyId);
-            commandText.append(",'" + DatabaseHelpers.formatDateTime(new Date()) + "'");
-            commandText.append(",'" + handsetSubmissionTimestamp + "'");
-            commandText.append(",'" + handsetId + "'");
-            commandText.append(",'" + interviewer.getCkwSalesforceName() + "'");
-            commandText.append(",'" + interviewer.getFullName() + "'");
-            commandText.append(",'" + duplicateDetectionHash + "'");
-            commandText.append("," + submissionSize);
-            commandText.append(", '" + interviewer.getMobileNumber() + "'");
-            commandText.append(", '" + location + "'");
-            commandText.append(", '" + intervieweeName + "'");
-            commandText.append(")");
-
-            Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
-            connection.setAutoCommit(false);
-
-            // Add the submission.
-            Statement statementSubmission = connection.createStatement();
+            commandText.append(") values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            
+            // Create the prepared statement
+            PreparedStatement submissionStatement = connection.prepareStatement(commandText.toString());
+            
+            // Add the params to the query
+            submissionStatement.setInt(1, backendSurveyId);
+            submissionStatement.setTimestamp(2, DatabaseHelpers.getTimestamp(new Date()));
+            submissionStatement.setTimestamp(3, DatabaseHelpers.getTimestamp(handsetSubmissionTime));
+            submissionStatement.setString(4, handsetId);
+            submissionStatement.setString(5, interviewer.getCkwSalesforceName());
+            submissionStatement.setString(6, interviewer.getFullName());
+            submissionStatement.setString(7, duplicateDetectionHash);
+            submissionStatement.setLong(8, submissionSize);
+            submissionStatement.setString(9, interviewer.getMobileNumber());
+            submissionStatement.setString(10, location);
+            submissionStatement.setString(11, intervieweeName);
 
             try {
-                statementSubmission.execute(commandText.toString(), Statement.RETURN_GENERATED_KEYS);
+                submissionStatement.execute(commandText.toString(), Statement.RETURN_GENERATED_KEYS);
             }
             catch (SQLException e) {
-                statementSubmission.close();
-                connection.close();
+                submissionStatement.close();
+                connection.setAutoCommit(true);
                 if (e.getErrorCode() == 1062) {
 
                     // The error is a duplicate key error so allow to be told as good
@@ -239,39 +240,41 @@ public class ProcessSubmission extends ApplabServlet {
             }
 
             // Grab the key for the submission
-            ResultSet primaryKey = statementSubmission.getGeneratedKeys();
+            ResultSet primaryKey = submissionStatement.getGeneratedKeys();
             primaryKey.next();
             int submissionId = Integer.parseInt(primaryKey.getString(1));
             primaryKey.close();
 
             // Generate a batch of SQL statements for the answers
-            Statement answerStatements = connection.createStatement();
-            String startString = "insert into answers (submission_id, question_number, question_name, answer, parent, parent_position, position) values (";
+            String startString = "insert into answers (submission_id, question_number, question_name, answer, parent, parent_position, position) values (?, ?, ?, ?, ?, ?, ?)";
+            PreparedStatement answerStatements = connection.prepareStatement(startString);
             for (int i = 0; i < answerColumns.size(); i++) {
 
                 SubmissionAnswer answer = surveyResponses.get(answerColumns.get(i));
-
-                StringBuilder answerCommand = new StringBuilder();
-                answerCommand.append(startString);
 
                 // Get the question name and instance number
                 String questionName = answer.getQuestionName();
 
                 // Trim of the q to allow us to organise the answers in numerical order
                 String questionNumber = questionName.substring(1, questionName.length());
-                answerCommand.append(submissionId + ", " + questionNumber + ", '" + questionName + "', ");
-                answerCommand.append("'" + answer.getAnswerText(attachmentReferences) + "'");
+
+                
+                answerStatements.setInt(1, submissionId);
+                answerStatements.setString(2, questionNumber);
+                answerStatements.setString(3, questionName);
+                answerStatements.setString(4, answer.getAnswerText(attachmentReferences));
 
                 // Check to see if there is a parent
                 if (answer.hasParent()) {
-                    answerCommand.append(", '" + answer.getParent().getQuestionName() + "', " + answer.getParent().getInstance());
+                    answerStatements.setString(5, answer.getParent().getQuestionName());
+                    answerStatements.setInt(6, answer.getParent().getInstance());
                 }
                 else {
-                    answerCommand.append(", null, null");
+                    answerStatements.setNull(5, java.sql.Types.VARCHAR);
+                    answerStatements.setNull(6, java.sql.Types.INTEGER);
                 }
-                answerCommand.append(", " + answer.getInstance() + ")");
-                answerStatements.addBatch(answerCommand.toString());
-
+                answerStatements.setInt(7, answer.getInstance());
+                answerStatements.addBatch();
             }
 
             // Try to execute the batch
@@ -281,14 +284,15 @@ public class ProcessSubmission extends ApplabServlet {
             catch (Exception e) {
                 e.printStackTrace();
                 connection.rollback();
-                statementSubmission.close();
+                connection.setAutoCommit(true);
+                submissionStatement.close();
                 answerStatements.close();
-                connection.close();
                 return HttpServletResponse.SC_BAD_REQUEST;
             }
+
             connection.commit();
-            connection.close();
-            statementSubmission.close();
+            connection.setAutoCommit(true);
+            submissionStatement.close();
             answerStatements.close();
 
             return HttpServletResponse.SC_CREATED;

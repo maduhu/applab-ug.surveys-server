@@ -229,22 +229,22 @@ public class SaveDesignerForm extends ApplabServlet {
         for (String key : backendQuestions.keySet()) {
             if (!parsedQuestions.containsKey(key)) {
                 // this parameter was deleted during the design
-                if (!SurveyDatabaseHelpers.surveyQuestionHasSubmissions(backendSurveyId, key)) {
+                //if (!SurveyDatabaseHelpers.surveyQuestionHasSubmissions(backendSurveyId, key)) {
                     SurveyDatabaseHelpers.deleteSurveyQuestion(backendSurveyId, key);
-                }
+                //}
             }
         }
 
         // and finally deal with add/update of questions
         for (Entry<String, String> question : parsedQuestions.entrySet()) {
             if (SurveyDatabaseHelpers.verifySurveyField(question.getKey(), backendSurveyId)) {
-                if (!SurveyDatabaseHelpers.surveyQuestionHasSubmissions(backendSurveyId, question.getKey())) {
+                //if (!SurveyDatabaseHelpers.surveyQuestionHasSubmissions(backendSurveyId, question.getKey())) {
                     // compare the question values
-                    if (!question.getValue().equals(backendQuestions.get(question.getKey()))) {
+                  //  if (!question.getValue().equals(backendQuestions.get(question.getKey()))) {
                         // update the question only
                         SurveyDatabaseHelpers.updateSurveyQuestion(question.getKey(), question.getValue(), backendSurveyId);
-                    }
-                }
+                    //}
+                //}
             }
             else {
                 // does not exist.

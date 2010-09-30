@@ -13,9 +13,18 @@
 
 package applab.surveys.server;
 
-import java.sql.*;
-import java.util.*;
-import applab.server.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Date;
+import java.util.Hashtable;
+
+import applab.server.DatabaseHelpers;
+import applab.server.DatabaseId;
+import applab.server.DatabaseTable;
+import applab.server.SelectCommand;
 
 /**
  * Helper methods for interacting with our survey and search databases
@@ -141,10 +150,12 @@ public class SurveyDatabaseHelpers {
     public static boolean saveXform(String surveyId, String surveyName, String xformData) {
         try {
             Connection connection = getWriterConnection();
-            Statement statement = connection.createStatement();
-            String sqlQuery = "UPDATE zebrasurvey set survey_name='" + surveyName + "',xform='" + xformData + "' where survey_id='"
-                    + surveyId + "'";
-            statement.executeUpdate(sqlQuery);
+            String query = "UPDATE zebrasurvey set survey_name = ?, xform = ? where survey_id = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, surveyName);
+            statement.setString(2, xformData);
+            statement.setString(3, surveyId);
+            statement.executeUpdate();
             statement.close();
             return true;
         }
@@ -157,11 +168,14 @@ public class SurveyDatabaseHelpers {
     public static boolean saveXform(String surveyId, String xform_data, String surveyName, String creationDate) {
         try {
             Connection connection = getWriterConnection();
-            Statement statement = connection.createStatement();
-            String sqlQuery = "INSERT into zebrasurvey (survey_name,survey_id,created_at,xform) values ('" + surveyName + "','" + surveyId
-                    + "','" + creationDate + "','" + xform_data + "')";
-
-            statement.executeUpdate(sqlQuery);
+            String query = "INSERT into zebrasurvey (survey_name, survey_id, created_at, xform) values (?, ?, ?, ?)";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, surveyName);
+            statement.setString(2, surveyId);
+            java.sql.Date creation = DatabaseHelpers.parseSQLDate(creationDate);
+            statement.setDate(3, creation);
+            statement.setString(4, xform_data);
+            statement.execute();
             statement.close();
             return true;
         }
@@ -174,10 +188,13 @@ public class SurveyDatabaseHelpers {
     public static boolean saveZebraSurveyQuestions(int surveyId, String xform_param_name, String xform_param_var) {
         try {
             Connection connection = getWriterConnection();
-            Statement statement = connection.createStatement();
-            String sqlQuery = "INSERT into zebrasurveyquestions (survey_id,xform_param_name,xform_param_var,xform_param_options) values ("
-                    + surveyId + ",'" + xform_param_name + "','" + xform_param_var + "','')";
-            statement.executeUpdate(sqlQuery);
+            String query = "INSERT into zebrasurveyquestions (survey_id, xform_param_name, xform_param_var, xform_param_options) values (?, ?, ?, ?)";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setInt(1, surveyId);
+            statement.setString(2, xform_param_name);
+            statement.setString(3, xform_param_var);
+            statement.setString(4, "");
+            statement.execute();
             statement.close();
             return true;
         }
@@ -225,11 +242,12 @@ public class SurveyDatabaseHelpers {
     public static boolean updateSurveyQuestion(String xform_param_var, String xform_param_name, int surveyId) {
         try {
             Connection connection = getWriterConnection();
-            Statement statement = connection.createStatement();
-            String sqlQuery = "UPDATE zebrasurveyquestions set xform_param_name='" + xform_param_name + "' where survey_id="
-                    + surveyId + " and xform_param_var='" + xform_param_var + "'";
-            statement.executeUpdate(sqlQuery);
-            statement.close();
+            String query = "UPDATE zebrasurveyquestions set xform_param_name = ? WHERE survey_id = ? AND xform_param_var = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, xform_param_name);
+            statement.setInt(2, surveyId);
+            statement.setString(3, xform_param_var);
+            statement.executeUpdate();
             return true;
         }
         catch (Exception e) {
