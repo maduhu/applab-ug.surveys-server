@@ -107,7 +107,7 @@ public class TestSurveySubmission extends TestCase {
         HashMap<String, SubmissionAnswer> answers = new HashMap<String, SubmissionAnswer>();
         HashMap<String, String> attachments = new HashMap<String, String>();
 
-        String submissionXML = "<new_form1 formKey=\"new_form1\" id=\"2010090056\" name=\"New Form1\"><q1>Owen</q1><q2>25</q2><q3>Here</q3><q4>1 8</q4><q5><q6>David</q6><q7><q9>11</q9><q10>222</q10></q7><q7><q9>1</q9><q10>2</q10></q7></q5><q5><q6>Bob</q6><q7><q9>3</q9><q10>4</q10></q7></q5><q5><q6>Jim</q6><q7><q9>5</q9><q10>6</q10></q7></q5><handset_submit_time>2010-09-23T15:42:27.825</handset_submit_time><location>27486201472</location><survey_id>1</survey_id></new_form1>";
+        String submissionXML = "<new_form1 formKey=\"new_form1\" id=\"2010090056\" name=\"New Form1\"><q1>Owen</q1><q2>25</q2><q3>Here</q3><q4>1 8</q4><q5><q6>David</q6><q7><q9>11</q9><q10>222</q10></q7><q7><q9>1</q9><q10>2</q10></q7></q5><q5><q6>Mr Trewileger</q6><q7><q9>3</q9><q10>4</q10></q7></q5><q5><q6>Jim</q6><q7><q9>5</q9><q10>6</q10></q7></q5><handset_submit_time>2010-09-23T15:42:27.825</handset_submit_time><location>27486201472</location><survey_id>1</survey_id></new_form1>";
         Document xmlDocument = XmlHelpers.parseXml(submissionXML);
 
         answers = ProcessSubmission.parseSurveySubmissionPublic(xmlDocument);

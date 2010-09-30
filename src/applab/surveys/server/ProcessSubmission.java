@@ -140,7 +140,11 @@ public class ProcessSubmission extends ApplabServlet {
         }
         
         // The following permanent fields should not be included in creating a hex string
-        Date handsetSubmissionTime = DatabaseHelpers.parseDate(surveyResponses.remove("handset_submit_time:0").getAnswerText(attachmentReferences));
+        String tempTime = surveyResponses.remove("handset_submit_time:0").getAnswerText(attachmentReferences);
+        String date = tempTime.substring(0, 10);
+        String time = tempTime.substring(11,19);
+        String dateTime = date + " " + time;
+        Date handsetSubmissionTime = DatabaseHelpers.parseDate(dateTime);
         
         // create hex string
         String hashSource = "";
@@ -159,7 +163,7 @@ public class ProcessSubmission extends ApplabServlet {
         // If it's there and we do not have a farmerId, we use that instead
         if (surveyResponses.containsKey("interviewee_name:0")) {
             String legacyIntervieweeName = surveyResponses.remove("interviewee_name:0").getAnswerText(attachmentReferences);
-            if(intervieweeName.isEmpty()) {
+            if(intervieweeName.isEmpty() && legacyIntervieweeName != null) {
                 intervieweeName = legacyIntervieweeName;
             }
         }
@@ -207,8 +211,8 @@ public class ProcessSubmission extends ApplabServlet {
             commandText.append(") values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
             // Create the prepared statement
-            PreparedStatement submissionStatement = connection.prepareStatement(commandText.toString());
-            
+            PreparedStatement submissionStatement = connection.prepareStatement(commandText.toString(), Statement.RETURN_GENERATED_KEYS);
+
             // Add the params to the query
             submissionStatement.setInt(1, backendSurveyId);
             submissionStatement.setTimestamp(2, DatabaseHelpers.getTimestamp(new Date()));
@@ -223,7 +227,7 @@ public class ProcessSubmission extends ApplabServlet {
             submissionStatement.setString(11, intervieweeName);
 
             try {
-                submissionStatement.execute(commandText.toString(), Statement.RETURN_GENERATED_KEYS);
+                submissionStatement.execute();  
             }
             catch (SQLException e) {
                 submissionStatement.close();
