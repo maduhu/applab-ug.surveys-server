@@ -158,6 +158,12 @@ public class ProcessSubmission extends ApplabServlet {
         if (surveyResponses.containsKey("location:0")) {
             location = surveyResponses.remove("location:0").getAnswerText(attachmentReferences);
         }
+        
+        // Dirty hack to get around the problem of old form formats. TODO Remove in 2.10
+        // When every CKW should have downloaded the new form version.
+        if (surveyResponses.containsKey("location:1")) {
+            surveyResponses.remove("location:1").getAnswerText(attachmentReferences);
+        }
 
         // Check if this is a legacy form and the farmerId is within the form.
         // If it's there and we do not have a farmerId, we use that instead
