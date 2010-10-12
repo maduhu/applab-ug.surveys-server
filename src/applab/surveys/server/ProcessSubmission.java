@@ -179,9 +179,7 @@ public class ProcessSubmission extends ApplabServlet {
         }
         
         // extract the permanent fields
-        SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
         CommunityKnowledgeWorker interviewer = CommunityKnowledgeWorker.load(handsetId);
-        salesforceProxy.dispose();
 
         // Lastly, we need to remove the survey id, since we're storing that explicitly already
         surveyResponses.remove("survey_id:0");
