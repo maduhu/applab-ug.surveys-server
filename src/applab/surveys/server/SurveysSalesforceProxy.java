@@ -71,7 +71,7 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
             }
 
             QueryResult query = getBinding().query(
-                    "Select Name, Survey_Name__c from Survey__c where Survey_Status__c = 'Published' and Id in " +
+                    "Select Name, Survey_Name__c from Survey__c where Survey_Status__c = 'Published' and Start_Date__c < TOMORROW and End_Date__c > YESTERDAY and Id in " +
                             "(Select Survey__c from Survey_Group_Association__c where Group__c IN (" + groupIds + "))");
 
             for (int i = 0; i < query.getSize(); i++) {
