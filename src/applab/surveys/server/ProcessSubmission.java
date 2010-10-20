@@ -144,7 +144,7 @@ public class ProcessSubmission extends ApplabServlet {
         String date = tempTime.substring(0, 10);
         String time = tempTime.substring(11,19);
         String dateTime = date + " " + time;
-        Date handsetSubmissionTime = DatabaseHelpers.parseDate(dateTime);
+        Date handsetSubmissionTime = DatabaseHelpers.getJavaDateFromString(dateTime);
         
         // create hex string
         String hashSource = "";

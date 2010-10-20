@@ -18,7 +18,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Date;
 import java.util.Hashtable;
 
 import applab.server.DatabaseHelpers;
@@ -172,7 +171,7 @@ public class SurveyDatabaseHelpers {
             PreparedStatement statement = connection.prepareStatement(query);
             statement.setString(1, surveyName);
             statement.setString(2, surveyId);
-            java.sql.Date creation = DatabaseHelpers.parseSQLDate(creationDate);
+            java.sql.Date creation = DatabaseHelpers.getSqlDateFromString(creationDate, 0);
             statement.setDate(3, creation);
             statement.setString(4, xform_data);
             statement.execute();

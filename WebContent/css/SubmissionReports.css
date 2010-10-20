@@ -1,0 +1,67 @@
+@CHARSET "ISO-8859-1";
+
+div {
+	display: inline;
+	margin:  5px
+}
+
+table {
+	text-align:      center;
+	border-width:    1px;
+	border-style:    solid;
+	border-color:    black;
+	border-collapse: collapse;
+	border-spacing:  0px 0px
+}
+
+table.detailed {
+	width: 100%
+}
+
+th {
+	border-width: 1px;
+	border-style: solid;
+	border-color: black;
+}
+
+table.results {
+	width: 100%;
+}
+
+td {
+	border-width: 1px;
+	border-style: solid;
+	border-color: black;
+	cellpadding:     50px;
+}
+
+div.row {
+	display:       block;
+	margin-top:    10px;
+	margin-bottom: 10px
+}
+
+div.topRow {
+	height: 25px
+}
+
+div.datePic {
+	padding: 7px 0px 2px 0px;
+	margin-top: 5px
+}
+
+div#exportToCsv {
+	float: right 
+}
+
+form#filterSubmissions {
+	text-align: center;
+	border-width: 1px;
+	border-style: solid;
+	border-color: black;
+	padding: 2px
+}
+
+input.dateInput {
+	width: 20
+}

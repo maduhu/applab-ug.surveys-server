@@ -1,14 +1,20 @@
 package applab.surveys.server;
 
-import javax.servlet.http.*;
-
-import applab.server.*;
-
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.*;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import applab.server.ApplabServlet;
+import applab.server.ServletRequestContext;
+import applab.surveys.CustomerCareStatus;
+import applab.surveys.SubmissionStatus;
 
 /**
  * Called by ReviewSubmissions to update the status of survey submissions based on staff review
@@ -17,29 +23,34 @@ import java.util.*;
 public class UpdateSubmissionStatus extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
-    public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, ClassNotFoundException, SQLException {
-        // parse our parameters to get the relevant set of submissions to update
-        Enumeration<?> names = request.getParameterNames();
-        while (names.hasMoreElements()) {
-            // submission updates are encoded in the form of submission[id]=[new status]
-            String parameterName = (String)names.nextElement();
-            String submissionParameterPrefix = "submission";
-            if (parameterName.startsWith(submissionParameterPrefix)) {
-                int submissionId = Integer.parseInt(parameterName.substring(submissionParameterPrefix.length()));
-                String newSurveyStatus = request.getParameter(parameterName);
-                updateSubmissionStatus(submissionId, newSurveyStatus);
-            }
+    public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, ClassNotFoundException, SQLException, ServletException {
+
+        HttpSession session = request.getSession(true);
+        if (session == null) {
+//TODO - Make a generic error page.
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "FAIL!!!");
         }
-        String surveyIdParameter = request.getParameter("surveyid");
-        response.sendRedirect(ApplabConfiguration.getHostUrl() + "getSubmissions?status=none&surveyId=" + surveyIdParameter);
+
+        int submissionId = Integer.valueOf(request.getParameter("submissionId"));
+        SubmissionStatus dataTeamStatus = SubmissionStatus.parseHtmlParameter(request.getParameter("dtStatus"));
+        CustomerCareStatus customerCareStatus = CustomerCareStatus.parseHtmlParameter(request.getParameter("ccStatus"));
+        updateSubmissionStatus(submissionId, dataTeamStatus.getDisplayName(), customerCareStatus.getDisplayName());
+
+        // Redirect to the reviewsubmissionServlet.
+        String url = "/getSubmissions";
+        RequestDispatcher requestDispatcher = request.getRequestDispatcher(url);
+        requestDispatcher.forward(request, response);
+        
     }
 
-    static void updateSubmissionStatus(int submissionId, String surveyStatus) throws ClassNotFoundException, SQLException {
-        Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
-        Statement statement = connection.createStatement();
-        String sqlQuery = "UPDATE zebrasurveysubmissions set survey_status='" + surveyStatus + "' WHERE id=" + submissionId;
-        statement.executeUpdate(sqlQuery);
-        statement.close();
+    static void updateSubmissionStatus(int submissionId, String surveyStatus, String customerCareStatus) throws ClassNotFoundException, SQLException {
+        Connection connection = SurveyDatabaseHelpers.getWriterConnection();
+        String query = "UPDATE zebrasurveysubmissions SET survey_status = ?, customer_care_status = ? WHERE id = ?";
+        PreparedStatement preparedStatement = connection.prepareStatement(query);
+        preparedStatement.setString(1, surveyStatus);
+        preparedStatement.setString(2, customerCareStatus);
+        preparedStatement.setInt(3, submissionId);
+        preparedStatement.executeUpdate();
         connection.close();
     }
 }

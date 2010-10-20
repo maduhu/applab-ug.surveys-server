@@ -21,9 +21,19 @@
     <servlet-class>applab.surveys.server.ReviewSubmissions</servlet-class>
   </servlet>
   <servlet>
+    <description>Used to show the detailed description of a submission</description>
+    <servlet-name>GetDetailedSubmission</servlet-name>
+    <servlet-class>applab.surveys.server.GetDetailedSubmission</servlet-class>
+  </servlet>
+  <servlet>
     <description>Used from the survey validation tool to update the status of survey submissions</description>
     <servlet-name>UpdateSubmissionStatus</servlet-name>
     <servlet-class>applab.surveys.server.UpdateSubmissionStatus</servlet-class>
+  </servlet>
+  <servlet>
+    <description>Allows users to download a document from the server</description>
+    <servlet-name>SurveyDownloadFile</servlet-name>
+    <servlet-class>applab.surveys.server.SurveyDownloadFile</servlet-class>
   </servlet>
   <servlet>
     <description>Fetch Purcforms data from our surveys database for editing</description>
@@ -60,6 +70,14 @@
   <servlet-mapping>
     <servlet-name>ReviewSubmissions</servlet-name>
     <url-pattern>/getSubmissions</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>GetDetailedSubmission</servlet-name>
+    <url-pattern>/getDetailedSubmission</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>SurveyDownloadFile</servlet-name>
+    <url-pattern>/downloadFile</url-pattern>
   </servlet-mapping>
   <servlet-mapping>
     <servlet-name>UpdateSubmissionStatus</servlet-name>

@@ -16,27 +16,33 @@ package applab.surveys;
 public abstract class Answer {
     private Question question;
     private String rawAnswerText;
+    private int instance;
 
-    Answer(Question question, String rawAnswerText) {
+    Answer(Question question, String rawAnswerText, int instance) {
         assert (question != null) : "internal callers must ensure question is non-null";
         assert (rawAnswerText != null) : "internal callers must ensure question is non-null";
         this.question = question;
         this.rawAnswerText = rawAnswerText;
+        this.instance = instance;
     }
 
-    protected Question getParentQuestion() {
+    public Question getParentQuestion() {
         return this.question;
     }
 
     public String getRawAnswerText() {
         return this.rawAnswerText;
     }
+    
+    public int getInstance() {
+        return this.instance;
+    }
 
     // resolves the raw answer into a friendly name that can be used for review
     public abstract String getFriendlyAnswerText();
 
     // create an answer based on the raw answer text and question
-    public static Answer create(Question question, String rawAnswerText) {
+    public static Answer create(Question question, String rawAnswerText, int instance) {
         if (question == null) {
             throw new IllegalArgumentException("question must be non-null");
         }
@@ -47,10 +53,10 @@ public abstract class Answer {
 
         switch (question.getType()) {
             case Input:
-                return new InputAnswer(question, rawAnswerText);
+                return new InputAnswer(question, rawAnswerText, instance);
             case Select:
             case Select1:
-                return new SelectAnswer(question, rawAnswerText);
+                return new SelectAnswer(question, rawAnswerText, instance);
         }
         throw new IllegalArgumentException("Unsupported QuestionType: " + question.getType());
     }
@@ -61,8 +67,8 @@ public abstract class Answer {
      * 
      */
     private static class InputAnswer extends Answer {
-        public InputAnswer(Question question, String rawAnswerText) {
-            super(question, rawAnswerText);
+        public InputAnswer(Question question, String rawAnswerText, int instance) {
+            super(question, rawAnswerText, instance);
         }
 
         // for input questions, the raw answer text is the same as the friendly version
@@ -77,8 +83,8 @@ public abstract class Answer {
     private static class SelectAnswer extends Answer {
         private String friendlyAnswerText;
 
-        public SelectAnswer(Question question, String rawAnswerText) {
-            super(question, rawAnswerText);
+        public SelectAnswer(Question question, String rawAnswerText, int instance) {
+            super(question, rawAnswerText, instance);
         }
 
         @Override
@@ -95,7 +101,7 @@ public abstract class Answer {
                     }
                     String choiceIndex = rawAnswer.substring(startIndex, endIndex);
                     if (startIndex > 0) {
-                        parsedAnswerText.append(", ");
+                        parsedAnswerText.append(" ");
                     }
                     parsedAnswerText.append(this.getParentQuestion().getChoice(choiceIndex));
                     startIndex = endIndex + 1;

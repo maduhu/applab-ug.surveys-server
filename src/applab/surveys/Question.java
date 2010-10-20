@@ -17,11 +17,13 @@ public class Question {
     private String displayValue;
     private HashMap<String, String> choices;
     private QuestionType type;
+    private Integer totalInstances;
 
     public Question(String name, String value) {
         this.name = name;
         this.rawValue = value;
         this.choices = new HashMap<String, String>();
+        this.totalInstances = 0;
 
         // default to input type
         this.type = QuestionType.Input;
@@ -93,7 +95,17 @@ public class Question {
     public String getDisplayValue() {
         return this.displayValue;
     }
-
+    
+    // We can't be certain that the questions were saved correctly (user input error)
+    // So parse the text just in case
+    public String parseDisplayValue() {
+        int index = this.rawValue.indexOf(" - ");
+        if (index == -1) {
+            return this.displayValue;
+        }
+        return this.displayValue.substring(0, index);
+       
+    }
     public String getRawValue() {
         return this.rawValue;
     }
@@ -105,5 +117,13 @@ public class Question {
             choiceValue = "";
         }
         return choiceValue;
+    }
+    
+    public Integer getTotalInstances() {
+        return this.totalInstances;
+    }
+    
+    public void setTotalInstances(Integer newTotal) {
+        this.totalInstances = newTotal;
     }
 }
