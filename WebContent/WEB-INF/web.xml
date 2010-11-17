@@ -91,4 +91,34 @@
     <servlet-name>SaveDesignerForm</servlet-name>
     <url-pattern>/saveXform</url-pattern>
   </servlet-mapping>
+  <servlet>
+    <description></description>
+    <display-name>AgInfoSubscription</display-name>
+    <servlet-name>AgInfoSubscription</servlet-name>
+    <servlet-class>applab.surveys.server.AgInfoSubscription</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>AgInfoSubscription</servlet-name>
+    <url-pattern>/AgInfoSubscription</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <description></description>
+    <display-name>SubscribeAgInfo</display-name>
+    <servlet-name>SubscribeAgInfo</servlet-name>
+    <servlet-class>applab.surveys.server.SubscribeAgInfo</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>SubscribeAgInfo</servlet-name>
+    <url-pattern>/SubscribeAgInfo</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <description></description>
+    <display-name>UnsubscribeAgInfo</display-name>
+    <servlet-name>UnsubscribeAgInfo</servlet-name>
+    <servlet-class>applab.surveys.server.UnsubscribeAgInfo</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>UnsubscribeAgInfo</servlet-name>
+    <url-pattern>/UnsubscribeAgInfo</url-pattern>
+  </servlet-mapping>
 </web-app>

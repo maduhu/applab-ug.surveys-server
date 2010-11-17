@@ -5,11 +5,12 @@
 <% SubmissionStatistics stats = (SubmissionStatistics) session.getAttribute("survey.statistics");
    String moreDetailsUrl = ApplabConfiguration.getHostUrl() + "getDetailedSubmission";
    String filterSubmissionsUrl = ApplabConfiguration.getHostUrl() + "getSubmissions";
-   String exportToCsvUrl = ApplabConfiguration.getHostUrl() + "surveyDownloadFile";
+   String exportToCsvUrl = ApplabConfiguration.getHostUrl() + "downloadFile";
    String startDate = (String) session.getAttribute("survey.startDate");
    String endDate   = (String) session.getAttribute("survey.endDate");
    String status       = (String) session.getAttribute("survey.status");
    String salesforceId = (String) session.getAttribute("survey.salesforceId");
+   Boolean showDraft  =  (Boolean) session.getAttribute("survey.showDraft");
 %>
 <html>
 <head>
@@ -57,6 +58,14 @@
 					<img class="datePic" alt="" src="images/DateSelect.gif" onclick='changeTimeString(1);scwShow(refineSubmissionEndDate, event);return false;'>
 					<button onclick="clearField('refineSubmissionStartDate');clearField('refineSubmissionEndDate');return false;">Clear Dates</button>
 				</div>
+				<div>
+					Show Drafts:
+					<input class="" type="checkbox" name="showDraft"
+					<% if (showDraft) {%>
+						checked="true"
+					<% } %>
+					/>
+				</div>
 				<input type="submit" name="Submit"    value="Refine Search"/>
 			</form>
 			<div id="exportToCsv">
@@ -66,7 +75,7 @@
 						<input type="hidden" name="downloadType" value="Csv"/>
 						<input type="hidden" name="downloadTarget" value="SubmissionCsv"/>
 						<input type="hidden" name="surveyId"  value="<%= stats.getSurvey().getPrimaryKey() %>"/>
-						<input type="hidden" name="surveySalesForceId"  value="<%= stats.getSurvey().getSalesforceId() %>"/>
+						<input type="hidden" name="surveySalesforceId"  value="<%= salesforceId %>"/>
 						<input type="hidden" name="startDate" value="<%= startDate %>"/>
 						<input type="hidden" name="endDate"   value="<%= endDate %>"/>
 						<input type="hidden" name="status"    value="<%= status %>"/>
@@ -137,7 +146,7 @@
 					<form action="<%= moreDetailsUrl %>" method="post">
 						<input type="hidden" name="submissionId" value="<%=submission.getId()%>"/>
 						<input type="hidden" name="surveyId" value="<%=submission.getSurvey().getPrimaryKey()%>"/>
-						<input type="hidden" name="surveySalesForceId" value="<%=submission.getSurvey().getSalesforceId()%>"/>
+						<input type="hidden" name="surveySalesforceId"  value="<%= salesforceId %>"/>
 						<input type="hidden" name="startDate" value="<%= startDate %>"/>
 						<input type="hidden" name="endDate"   value="<%= endDate %>"/>
 						<input type="hidden" name="status"    value="<%= status %>"/>

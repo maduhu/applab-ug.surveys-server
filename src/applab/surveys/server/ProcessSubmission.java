@@ -1,7 +1,7 @@
 package applab.surveys.server;
 
 import java.io.File;
-import java.rmi.RemoteException;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.rpc.ServiceException;
 
 import org.apache.commons.fileupload.FileItem;
@@ -29,6 +30,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.xml.sax.SAXException;
 
 import applab.CommunityKnowledgeWorker;
 import applab.server.ApplabConfiguration;
@@ -38,10 +40,7 @@ import applab.server.HashHelpers;
 import applab.server.ServletRequestContext;
 import applab.server.XmlHelpers;
 import applab.surveys.SubmissionAnswer;
-
-import com.sforce.soap.enterprise.fault.InvalidIdFault;
-import com.sforce.soap.enterprise.fault.LoginFault;
-import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
+import applab.surveys.Survey;
 
 /**
  * Server method that receives a survey submission and inserts the data into our database
@@ -129,13 +128,14 @@ public class ProcessSubmission extends ApplabServlet {
      */
     public static int storeSurveySubmission(HashMap<String, SubmissionAnswer> surveyResponses,
                                             HashMap<String, String> attachmentReferences, String handsetId, long submissionSize, String intervieweeName)
-            throws NoSuchAlgorithmException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ServiceException,
-            ClassNotFoundException, SQLException, ParseException {
+            throws NoSuchAlgorithmException, ServiceException,
+            ClassNotFoundException, SQLException, ParseException, SAXException, IOException, ParserConfigurationException {
 
         // The <name>:0 notation for the key is used here as these are special case answers
         // that cannot be duplicated so will always have the instance number of 0
         int backendSurveyId = Integer.parseInt(surveyResponses.get("survey_id:0").getAnswerText(attachmentReferences));
-        if (!SurveyDatabaseHelpers.verifySurveyID(backendSurveyId)) {
+        String salesforceId = SurveyDatabaseHelpers.verifySurveyID(backendSurveyId);
+        if (salesforceId == null) {
             return HttpServletResponse.SC_NOT_FOUND;
         }
         
@@ -178,21 +178,26 @@ public class ProcessSubmission extends ApplabServlet {
             intervieweeName = intervieweeName.toUpperCase();
         }
         
-        // extract the permanent fields
+        // Extract the permanent fields
         CommunityKnowledgeWorker interviewer = CommunityKnowledgeWorker.load(handsetId);
 
         // Lastly, we need to remove the survey id, since we're storing that explicitly already
         surveyResponses.remove("survey_id:0");
 
+        // Load the survey so we can verify the answer columns against the questions in the Xml.
+        Survey survey = new Survey(salesforceId);
+        survey.loadSurvey(salesforceId, true);
+        
         boolean hasAnswers = false;
         ArrayList<String> answerColumns = new ArrayList<String>();
         for (String answerKey : surveyResponses.keySet()) {
-            // the question name is used as our column names for survey answers
+            
+            // The question binding is used as our column names for survey answers
             SubmissionAnswer answer = surveyResponses.get(answerKey);
             String answerColumn = answer.getQuestionName();
 
-            // verify that these questions have been created
-            if (SurveyDatabaseHelpers.verifySurveyField(answerColumn, backendSurveyId)) {
+            // Verify that these questions have been created
+            if (survey.getBackEndSurveyXml().hasQuestion(answerColumn)) {
                 answerColumns.add(answerKey);
                 hasAnswers = true;
             }
@@ -212,7 +217,8 @@ public class ProcessSubmission extends ApplabServlet {
             commandText.append(", mobile_number");
             commandText.append(", location");
             commandText.append(", interviewee_name");
-            commandText.append(") values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            commandText.append(", is_draft");
+            commandText.append(") values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
             // Create the prepared statement
             PreparedStatement submissionStatement = connection.prepareStatement(commandText.toString(), Statement.RETURN_GENERATED_KEYS);
@@ -229,6 +235,12 @@ public class ProcessSubmission extends ApplabServlet {
             submissionStatement.setString(9, interviewer.getMobileNumber());
             submissionStatement.setString(10, location);
             submissionStatement.setString(11, intervieweeName);
+            if ("Draft".equals(survey.getSurveyStatus().toString())) {
+                submissionStatement.setString(12, "Y");
+            }
+            else {
+                submissionStatement.setString(12, "N");
+            }
 
             try {
                 submissionStatement.execute();  

@@ -18,7 +18,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Hashtable;
+import java.text.ParseException;
 
 import applab.server.DatabaseHelpers;
 import applab.server.DatabaseId;
@@ -51,24 +51,25 @@ public class SurveyDatabaseHelpers {
         return writerConnection;
     }
 
-    public static boolean verifySurveyID(int surveyPrimaryKey) {
+    public static String verifySurveyID(int surveyPrimaryKey) {
         try {
             Connection connection = getReaderConnection();
             Statement statement = connection.createStatement();
-            String sqlQuery = "SELECT id from zebrasurvey where id=" + surveyPrimaryKey;
+            String sqlQuery = "SELECT id, survey_id from zebrasurvey where id=" + surveyPrimaryKey;
             ResultSet resultSet = statement.executeQuery(sqlQuery);
             while (resultSet.next()) {
                 int surveyID = Integer.parseInt(resultSet.getString("id"));
+                String salesforceId = resultSet.getString("survey_id");
                 statement.close();
                 if (surveyID == surveyPrimaryKey) {
-                    return true;
+                    return salesforceId;
                 }
             }
         }
         catch (Exception e) {
             e.printStackTrace();
         }
-        return false;
+        return null;
     }
       
     public static String getSurveyName(String surveyId) {
@@ -125,27 +126,6 @@ public class SurveyDatabaseHelpers {
         }
     }
 
-    public static boolean verifySurveyField(String xform_param_var, int surveyId) {
-        try {
-            Connection connection = getReaderConnection();
-            Statement statement = connection.createStatement();
-            String sqlQuery = "SELECT xform_param_var from zebrasurveyquestions where xform_param_var='" + xform_param_var
-                    + "' and survey_id=" + surveyId;
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            while (resultSet.next()) {
-                String xform_param_var_ = resultSet.getString("xform_param_var");
-                if (xform_param_var_.trim().equals(xform_param_var)) {
-                    statement.close();
-                    return true;
-                }
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
     public static boolean saveXform(String surveyId, String surveyName, String xformData) {
         try {
             Connection connection = getWriterConnection();
@@ -164,7 +144,7 @@ public class SurveyDatabaseHelpers {
         return false;
     }
 
-    public static boolean saveXform(String surveyId, String xform_data, String surveyName, String creationDate) {
+    public static boolean saveXform(String surveyId, String xform_data, String surveyName, String creationDate) throws ClassNotFoundException, SQLException, ParseException {
         try {
             Connection connection = getWriterConnection();
             String query = "INSERT into zebrasurvey (survey_name, survey_id, created_at, xform) values (?, ?, ?, ?)";
@@ -175,115 +155,6 @@ public class SurveyDatabaseHelpers {
             statement.setDate(3, creation);
             statement.setString(4, xform_data);
             statement.execute();
-            statement.close();
-            return true;
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public static boolean saveZebraSurveyQuestions(int surveyId, String xform_param_name, String xform_param_var) {
-        try {
-            Connection connection = getWriterConnection();
-            String query = "INSERT into zebrasurveyquestions (survey_id, xform_param_name, xform_param_var, xform_param_options) values (?, ?, ?, ?)";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setInt(1, surveyId);
-            statement.setString(2, xform_param_name);
-            statement.setString(3, xform_param_var);
-            statement.setString(4, "");
-            statement.execute();
-            statement.close();
-            return true;
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public static boolean deleteSurveyFromSurveyQuestions(int surveyId) {
-        try {
-            Connection connection = getWriterConnection();
-            Statement statement = connection.createStatement();
-            String sqlQuery = "DELETE from zebrasurveyquestions where survey_id=" + surveyId;
-            statement.executeUpdate(sqlQuery);
-            statement.close();
-            return true;
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public static Hashtable<String, String> getZebraSurveyQuestions(int surveyId) {
-        Hashtable<String, String> questions = new Hashtable<String, String>();
-        try {
-            Connection connection = getReaderConnection();
-            Statement statement = connection.createStatement();
-            String sqlQuery = "select xform_param_name,xform_param_var from zebrasurveyquestions where survey_id=" + surveyId;
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            while (resultSet.next()) {
-                String xform_param_var = resultSet.getString("xform_param_var").trim();
-                String xform_param_name = resultSet.getString("xform_param_name").trim();
-                questions.put(xform_param_var, xform_param_name);
-            }
-            statement.close();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return questions;
-    }
-
-    public static boolean updateSurveyQuestion(String xform_param_var, String xform_param_name, int surveyId) {
-        try {
-            Connection connection = getWriterConnection();
-            String query = "UPDATE zebrasurveyquestions set xform_param_name = ? WHERE survey_id = ? AND xform_param_var = ?";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setString(1, xform_param_name);
-            statement.setInt(2, surveyId);
-            statement.setString(3, xform_param_var);
-            statement.executeUpdate();
-            return true;
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public static boolean surveyQuestionHasSubmissions(int surveyId, String parameter) {
-        try {
-            Connection connection = getReaderConnection();
-            Statement statement = connection.createStatement();
-            String sqlQuery = "SELECT " + parameter + " from zebrasurveysubmissions where survey_id=" + surveyId;
-            ResultSet resultSet = statement.executeQuery(sqlQuery);
-            try {
-                while (resultSet.next()) {
-                    if (resultSet.getString(parameter) != "null") {
-                        return true;
-                    }
-                }
-            }
-            finally {
-                statement.close();
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    public static boolean deleteSurveyQuestion(int surveyId, String parameter) {
-        try {
-            Connection connection = getWriterConnection();
-            Statement statement = connection.createStatement();
-            String sqlQuery = "DELETE from zebrasurveyquestions where xform_param_var='" + parameter + "' and survey_id=" + surveyId;
-            statement.executeUpdate(sqlQuery);
             statement.close();
             return true;
         }

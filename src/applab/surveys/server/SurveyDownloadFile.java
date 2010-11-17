@@ -1,12 +1,9 @@
 package applab.surveys.server;
 
 import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringReader;
 import java.sql.SQLException;
 import java.text.ParseException;
 
@@ -14,7 +11,10 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.rpc.ServiceException;
+
+import org.xml.sax.SAXException;
 
 import applab.server.ApplabServlet;
 import applab.server.DatabaseHelpers;
@@ -28,7 +28,7 @@ public class SurveyDownloadFile extends ApplabServlet {
 
     @Override
     public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws ClassNotFoundException, SQLException,
-            IOException, ServiceException, ParseException, ServletException {
+            IOException, ServiceException, ParseException, ServletException, SAXException, ParserConfigurationException {
        
         DownloadType downloadType = DownloadType.valueOf(request.getParameter("downloadType"));
         DownloadTarget downloadTarget = DownloadTarget.valueOf(request.getParameter("downloadTarget"));
@@ -49,7 +49,7 @@ public class SurveyDownloadFile extends ApplabServlet {
             case SubmissionCsv:
 
                 // Extract the request data
-                String salesforceSurveyId = request.getParameter("surveySalesForceId");
+                String salesforceSurveyId = request.getParameter("surveySalesforceId");
 
                 // Extract the optional parameters
                 java.sql.Date startDate = null;
@@ -57,6 +57,10 @@ public class SurveyDownloadFile extends ApplabServlet {
                 String startDateDescription = "NoStartDate";
                 String endDateDescription = "NoEndDate";
                 String statusDescription = "NoStatus";
+                boolean showDraft = false;
+                if ("on".equals(request.getParameter("showDraft"))) {
+                    showDraft = true;
+                }
                 try {
                     startDate =  DatabaseHelpers.getSqlDateFromString(request.getParameter("startDate"), 0);
                     startDateDescription = startDate.toString();
@@ -99,7 +103,7 @@ public class SurveyDownloadFile extends ApplabServlet {
                 else {
 
                     // We have some statistics so lets load the submission
-                    statistics.getSurvey().load(status, startDate, endDate, false);
+                    statistics.getSurvey().loadSubmissions(status, startDate, endDate, false, salesforceSurveyId, showDraft);
                     outputString = statistics.getSurvey().generateCsv();
                     fileDownloadName = "SubmissionCSV-" + startDateDescription + "-" + endDateDescription + "-" + statusDescription + ".csv";
                 }

@@ -18,7 +18,6 @@ import java.util.ArrayList;
 
 import javax.xml.rpc.ServiceException;
 
-import applab.Farmer;
 import applab.surveys.*;
 
 import com.sforce.soap.enterprise.*;

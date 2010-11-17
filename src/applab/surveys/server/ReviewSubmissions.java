@@ -10,7 +10,10 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.rpc.ServiceException;
+
+import org.xml.sax.SAXException;
 
 import applab.server.ApplabServlet;
 import applab.server.DatabaseHelpers;
@@ -28,18 +31,18 @@ public class ReviewSubmissions extends ApplabServlet {
 
     @Override
     public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws ClassNotFoundException, SQLException,
-            IOException, ServiceException, ParseException, ServletException {
+            IOException, ServiceException, ParseException, ServletException, SAXException, ParserConfigurationException {
         getSubmissions(request, response, context);
     }
     
     @Override
     public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws ClassNotFoundException, SQLException,
-            IOException, ServiceException, ParseException, ServletException {
+            IOException, ServiceException, ParseException, ServletException, SAXException, ParserConfigurationException {
         getSubmissions(request, response, context);
     }
     
     private void getSubmissions(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws ClassNotFoundException, SQLException,
-            IOException, ServiceException, ParseException, ServletException {
+            IOException, ServiceException, ParseException, ServletException, SAXException, ParserConfigurationException {
 
         // Can create the session here as it is the access point of the session (No login at the moment)
         HttpSession session = request.getSession(true);
@@ -51,6 +54,11 @@ public class ReviewSubmissions extends ApplabServlet {
 
             // Extract the request data
             String salesforceSurveyId = request.getParameter("surveyId");
+
+            boolean showDraft = false;
+            if ("on".equals(request.getParameter("showDraft"))) {
+                showDraft = true;
+            }
             
             // Extract the optional parameters
             java.sql.Date startDate = null;
@@ -88,7 +96,7 @@ public class ReviewSubmissions extends ApplabServlet {
         
                 // We have some statistics so lets load the submission
                 statusFilter = SubmissionStatus.parseHtmlParameter(statusParameter);
-                statistics.getSurvey().load(statusFilter, startDate, endDate, true);
+                statistics.getSurvey().loadSubmissions(statusFilter, startDate, endDate, true, salesforceSurveyId, showDraft);
 
                 // Bind the submission object
                 session.setAttribute("survey.statistics", statistics);
@@ -114,6 +122,8 @@ public class ReviewSubmissions extends ApplabServlet {
             else {
                session.setAttribute("survey.status", "none");
             }
+            
+            session.setAttribute("survey.showDraft", showDraft);
                 
             // Play the jsp page to display the details
             String url = "/jsp/ReviewSubmissions.jsp";

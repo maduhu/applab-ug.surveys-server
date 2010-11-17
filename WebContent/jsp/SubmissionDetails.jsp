@@ -10,6 +10,7 @@
    String startDate = (String) session.getAttribute("survey.startDate");
    String endDate   = (String) session.getAttribute("survey.endDate");
    String status    = (String) session.getAttribute("survey.status");
+   String showDraft = (String) session.getAttribute("survey.showDraft");
 %>
 <html>
 	<head>
@@ -23,6 +24,7 @@
 			<input type="hidden" name="startDate" value="<%=startDate %>"/>
 			<input type="hidden" name="endDate" value="<%=endDate %>"/>
 			<input type="hidden" name="status" value="<%=status %>"/>
+			<input type="hidden" name="showDraft" value="<%=showDraft %>"/>
 			<input type="submit" name="submit" value="Go Back To Submissions"/>		
 		</form>
 	</div>
@@ -73,7 +75,7 @@
 				%>
 					<td>
 						<%
-						    String displayName = answer.getParentQuestion().parseDisplayValue();
+						    String displayName = survey.getBackEndSurveyXml().getXlation("en", answer.getParentQuestion());
 							if (answer.getInstance() > 0) {
 							    int showInstance = answer.getInstance() + 1;
 							    displayName = displayName + ", " + showInstance;
@@ -82,7 +84,7 @@
 						<%= displayName %>
 					</td>
 					<td>
-						<%=answer.getFriendlyAnswerText() %>
+						<%=answer.getFriendlyAnswerText(false, survey) %>
 					</td>
 				<%		    
 					}

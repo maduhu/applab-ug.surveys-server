@@ -39,7 +39,7 @@ public abstract class Answer {
     }
 
     // resolves the raw answer into a friendly name that can be used for review
-    public abstract String getFriendlyAnswerText();
+    public abstract String getFriendlyAnswerText(boolean isCsv, Survey survey);
 
     // create an answer based on the raw answer text and question
     public static Answer create(Question question, String rawAnswerText, int instance) {
@@ -53,6 +53,7 @@ public abstract class Answer {
 
         switch (question.getType()) {
             case Input:
+            case Repeat:
                 return new InputAnswer(question, rawAnswerText, instance);
             case Select:
             case Select1:
@@ -73,7 +74,7 @@ public abstract class Answer {
 
         // for input questions, the raw answer text is the same as the friendly version
         @Override
-        public String getFriendlyAnswerText() {
+        public String getFriendlyAnswerText(boolean isCsv, Survey survey) {
             return this.getRawAnswerText();
         }
     }
@@ -88,9 +89,12 @@ public abstract class Answer {
         }
 
         @Override
-        public String getFriendlyAnswerText() {
+        // isCsv is because the customer care team and the data collection team want the display
+        // slightly different.
+        public String getFriendlyAnswerText(boolean isCsv, Survey survey) {
             if (this.friendlyAnswerText == null) {
-                // the rawAnswerText will contain a space-delimited list of numbers (e.g. "1 3")
+
+                // The rawAnswerText will contain a space-delimited list of numbers (e.g. "1 3")
                 StringBuilder parsedAnswerText = new StringBuilder();
                 int startIndex = 0;
                 String rawAnswer = getRawAnswerText();
@@ -100,10 +104,17 @@ public abstract class Answer {
                         endIndex = rawAnswer.length();
                     }
                     String choiceIndex = rawAnswer.substring(startIndex, endIndex);
-                    if (startIndex > 0) {
-                        parsedAnswerText.append(" ");
+                    parsedAnswerText.append(" ");
+                    if (isCsv) {
+                        parsedAnswerText.append(choiceIndex);
                     }
-                    parsedAnswerText.append(this.getParentQuestion().getChoice(choiceIndex));
+                    else {
+
+                        // May need to xlate the answer
+                        String answer = survey.getBackEndSurveyXml().getXlation("en", this.getParentQuestion().getChoice(choiceIndex)); 
+                        parsedAnswerText.append(answer);
+                    }
+                    parsedAnswerText.append(" ");
                     startIndex = endIndex + 1;
                 }
                 this.friendlyAnswerText = parsedAnswerText.toString();

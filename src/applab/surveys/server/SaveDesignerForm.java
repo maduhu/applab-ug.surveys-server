@@ -13,17 +13,16 @@
 
 package applab.surveys.server;
 
-import javax.servlet.http.*;
-import javax.xml.parsers.ParserConfigurationException;
+import java.io.BufferedReader;
+import java.util.Date;
 
-import org.w3c.dom.*;
-import org.xml.sax.SAXException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-import applab.server.*;
-
-import java.io.*;
-import java.util.*;
-import java.util.Map.Entry;
+import applab.server.ApplabServlet;
+import applab.server.DatabaseHelpers;
+import applab.server.ServletRequestContext;
+import applab.surveys.Survey;
 
 /**
  * Called from our survey designer to save an x-form (http://www.w3.org/TR/xforms/) into
@@ -40,7 +39,7 @@ public class SaveDesignerForm extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
-        String survey_id = request.getParameter("formId");
+        String survey_id = request.getParameter("surveyId");
 
         BufferedReader reader = request.getReader();
         StringBuilder sb = new StringBuilder();
@@ -49,215 +48,26 @@ public class SaveDesignerForm extends ApplabServlet {
             sb.append(line + "\n");
         }
         reader.close();
+        log(sb.toString());
         String xform_data1 = sb.toString();
         String xform_data = xform_data1.replaceAll("\'", "\\'");
 
-        SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
-        // get the survey name
-        try {
-            String surveyName = salesforceProxy.getSurveyName(survey_id);
-            // check if id exists in zebrasurvey
-            String databaseId = SurveyDatabaseHelpers.getZebraSurveyId(survey_id);
-            if (databaseId != null) {
-                SurveyDatabaseHelpers.saveXform(survey_id, surveyName, xform_data);
-                // on saving check with zebrasurveyquestions
-                // configuration.DbConnect.deleteSurveyFromSurveyQuestions(zebra_survey_id);
-                this.createSurveyQuestions(Integer.parseInt(databaseId), xform_data);
-            }
-            else if (salesforceProxy.surveyIdExists(survey_id)) {
-                SurveyDatabaseHelpers.saveXform(survey_id, xform_data, surveyName, DatabaseHelpers.formatDateTime(new Date()));
-                // on saving
-                int zebra_survey_id = Integer.parseInt(SurveyDatabaseHelpers.getZebraSurveyId(survey_id));
-                this.createSurveyQuestions(zebra_survey_id, xform_data);
+        // Load the survey from salesforce
+        Survey survey = new Survey(survey_id);
+        survey.loadSurvey(survey_id, false);
+
+        // If the survey does not exist in the backend then save it as a new survey
+        if (!survey.existsInDb()) {
+            if (!SurveyDatabaseHelpers.saveXform(survey_id, xform_data, survey.getName(), DatabaseHelpers.formatDateTime(new Date()))) {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to save to the database");
             }
         }
-        finally {
-            salesforceProxy.dispose();
-        }
-    }
+        else {
 
-    /**
-     * All xforms elements have a comment schema for identifying their "name" (parent location for the content).
-     */    
-    private String getFormElementName(Element formElement) {
-        // bind attributes take top priority if they exist 
-        String xformName = formElement.getAttribute("bind");
-        
-        // otherwise look for a ref parameter
-        if (xformName == null || xformName.length() == 0) {
-            xformName = formElement.getAttribute("ref");
-        }
-        
-        return xformName;
-    }
-    
-    /**
-     * parse an x-forms group. Groups may have a label, a ref, both, or neither.
-     */
-    private void parseXformsGroup(Element groupElement, HashMap<String, String> parsedQuestions) {
-        for (Node childNode = groupElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
-            if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                // Purcforms input tag
-                if ("xf:input".equals(childNode.getNodeName())) {
-                    parseXformsInput((Element)childNode, parsedQuestions);
-                }
-                else if ("xf:select".equals(childNode.getNodeName()) || "xf:select1".equals(childNode.getNodeName())) {
-                    parseXformsSelect((Element)childNode, parsedQuestions);
-                }
-                else if ("xf:group".equals(childNode.getNodeName())) {
-                    parseXformsSubgroup((Element)childNode, parsedQuestions);
-                }
+            // All the checks to stop the wrong status being saved are in the form designer so just save the form
+            if (!SurveyDatabaseHelpers.saveXform(survey_id, survey.getName(), xform_data)) {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to update to the database");
             }
         }
-    }
-
-    /**
-     * parse an x-forms group. Groups may have a label, a ref, both, or neither.
-     * 
-     * It can also contain <repeat> tags. A <repeat> is given the same visual hints in the UI as a <group>. 
-     * 
-     * The caption used for the banner header is taken from the <repeat>'s <label> (<group><label>xx</label><repeat>...</repeat></group>)
-     * 
-     *  <group>s and <repeat>s may be nested within each other arbitrarily deep. 
-     */
-    private void parseXformsSubgroup(Element groupElement, HashMap<String, String> parsedQuestions) {
-        String parameter = groupElement.getAttribute("id");
-        String question = "";
-        for (Node childNode = groupElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
-            if (childNode.getNodeType() != Node.ELEMENT_NODE) {
-                continue; // only care about element nodes
-            }
-
-            if ("xf:label".equals(childNode.getNodeName())) {
-                question = getCharacterDataFromElement((Element)childNode);
-                parsedQuestions.put(parameter, question);
-            }
-            else if ("xf:repeat".equals(childNode.getNodeName())) {
-                for (Node repeatChild = childNode.getFirstChild(); repeatChild != null; repeatChild = repeatChild.getNextSibling()) {
-                    if ("xf:input".equals(repeatChild.getNodeName())) {
-                        parseXformsInput((Element)repeatChild, parsedQuestions);
-                    }
-                    else if ("xf:select".equals(repeatChild.getNodeName()) || "xf:select1".equals(repeatChild.getNodeName())) {
-                        parseXformsSelect((Element)repeatChild, parsedQuestions);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Parse an xforms input (x:input) tag, which is used for free-entry questions, such as text, numbers, and dates. 
-     * 
-     * Format is like: <input ref="name"><label>What is your name?</label></input>
-     */
-    private void parseXformsInput(Element inputElement, HashMap<String, String> parsedQuestions) {
-        String questionName = getFormElementName(inputElement);
-        String questionValue = "";
-        for (Node childNode = inputElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
-            if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                if ("xf:label".equals(childNode.getNodeName())) {
-                    questionValue = getCharacterDataFromElement((Element)childNode);
-                }
-            }
-        }
-        parsedQuestions.put(questionName, questionValue);
-    }
-
-    /**
-     * Parse an xforms select (x:select) tag, which is used for multiple-choice questions, either with
-     * only one choice (xf:select1) or multiple choices (xf:select). 
-     * 
-     * Format is like: <select ref="symptoms"><label>What are your symptoms?</label><item><label/><value/></item>...</select>
-     * 
-     * @param isTopLevel Used to distinguish between top-level input or repeat group input
-     */
-    private void parseXformsSelect(Element selectElement, HashMap<String, String> parsedQuestions) {
-        String parameter = getFormElementName(selectElement);
-        String question = "";
-        String values = "";
-
-        for (Node childNode = selectElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
-            if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                if ("xf:label".equals(childNode.getNodeName())) {
-                    question = getCharacterDataFromElement((Element)childNode);
-                }
-                else if ("xf:item".equals(childNode.getNodeName())) {
-                    // items are of the form <item><label>Choice Label</label><value>Choice value</value></item>
-                    Element itemElement = (Element)childNode;
-                    String value = itemElement.getAttribute("id");
-
-                    String option = "";
-                    for (Node itemChild = itemElement.getFirstChild(); itemChild != null; itemChild = itemChild.getNextSibling()) {
-                        if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                            if ("xf:label".equals(childNode.getNodeName())) {
-                                option = getCharacterDataFromElement((Element)childNode);
-                            }
-                            else if ("xf:value".equals(childNode.getNodeName())) {
-                                value = getCharacterDataFromElement((Element)childNode);
-                            }
-                        }
-                    }
-
-                    values += option + ":" + value + ";";
-                }
-            }
-        }
-
-        parsedQuestions.put(parameter, question + " - " + values);
-    }
-
-    private void createSurveyQuestions(int backendSurveyId, String xformData) throws SAXException, IOException,
-            ParserConfigurationException {
-        // check if survey exists in zebra
-        Hashtable<String, String> backendQuestions = SurveyDatabaseHelpers.getZebraSurveyQuestions(backendSurveyId);
-        HashMap<String, String> parsedQuestions = new HashMap<String, String>();
-
-        // first parse the x-form
-        Document xmlDocument = XmlHelpers.parseXml(xformData);
-        xmlDocument.normalizeDocument();
-        Element rootNode = xmlDocument.getDocumentElement();
-        for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
-            if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                // Purcforms group tag
-                if ("xf:group".equals(childNode.getNodeName())) {
-                    parseXformsGroup((Element)childNode, parsedQuestions);
-                }
-            }
-        }
-
-        // then check for deleted questions
-        for (String key : backendQuestions.keySet()) {
-            if (!parsedQuestions.containsKey(key)) {
-                // this parameter was deleted during the design
-                //if (!SurveyDatabaseHelpers.surveyQuestionHasSubmissions(backendSurveyId, key)) {
-                    SurveyDatabaseHelpers.deleteSurveyQuestion(backendSurveyId, key);
-                //}
-            }
-        }
-
-        // and finally deal with add/update of questions
-        for (Entry<String, String> question : parsedQuestions.entrySet()) {
-            if (SurveyDatabaseHelpers.verifySurveyField(question.getKey(), backendSurveyId)) {
-                //if (!SurveyDatabaseHelpers.surveyQuestionHasSubmissions(backendSurveyId, question.getKey())) {
-                    // compare the question values
-                  //  if (!question.getValue().equals(backendQuestions.get(question.getKey()))) {
-                        // update the question only
-                        SurveyDatabaseHelpers.updateSurveyQuestion(question.getKey(), question.getValue(), backendSurveyId);
-                    //}
-                //}
-            }
-            else {
-                // does not exist.
-                SurveyDatabaseHelpers.saveZebraSurveyQuestions(backendSurveyId, question.getValue(), question.getKey());
-            }
-        }
-    }
-
-    public String getCharacterDataFromElement(Element element) {
-        Node child = element.getFirstChild();
-        if (child instanceof CharacterData) {
-            return ((CharacterData)child).getData();
-        }
-        return "?";
     }
 }

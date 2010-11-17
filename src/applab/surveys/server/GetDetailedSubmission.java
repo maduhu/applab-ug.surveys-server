@@ -14,7 +14,10 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.rpc.ServiceException;
+
+import org.xml.sax.SAXException;
 
 import applab.server.ApplabServlet;
 import applab.server.DatabaseHelpers;
@@ -32,7 +35,7 @@ public class GetDetailedSubmission extends ApplabServlet {
 
     @Override
     public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws ClassNotFoundException, SQLException,
-            IOException, ServiceException, ParseException, ServletException {
+            IOException, ServiceException, ParseException, ServletException, SAXException, ParserConfigurationException {
 
         // At the moment we are not really using the session except to pass objects to the jsp
         // as we are already logged in via salesforce. This isn't massively secure and needs
@@ -48,10 +51,11 @@ public class GetDetailedSubmission extends ApplabServlet {
         String startDate = request.getParameter("startDate");
         String endDate = request.getParameter("endDate");
         String status = request.getParameter("status");
+        String showDraft = request.getParameter("showDraft");
 
         // Load the survey
-        int surveyIdParameter = Integer.parseInt(surveyId);
-        Survey survey = new Survey(surveyIdParameter);
+        Survey survey = new Survey(surveySalesforceId);
+        survey.loadSurvey(surveySalesforceId, true);
 
         // Get the submission details
         ResultSet submissionData = getDetailedSubmissionData(Integer.valueOf(submissionId));
@@ -72,6 +76,7 @@ public class GetDetailedSubmission extends ApplabServlet {
             session.setAttribute("survey.startDate", startDate);
             session.setAttribute("survey.endDate", endDate);
             session.setAttribute("survey.status", status);
+            session.setAttribute("survey.showDraft", showDraft);
 
             // Play the jsp page to display the details
             String url = "/jsp/SubmissionDetails.jsp";
@@ -119,15 +124,13 @@ public class GetDetailedSubmission extends ApplabServlet {
         return query.executeQuery();
     }
     
-    private Submission createSubmission(ResultSet resultSet, Survey survey) throws SQLException, ClassNotFoundException {
+    private Submission createSubmission(ResultSet resultSet, Survey survey)
+            throws SQLException, ClassNotFoundException, SAXException, IOException, ParserConfigurationException {
 
         // Get the questions from the survey
-        HashMap<String, Question> questions = survey.getQuestions();
+        HashMap<String, Question> questions = survey.getBackEndSurveyXml().getQuestions();
         Submission submission = new Submission(survey);
 
-        // Go to the first row of the result set to
-        // get the meta-data out that is in each row of the result set.
-        resultSet.next();
         submission.setHandsetSubmissionTime(resultSet.getDate("handsetTime"));
         submission.setServerSubmissionTime(resultSet.getDate("surveyTime"));
         submission.setInterviewerName(resultSet.getString("interviewerName"));

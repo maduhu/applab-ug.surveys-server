@@ -1,7 +1,5 @@
 package applab.surveys;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.rmi.RemoteException;
 import java.sql.Connection;
@@ -12,21 +10,26 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.rpc.ServiceException;
+
+import org.xml.sax.SAXException;
 
 import applab.server.DatabaseHelpers;
 import applab.server.DatabaseId;
 import applab.server.DatabaseTable;
-import applab.server.FileHelpers;
+import applab.server.SalesforceProxy;
 import applab.server.SelectCommand;
 import applab.surveys.server.SurveysSalesforceProxy;
 
+import com.sforce.soap.enterprise.QueryResult;
+import com.sforce.soap.enterprise.SoapBindingStub;
 import com.sforce.soap.enterprise.fault.InvalidIdFault;
 import com.sforce.soap.enterprise.fault.LoginFault;
 import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
+import com.sforce.soap.enterprise.sobject.Survey__c;
 
 public class Survey {
     private int primaryKey;
@@ -36,9 +39,16 @@ public class Survey {
 
     private String name;
 
-    private ArrayList<String> questionOrder;
-    private HashMap<String, Question> questions;
-
+    // This variable stores the xml that is taken from the backend database.
+    private ParsedSurveyXml backendSurveyXml;
+    
+    private boolean existsInDb = false;
+    
+    // Stores the xml that is passed in from SaveDesignerForm.
+    private ParsedSurveyXml salesforceSurveyXml;
+    
+    private SurveyStatus surveyStatus;
+    
     private SubmissionStatus cachedSubmissionFilter;
     private ArrayList<Integer> submissionOrder;
     private HashMap<Integer, Submission> cachedSubmissions;
@@ -88,12 +98,24 @@ public class Survey {
 
         return this.name;
     }
-
-    public HashMap<String, Question> getQuestions() throws ClassNotFoundException, SQLException {
-        if (this.questions == null) {
-            this.questions = loadQuestions(getPrimaryKey());
-        }
-        return this.questions;
+    
+    public ParsedSurveyXml getBackEndSurveyXml() {
+        return this.backendSurveyXml;
+    }
+    public ParsedSurveyXml getSFXml() {
+        return this.salesforceSurveyXml;
+    }
+    
+    public boolean existsInDb() {
+        return this.existsInDb;
+    }
+    
+    public void setSurveyStatus(String status) {
+        this.surveyStatus = SurveyStatus.parseSalesforceName(status);
+    }
+    
+    public SurveyStatus getSurveyStatus() {
+        return this.surveyStatus;
     }
 
     public ArrayList<Integer> getSubmissionOrder () {
@@ -104,34 +126,29 @@ public class Survey {
         this.submissionOrder = submissionOrder;
     }
 
-    public ArrayList<String> getQuestionOrder() {
-        return this.questionOrder;
-    }
-
-    public void setQuestionOrder(ArrayList<String> questionOrder) {
-        this.questionOrder = questionOrder;
-    }
-    
     /**
      * Forcibly clear our cache of submissions and reload from the database
      */
-    public HashMap<Integer,Submission> refreshSubmissions() throws ClassNotFoundException, SQLException, ParseException {
+    public HashMap<Integer,Submission> refreshSubmissions()
+            throws ClassNotFoundException, SQLException, ParseException, SAXException, IOException, ParserConfigurationException {
         this.cachedSubmissions = null;
         return this.getSubmissions();
     }
 
-    public HashMap<Integer,Submission> getSubmissions() throws ClassNotFoundException, SQLException, ParseException {
-        return getSubmissions(null, null, null, true);
+    public HashMap<Integer,Submission> getSubmissions()
+            throws ClassNotFoundException, SQLException, ParseException, SAXException, IOException, ParserConfigurationException {
+        return getSubmissions(null, null, null, true, false);
     }
 
-    public HashMap<Integer,Submission> getSubmissions(SubmissionStatus submissionFilter, java.sql.Date startDate, java.sql.Date endDate, boolean basic) throws ClassNotFoundException, SQLException, ParseException {
+    public HashMap<Integer,Submission> getSubmissions(SubmissionStatus submissionFilter, java.sql.Date startDate, java.sql.Date endDate, boolean basic, boolean showDraft)
+            throws ClassNotFoundException, SQLException, ParseException, SAXException, IOException, ParserConfigurationException {
         if (submissionFilter != this.cachedSubmissionFilter) {
             this.cachedSubmissions = null;
             this.cachedSubmissionFilter = submissionFilter;
         }
 
         if (this.cachedSubmissions == null) {
-            this.cachedSubmissions = loadSubmissions(submissionFilter, startDate, endDate, basic);
+            this.cachedSubmissions = loadSubmissions(submissionFilter, startDate, endDate, basic, showDraft);
         }
         return this.cachedSubmissions;
     }
@@ -155,13 +172,15 @@ public class Survey {
      * 
      * @param basic - if true only load the basic details. Doesn't join to the answers table.
      */
-    public void load(SubmissionStatus submissionStatus, java.sql.Date startDate, java.sql.Date endDate, boolean basic) throws ClassNotFoundException, SQLException, ParseException {
+    public void loadSubmissions(SubmissionStatus submissionStatus, java.sql.Date startDate, java.sql.Date endDate, boolean basic, String salesforceId, boolean showDraft) 
+            throws ClassNotFoundException, SQLException, ParseException, SAXException, IOException, ParserConfigurationException, ServiceException {
 
         if (!basic) {
-            this.getQuestions();
+            this.loadSurvey(salesforceId, true);
+            this.parseBackEndXml();
         }
         
-        this.getSubmissions(submissionStatus, startDate, endDate, basic);
+        this.getSubmissions(submissionStatus, startDate, endDate, basic, showDraft);
     }
 
     /**
@@ -169,7 +188,7 @@ public class Survey {
      * 
      * @return - a string of the csv.
      */
-    public String generateCsv() throws IOException {
+    public String generateCsv() throws IOException, SAXException, ParserConfigurationException {
 
         // This has the capability to write to file but for the moment that is too much
         // So I will comment this out for the moment
@@ -196,17 +215,24 @@ public class Survey {
         writer.append("Customer Care Review,");
         writer.append("Data Team Review,");
         
-        // Extract and save the question names
-        for (String questionName : this.questionOrder) {
-            Question question = this.questions.get(questionName);
-
+        // Extract and save the question bindings as these are used by the DC team
+        for (String questionBinding : this.backendSurveyXml.getQuestionOrder()) {
+            Question question = this.backendSurveyXml.getQuestions().get(questionBinding);
+            
             for (int i = 1; i <= question.getTotalInstances(); i++) {
-                String questionDisplayName = questionName;
+                String questionDisplayName = questionBinding;
                 if (question.getTotalInstances() > 1) {
                     questionDisplayName = questionDisplayName + "_" + i;
                 }
 
-                writer.append(questionDisplayName + ",");
+                if ("Select".equals(question.getType().toString())) {
+                    for (int j = 1; j <= question.getNumberOfSelects(); j++) {
+                        writer.append(questionDisplayName + "_" + j + ",");
+                    }
+                }
+                else {
+                    writer.append(questionDisplayName + ",");
+                }
             }
         }
         writer.append('\n');
@@ -224,19 +250,39 @@ public class Survey {
             writer.append(submission.getInterviewerName() +',');
             writer.append(submission.getCustomerCareStatus().toString() +',');
             writer.append(submission.getStatus().toString() +',');
-            for (String questionName : this.questionOrder) {
-                Question question = this.questions.get(questionName);
+            for (String questionName : this.backendSurveyXml.getQuestionOrder()) {
+                Question question = this.backendSurveyXml.getQuestions().get(questionName);
                 for (int i = 1; i <= question.getTotalInstances(); i++) {
                     String answerKey = questionName + "_" + i;
                     String answerText = "";
                     Answer answer = submission.getAnswers().get(answerKey);
-                    if (answer == null || answer.getFriendlyAnswerText() == null || answer.getFriendlyAnswerText().length() == 0){
-                        answerText = "[No Answer]";
+                    
+                    if ("Select".equals(question.getType().toString())) {
+                        boolean hasAnswerText = true;
+                        if (answer == null || answer.getFriendlyAnswerText(true, this) == null || answer.getFriendlyAnswerText(true, this).length() == 0) {
+                            hasAnswerText = false;
+                        }
+                        for (int j = 1; j <= question.getNumberOfSelects(); j++) {
+                            if (!hasAnswerText) {
+                                writer.append("[No Answer],");
+                             }
+                             else if (answer.getFriendlyAnswerText(true, this).contains(" " + j + " ")){
+                                 writer.append(String.valueOf(j) + ",");
+                             }
+                             else {
+                                 writer.append(",");
+                             }
+                        }
                     }
                     else {
-                        answerText = answer.getFriendlyAnswerText();
+                        if (answer == null || answer.getFriendlyAnswerText(true, this) == null || answer.getFriendlyAnswerText(true, this).length() == 0){
+                            answerText = "[No Answer]";
+                         }
+                         else {
+                             answerText = answer.getFriendlyAnswerText(true, this);
+                         }
+                         writer.append(answerText + ',');
                     }
-                    writer.append(answerText + ',');
                 }
             }
             writer.append('\n');
@@ -246,6 +292,138 @@ public class Survey {
         //writer.close();
         //return fileName;
         return writer.toString();
+    }
+
+    /**
+     * Load the details of a survey that are stored in the salesforce cloud
+     * 
+     * @param salesforceId - The surveys id that is stored in salesforce
+     * @return - boolean indicating success
+     */
+    public boolean loadSurvey(String salesforceId, boolean getFromSalesforce) 
+            throws SQLException, ClassNotFoundException, ServiceException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException {
+
+        // TODO - use object caching to check for the survey already loaded.
+
+        this.existsInDb = false;
+        if (getFromSalesforce) {
+            SoapBindingStub binding = SalesforceProxy.createBinding();
+            StringBuilder commandText = new StringBuilder();
+            commandText.append("SELECT Name, Survey_Status__c");
+            commandText.append(" FROM Survey__c");
+            commandText.append(" WHERE Name = '");
+            commandText.append(salesforceId);
+            commandText.append("'");
+            QueryResult query = binding.query(commandText.toString());
+            if (query.getSize() > 1) {
+                throw new RemoteException("We should have at most 1 survey with Name " + salesforceId + ", but we found " + query.getSize());
+            } else if (query.getSize() == 0) {
+
+                // Survey doesn't exist. Should not really happen as to get to this code the survey needs to be in salesforce already
+                return false;
+            }
+            Survey__c salesforceSurvey = (Survey__c)query.getRecords(0);
+            this.setSurveyStatus(salesforceSurvey.getSurvey_Status__c());
+        }
+        this.loadSurveyFromDatabase();
+        return true;
+    }
+
+    /**
+     * Load external xml submitted from salesforce
+     * 
+     * @param xml
+     */
+    public void loadSalesforceXml(String xml) throws SAXException, IOException, ParserConfigurationException {
+        this.salesforceSurveyXml = new ParsedSurveyXml(xml);
+        this.salesforceSurveyXml.parseQuestions();
+    }
+    
+    /**
+     * Compares the BackEndSurvey to the Salesforce survey.
+     * For the changes to be considered acceptable the question orders must still match.
+     * The question types must match.
+     * 
+     * The question text can change and we can add extra selects to a multiple select.
+     * This does mean that a user could sabotage a survey if they wanted to but there is little
+     * we can realistically do about that.
+     * 
+     * @return - true if there are only cosmetic differences between the forms.
+     */
+    public boolean comparePurcForms() 
+            throws SAXException, IOException, ParserConfigurationException, SQLException, ClassNotFoundException, ServiceException {
+
+        // Load the backend survey if we can
+        if (this.backendSurveyXml == null) {
+            if (!loadSurvey(this.salesforceId, true)) {
+                return false;
+            }
+        }
+
+        // Check that the salesforce xml has been loaded
+        if (this.salesforceSurveyXml == null) {
+            return false;
+        }
+        
+        // Check that the surveys have the same number of questions
+        if (this.backendSurveyXml.getQuestionOrder().size() != this.salesforceSurveyXml.getQuestionOrder().size()) {
+            return false;
+        }
+
+        int index = 0;
+        for (String questionKey : this.backendSurveyXml.getQuestionOrder()) {
+
+            // Check that the question bindings/order still match
+            if (!questionKey.equals(this.salesforceSurveyXml.getQuestionOrder().get(index))) {
+                return false;
+            }
+
+            Question backendQuestion = this.backendSurveyXml.getQuestions().get(questionKey);
+            Question salesforceQuestion = this.salesforceSurveyXml.getQuestions().get(questionKey);
+
+            // Check that the question types still match
+            if (backendQuestion.getType() != salesforceQuestion.getType()) {
+                return false;
+            }
+            index++;
+        }
+        
+        return true;
+    }
+
+    /**
+     *  Load the details of a survey that are stored in the back end database
+     * 
+     */
+    private void loadSurveyFromDatabase() throws ClassNotFoundException, SQLException {
+
+        assert (this.salesforceId != null) : "We should only reach this code if we have a valid salesforce id";
+        SelectCommand selectCommand = new SelectCommand(DatabaseTable.Survey);
+
+        try {
+            selectCommand.addField("xform", "xform");
+            selectCommand.addField("id", "primaryKey");
+            selectCommand.whereEquals("survey_id", this.salesforceId);
+            ResultSet resultSet = selectCommand.execute();
+
+            if (resultSet.next()) {
+                this.primaryKey = resultSet.getInt("primaryKey"); 
+                this.backendSurveyXml = new ParsedSurveyXml(resultSet.getString("xform"));
+                this.existsInDb = true;
+                if (resultSet.next()) {
+        
+                     // We should have exactly one row, with our primary key in it
+                     throw new SQLDataException("Found more than one row with this Salesforce ID: " + this.salesforceId);
+                }
+            }
+        }
+        finally {
+            selectCommand.dispose();
+        }
+    }
+
+    private void parseBackEndXml() throws SAXException, IOException, ParserConfigurationException {
+        this.backendSurveyXml.parseQuestions();
     }
 
     /**
@@ -306,33 +484,8 @@ public class Survey {
         return salesforceId;
     }
 
-    /**
-     * Get the questions associated with a particular survey from the surveyquestions table
-     */
-    HashMap<String, Question> loadQuestions(int surveyId) throws ClassNotFoundException, SQLException {
-        HashMap<String, Question> questions = new HashMap<String, Question>();
-        ArrayList<String> questionOrder = new ArrayList<String>();
-
-        Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
-        Statement statement = connection.createStatement();
-        StringBuilder commandText = new StringBuilder();
-        commandText.append("SELECT SUBSTRING(xform_param_var, 2) AS qNumber, xform_param_var AS questionName, xform_param_name AS questionValue");
-        commandText.append(" FROM zebrasurveyquestions where survey_id=" + surveyId);
-        commandText.append(" ORDER BY qNumber");
-        ResultSet resultSet = statement.executeQuery(commandText.toString());
-        while (resultSet.next()) {
-            String questionName = resultSet.getString("questionName");
-            questionOrder.add(questionName);
-            questions.put(questionName, new Question(questionName, resultSet.getString("questionValue")));
-        }
-        statement.close();
-        connection.close();
-        this.setQuestionOrder(questionOrder);
-        return questions;
-    }
-
-    
-    HashMap<Integer, Submission> loadSubmissions(SubmissionStatus statusFilter, java.sql.Date startDate, java.sql.Date endDate, boolean basic)  throws ClassNotFoundException, SQLException, ParseException{
+    HashMap<Integer, Submission> loadSubmissions(SubmissionStatus statusFilter, java.sql.Date startDate, java.sql.Date endDate, boolean basic, boolean showDraft)
+            throws ClassNotFoundException, SQLException, ParseException, SAXException, IOException, ParserConfigurationException{
         
         // Build the query that gets the submissions for a given survey, status and within given dates.
         Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
@@ -362,6 +515,7 @@ public class Survey {
         }
         
         commandText.append(" WHERE s.survey_id = ? ");
+        commandText.append(" AND s.is_draft = ?");
         
         if (!basic) {
             commandText.append(" AND a.submission_id = s.id ");
@@ -388,6 +542,14 @@ public class Survey {
         // Pass in the arguments required
         int index = 1;
         preparedStatement.setInt(index, getPrimaryKey());
+        index++;
+        
+        if (showDraft) {
+            preparedStatement.setString(index, "Y");
+        }
+        else {
+            preparedStatement.setString(index, "N");
+        }
         index++;
         
         // Add the status filter if needed
@@ -450,15 +612,18 @@ public class Survey {
             if (!basic) {
                 int position = resultSet.getInt("position");
                 String questionName = resultSet.getString("name");
+                Question question = this.backendSurveyXml.getQuestions().get(questionName);
+                if (question != null) {
 
-                // The addition here is that the DB is zero ordered but the display 
-                // should start at 1
-                String name = questionName + "_" + Integer.toString(position + 1);
-                submission.addAnswer(name, Answer.create(this.questions.get(questionName), resultSet.getString("answer"), position));
+                    // The addition here is that the DB is zero ordered but the display 
+                    // should start at 1
+                    String name = questionName + "_" + Integer.toString(position + 1);
+                    submission.addAnswer(name, Answer.create(question, resultSet.getString("answer"), position));
             
-                // Check that the instance of this answer if not higher than any instance we have seen before
-                if (position + 1 > this.questions.get(questionName).getTotalInstances()) {
-                    this.questions.get(questionName).setTotalInstances(position + 1);
+                    // Check that the instance of this answer if not higher than any instance we have seen before
+                    if (position + 1 > question.getTotalInstances()) {
+                        question.setTotalInstances(position + 1);
+                    }
                 }
             }
         }

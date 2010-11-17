@@ -18,5 +18,10 @@ public enum QuestionType {
     /**
      * Same as Select, but limited to one response
      */
-    Select1
+    Select1,
+    
+    /**
+     * Indicates that this is a repeat Node
+     */
+    Repeat
 }

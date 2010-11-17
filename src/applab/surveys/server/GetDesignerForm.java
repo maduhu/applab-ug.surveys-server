@@ -31,11 +31,12 @@ public class GetDesignerForm extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, SQLException, ClassNotFoundException {
-        String formId = context.getRequestParameter("formId");
-        String xformData = SurveyDatabaseHelpers.getXformData(formId);
+        String surveyId = context.getRequestParameter("surveyId");
+        String xformData = SurveyDatabaseHelpers.getXformData(surveyId);
+        log("HERE " + surveyId);
         if(xformData != null) {
             log(xformData);
-            response.getWriter().print(xformData);           
+            response.getWriter().write(xformData);           
         }
         // We send a blank response if the data is null, and the purcforms client will use the empty response to indicate a new form
     }
