@@ -51,7 +51,9 @@ public class SaveDesignerForm extends ApplabServlet {
         log(sb.toString());
         String xform_data1 = sb.toString();
         String xform_data = xform_data1.replaceAll("\'", "\\'");
-
+        
+        log(xform_data);
+        
         // Load the survey from salesforce
         Survey survey = new Survey(survey_id);
         survey.loadSurvey(survey_id, false);

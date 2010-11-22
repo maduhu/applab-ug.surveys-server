@@ -164,6 +164,10 @@ public class ProcessSubmission extends ApplabServlet {
         if (surveyResponses.containsKey("location:1")) {
             surveyResponses.remove("location:1").getAnswerText(attachmentReferences);
         }
+        
+        if (surveyResponses.containsKey("interviewee_name:1")) {
+            surveyResponses.remove("interviewee_name:1").getAnswerText(attachmentReferences);
+        }
 
         // Check if this is a legacy form and the farmerId is within the form.
         // If it's there and we do not have a farmerId, we use that instead
