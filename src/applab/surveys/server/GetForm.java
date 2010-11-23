@@ -111,12 +111,16 @@ public class GetForm extends ApplabServlet {
             NodeList node_2 = element_1.getElementsByTagName("h:head");
             for (int j = 0; j < node_2.getLength(); j++) {
                 Element element_2 = (Element)node_2.item(j);
-            
                 NodeList node_3 = element_2.getElementsByTagName("model");
+                String prefix = "";
+                if (node_3.getLength() == 0) {
+                    node_3 = element_2.getElementsByTagName("xf:model");
+                    prefix = "xf:";
+                }
                 for (int k = 0; k < node_3.getLength(); k++) {
                     Element element_3 = (Element)node_3.item(k);
 
-                    NodeList node_4 = element_3.getElementsByTagName("instance");
+                    NodeList node_4 = element_3.getElementsByTagName(prefix + "instance");
                 
                     String formName = "";
                 
