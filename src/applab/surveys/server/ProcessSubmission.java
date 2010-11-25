@@ -140,11 +140,14 @@ public class ProcessSubmission extends ApplabServlet {
         }
         
         // The following permanent fields should not be included in creating a hex string
-        String tempTime = surveyResponses.remove("handset_submit_time:0").getAnswerText(attachmentReferences);
-        String date = tempTime.substring(0, 10);
-        String time = tempTime.substring(11,19);
-        String dateTime = date + " " + time;
-        Date handsetSubmissionTime = DatabaseHelpers.getJavaDateFromString(dateTime);
+        Date handsetSubmissionTime = new Date();
+        if (surveyResponses.containsKey("handset_submit_time:0")) {
+            String tempTime = surveyResponses.remove("handset_submit_time:0").getAnswerText(attachmentReferences);
+            String date = tempTime.substring(0, 10);
+            String time = tempTime.substring(11,19);
+            String dateTime = date + " " + time;
+            handsetSubmissionTime = DatabaseHelpers.getJavaDateFromString(dateTime);
+        }
         
         // create hex string
         String hashSource = "";
@@ -385,9 +388,19 @@ public class ProcessSubmission extends ApplabServlet {
         // normalize the root node
         Element rootNode = xmlDocument.getDocumentElement();
         rootNode.normalize();
-
+        
         HashMap<String, SubmissionAnswer> parsedSubmission = new HashMap<String, SubmissionAnswer>();
         HashMap<String, Integer> instanceRecord = new HashMap<String, Integer>();
+
+        // Dig out the survey id from the submission
+        String salesforceSurveyId = rootNode.getAttribute("id");
+        if (!salesforceSurveyId.equals("")) {
+            SubmissionAnswer submissionAnswer = new SubmissionAnswer("survey_id", 0, SurveyDatabaseHelpers.getZebraSurveyId(salesforceSurveyId), null);
+            String answerKey = submissionAnswer.getKey();
+            parsedSubmission.put(answerKey, submissionAnswer);
+            instanceRecord.put("survey_id", 0);
+        }
+
         // now parse the tree and populate surveyResponses with the raw data
         for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
