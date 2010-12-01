@@ -33,7 +33,7 @@ public class GetDesignerForm extends ApplabServlet {
     public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, SQLException, ClassNotFoundException {
         String surveyId = context.getRequestParameter("surveyId");
         String xformData = SurveyDatabaseHelpers.getXformData(surveyId);
-        log("HERE " + surveyId);
+
         if(xformData != null) {
             log(xformData);
             response.getWriter().write(xformData);           

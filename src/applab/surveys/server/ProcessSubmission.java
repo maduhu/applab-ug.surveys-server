@@ -146,7 +146,7 @@ public class ProcessSubmission extends ApplabServlet {
             String date = tempTime.substring(0, 10);
             String time = tempTime.substring(11,19);
             String dateTime = date + " " + time;
-            handsetSubmissionTime = DatabaseHelpers.getJavaDateFromString(dateTime);
+            handsetSubmissionTime = DatabaseHelpers.getJavaDateFromString(dateTime, 0);
         }
         
         // create hex string
@@ -394,7 +394,7 @@ public class ProcessSubmission extends ApplabServlet {
 
         // Dig out the survey id from the submission
         String salesforceSurveyId = rootNode.getAttribute("id");
-        if (!salesforceSurveyId.equals("")) {
+        if (!salesforceSurveyId.equals("") && SurveyDatabaseHelpers.getZebraSurveyId(salesforceSurveyId) != null) {
             SubmissionAnswer submissionAnswer = new SubmissionAnswer("survey_id", 0, SurveyDatabaseHelpers.getZebraSurveyId(salesforceSurveyId), null);
             String answerKey = submissionAnswer.getKey();
             parsedSubmission.put(answerKey, submissionAnswer);

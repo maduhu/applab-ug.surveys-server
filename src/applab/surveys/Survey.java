@@ -591,8 +591,8 @@ public class Survey {
                 submission.setInterviewerId(resultSet.getString("interviewerId"));
                 submission.setInterviewerName(resultSet.getString("interviewerName"));
                 submission.setPhoneNumber(resultSet.getString("mobileNumber"));
-                submission.setHandsetSubmissionTime(DatabaseHelpers.getJavaDateFromString(resultSet.getString("handsetSubmitTime")));
-                submission.setServerSubmissionTime(DatabaseHelpers.getJavaDateFromString(resultSet.getString("serverEntryTime")));
+                submission.setHandsetSubmissionTime(DatabaseHelpers.getJavaDateFromString(resultSet.getString("handsetSubmitTime"), 0));
+                submission.setServerSubmissionTime(DatabaseHelpers.getJavaDateFromString(resultSet.getString("serverEntryTime"), 0));
 
                 // Avoid parsing if we already know the value
                 SubmissionStatus submissionStatus = statusFilter;

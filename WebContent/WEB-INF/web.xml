@@ -55,6 +55,11 @@
     <servlet-name>SendSms</servlet-name>
     <servlet-class>applab.server.SendSms</servlet-class>
   </servlet>
+  <servlet>
+    <description>Map the old search logs to the correct interviewer</description>
+    <servlet-name>GetInterviewerName</servlet-name>
+    <servlet-class>GetInterviewerName</servlet-class>
+  </servlet>
   <servlet-mapping>
     <servlet-name>ProcessSubmission</servlet-name>
     <url-pattern>/submission</url-pattern>
@@ -90,5 +95,9 @@
   <servlet-mapping>
     <servlet-name>SaveDesignerForm</servlet-name>
     <url-pattern>/saveXform</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>GetInterviewerName</servlet-name>
+    <url-pattern>/GetInterviewerName</url-pattern>
   </servlet-mapping>
 </web-app>
