@@ -164,10 +164,10 @@ public class ParsedSurveyXml {
         
         for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                if(childNode.getNodeName().contains("head")) {
+                if(childNode.getLocalName().equals("head")) {
                     parseJavaRosaHead((Element)childNode);
                 }
-                if(childNode.getNodeName().contains("body")) {
+                if(childNode.getLocalName().equals("body")) {
                     parseJavaRosaBody((Element)childNode);
                 }
             }
@@ -179,7 +179,7 @@ public class ParsedSurveyXml {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
                 
                 // Model Tag - this contains the xlations
-                if (childNode.getNodeName().contains("model")) {
+                if (childNode.getLocalName().equals("model")) {
                     parseXlations((Element)childNode);
                 }
             }
@@ -191,7 +191,7 @@ public class ParsedSurveyXml {
         for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
                 // Group tag
-                if (childNode.getNodeName().contains("group")) {
+                if (childNode.getLocalName().equals("group")) {
                     parseGroup((Element)childNode);
                 }
             }
@@ -206,7 +206,7 @@ public class ParsedSurveyXml {
         this.languageMap = new HashMap<String, TranslationMap>();
         for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                if (childNode.getNodeName().equals("itext")) {
+                if (childNode.getLocalName().equals("itext")) {
                     parseItext((Element)childNode);
                 }
             }
@@ -216,7 +216,7 @@ public class ParsedSurveyXml {
     private void parseItext(Element itextNode) {
         for (Node childNode = itextNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                if (childNode.getNodeName().equals("translation")) {
+                if (childNode.getLocalName().equals("translation")) {
                     parseLanguage((Element)childNode);
                 }
             }
@@ -236,7 +236,7 @@ public class ParsedSurveyXml {
             }
             for (Node childNode = languageNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
                 if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                    if (childNode.getNodeName().equals("text")) {
+                    if (childNode.getLocalName().equals("text")) {
                         Element child = (Element)childNode;
                         translationMap.addTranslation(child.getAttribute("id"), parseXlation(child));
                     }
@@ -250,7 +250,7 @@ public class ParsedSurveyXml {
         String xlation = "";
         for (Node childNode = xlationNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                if (childNode.getNodeName().equals("value")) {
+                if (childNode.getLocalName().equals("value")) {
                     xlation = getCharacterDataFromElement((Element)childNode);
                 }
             }
@@ -273,7 +273,7 @@ public class ParsedSurveyXml {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
 
                 // Group tag
-                if (childNode.getNodeName().contains("group")) {
+                if (childNode.getLocalName().equals("group")) {
                     parseGroup((Element)childNode);
                 }
             }
@@ -286,13 +286,13 @@ public class ParsedSurveyXml {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
 
                 // Input tag
-                if (childNode.getNodeName().contains("input")) {
+                if (childNode.getLocalName().equals("input")) {
                     parseInput((Element)childNode);
                 }
-                else if (childNode.getNodeName().contains("select")) {
+                else if (childNode.getLocalName().contains("select")) {
                     parseSelect((Element)childNode);
                 }
-                else if (childNode.getNodeName().contains("group")) {
+                else if (childNode.getLocalName().equals("group")) {
                     parseSubgroup((Element)childNode);
                 }
             }
@@ -310,17 +310,17 @@ public class ParsedSurveyXml {
             if (childNode.getNodeType() != Node.ELEMENT_NODE) {
                 continue; // only care about element nodes
             }
-            if (childNode.getNodeName().contains("label")) {
+            if (childNode.getLocalName().equals("label")) {
                 questionName = getQuestionData((Element)childNode);
             }
-            else if (childNode.getNodeName().contains("repeat")) {
+            else if (childNode.getLocalName().equals("repeat")) {
                 for (Node repeatChild = childNode.getFirstChild(); repeatChild != null; repeatChild = repeatChild.getNextSibling()) {
-                    if (repeatChild.getNodeName().contains("input")) {
+                    if (repeatChild.getLocalName().equals("input")) {
                         parseInput((Element)repeatChild);
                     }
 
                     // This will catch the single selects as well
-                    else if (repeatChild.getNodeName().contains("select")) {
+                    else if (repeatChild.getLocalName().contains("select")) {
                         parseSelect((Element)repeatChild);
                     }
                 }
@@ -339,7 +339,7 @@ public class ParsedSurveyXml {
         Question question = null;
         for (Node childNode = inputElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                if (childNode.getNodeName().contains("label")) {
+                if (childNode.getLocalName().equals("label")) {
                    question = new Question(inputElement.getAttribute("bind"), getQuestionData((Element)childNode), QuestionType.Input);
                 }
             }
@@ -363,10 +363,10 @@ public class ParsedSurveyXml {
 
         for (Node childNode = selectElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                if (childNode.getNodeName().contains("label")) {
+                if (childNode.getLocalName().equals("label")) {
                     questionText = getQuestionData((Element)childNode);
                 }
-                else if (childNode.getNodeName().contains("item")) {
+                else if (childNode.getLocalName().equals("item")) {
 
                     // Items are of the form <item><label>Choice Label</label><value>Choice value</value></item>
                     Element itemElement = (Element)childNode;
@@ -374,10 +374,10 @@ public class ParsedSurveyXml {
                     String value  = "";
                     String option = "";
                     for (Node itemChild = itemElement.getFirstChild(); itemChild != null; itemChild = itemChild.getNextSibling()) {
-                            if (itemChild.getNodeName().contains("label")) {
+                            if (itemChild.getLocalName().equals("label")) {
                                 option = getQuestionData((Element)itemChild);
                             }
-                            else if (itemChild.getNodeName().contains("value")) {
+                            else if (itemChild.getLocalName().equals("value")) {
                                 value = getCharacterDataFromElement((Element)itemChild);
                             }
                     }
@@ -389,7 +389,7 @@ public class ParsedSurveyXml {
         String rawText = questionText + " -- " + values;
 
         // Create the question with the required type
-       if (selectElement.getNodeName().contains("select1")) {
+       if (selectElement.getLocalName().equals("select1")) {
             this.questions.put(questionBinding, new Question(questionBinding, rawText, QuestionType.Select1));
         }
         else {
@@ -457,11 +457,11 @@ public class ParsedSurveyXml {
         FormType formType = null;
 
         // Decide which format the survey is saved in
-        String rootNodeName = rootNode.getNodeName();
-        if (rootNodeName.contains("xform")) {
+        String rootNodeName = rootNode.getLocalName();
+        if (rootNodeName.equals("xform")) {
             formType = FormType.Xform;
         }
-        else if (rootNodeName.contains("html")){
+        else if (rootNodeName.equals("html")){
             formType = FormType.JavaRosa;
         }
         return formType;

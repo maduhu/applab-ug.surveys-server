@@ -76,8 +76,8 @@ public class GetForm extends ApplabServlet {
         if (salesforceSurveyId == null || salesforceSurveyId.isEmpty()) {
             return null;
         }
-        String xformData;
-        String zebra_survey_id;
+        String formData;
+        String surveyId;
         
         SelectCommand selectCommand = new SelectCommand(DatabaseTable.Survey);
         try {
@@ -87,8 +87,8 @@ public class GetForm extends ApplabServlet {
             selectCommand.whereEquals("survey_id", "'" + salesforceSurveyId + "'");
             ResultSet resultSet = selectCommand.execute();
             if (resultSet.next()) {
-                xformData = resultSet.getString("xform");
-                zebra_survey_id = resultSet.getString("id");
+                formData = resultSet.getString("xform");
+                surveyId = resultSet.getString("id");
             }
             else {
                 return null;
@@ -98,71 +98,72 @@ public class GetForm extends ApplabServlet {
             selectCommand.dispose();
         }
 
-        if (xformData == null || xformData.isEmpty()) {
+        if (formData == null || formData.isEmpty()) {
             return null;
         }
 
-        Document doc = XmlHelpers.parseXml(xformData);
+        Document doc = XmlHelpers.parseXml(formData);
+        doc.normalizeDocument();
+        Element rootNode = doc.getDocumentElement();
+        for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
+            if (childNode.getNodeType() == Node.ELEMENT_NODE && childNode.getLocalName().equals("head")) {
+                return insertNodes((Element) childNode, surveyId, doc);
+            }
+        }
         
-        NodeList node_1 = doc.getElementsByTagName("h:html");
-        for (int i = 0; i < node_1.getLength(); i++) {
-            Element element_1 = (Element)node_1.item(i);
+        // If we dont add anything in return the form as is
+        return XmlHelpers.exportAsString(doc);
+    }
 
-            NodeList node_2 = element_1.getElementsByTagName("h:head");
-            for (int j = 0; j < node_2.getLength(); j++) {
-                Element element_2 = (Element)node_2.item(j);
-                NodeList node_3 = element_2.getElementsByTagName("model");
-                String prefix = "";
-                if (node_3.getLength() == 0) {
-                    node_3 = element_2.getElementsByTagName("xf:model");
-                    prefix = "xf:";
-                }
-                for (int k = 0; k < node_3.getLength(); k++) {
-                    Element element_3 = (Element)node_3.item(k);
-
-                    NodeList node_4 = element_3.getElementsByTagName(prefix + "instance");
-                
-                    String formName = "";
-                
-                    for (int x = 0; x < node_4.getLength(); x++) {
-                        Element element_4 = (Element)node_4.item(x);
-                        formName = element_4.getAttribute("id");
-                        NodeList node_5 = element_4.getElementsByTagName(formName);
-                        for (int y = 0; y < node_5.getLength(); y++) {
-                            Element element_5 = (Element)node_5.item(y);
-                            Node handset_submit_time = doc.createElement("handset_submit_time");
-                            Node xform_survey_id = doc.createElement("survey_id");
-                            xform_survey_id.setTextContent(zebra_survey_id);
-                            element_5.appendChild(handset_submit_time);
-                            element_5.appendChild(xform_survey_id);
+    private static String insertNodes(Element headElement, String surveyId, Document doc)
+            throws TransformerException {
+    
+        for (Node childNode = headElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
+            if (childNode.getNodeType() == Node.ELEMENT_NODE && childNode.getLocalName().equals("model")) {
+                Element modelElement = (Element) childNode;
+                String formName = "";
+                for (Node childModelNode = modelElement.getFirstChild(); childModelNode != null; childModelNode = childModelNode.getNextSibling()) {
+                    if (childModelNode.getNodeType() == Node.ELEMENT_NODE && childModelNode.getLocalName().equals("instance")) {
+                        Element instanceElement = (Element) childModelNode;
+                        formName = instanceElement.getAttribute("id");
+                        for (Node childInstanceNode = instanceElement.getFirstChild(); childInstanceNode != null; childInstanceNode = childInstanceNode.getNextSibling()) {
+                             if (childInstanceNode.getNodeType() == Node.ELEMENT_NODE && childInstanceNode.getLocalName().equals(formName)) {
+                                 Element formElement = (Element) childInstanceNode; 
+                                 
+                                 // Create the new nodes for the instance model
+                                 Node handsetSubmitTime = doc.createElement("handset_submit_time");
+                                 Node formSurveyId = doc.createElement("survey_id");
+                                 formSurveyId.setTextContent(surveyId);
+                                 formElement.appendChild(handsetSubmitTime);
+                                 formElement.appendChild(formSurveyId);
+                             }
                         }
                     }
-                
-                    Node bind_handset_submit_time = doc.createElement("bind");
-                    NamedNodeMap handset_submit_time_attr = bind_handset_submit_time.getAttributes();
-
-                    Attr nodeset_handset_submit_time = doc.createAttribute("nodeset");
-                    nodeset_handset_submit_time.setValue("/" + formName + "/handset_submit_time");
-                    handset_submit_time_attr.setNamedItem(nodeset_handset_submit_time);
-
-                    Attr type_handset_submit_time = doc.createAttribute("type");
-                    type_handset_submit_time.setValue("dateTime");
-                    handset_submit_time_attr.setNamedItem(type_handset_submit_time);
-
-                    Attr jr_handset_submit_time = doc.createAttribute("jr:preload");
-                    jr_handset_submit_time.setValue("timestamp");
-                    handset_submit_time_attr.setNamedItem(jr_handset_submit_time);
-
-                    Attr jr_preload_handset_submit_time = doc.createAttribute("jr:preloadParams");
-                    jr_preload_handset_submit_time.setValue("end");
-                    handset_submit_time_attr.setNamedItem(jr_preload_handset_submit_time);
-
-                    Attr id_handset_submit_time = doc.createAttribute("id");
-                    id_handset_submit_time.setValue("handset_submit_time");
-                    handset_submit_time_attr.setNamedItem(id_handset_submit_time);
-
-                    element_3.appendChild(bind_handset_submit_time);
                 }
+                Node bindHandsetSubmitTime = doc.createElement("bind");
+                NamedNodeMap handsetSubmitTimeAttr = bindHandsetSubmitTime.getAttributes();
+
+                Attr nodesetHandsetSubmitTime = doc.createAttribute("nodeset");
+                nodesetHandsetSubmitTime.setValue("/" + formName + "/handset_submit_time");
+                handsetSubmitTimeAttr.setNamedItem(nodesetHandsetSubmitTime);
+
+                Attr typeHandsetSubmitTime = doc.createAttribute("type");
+                typeHandsetSubmitTime.setValue("dateTime");
+                handsetSubmitTimeAttr.setNamedItem(typeHandsetSubmitTime);
+
+                Attr jrHandsetSubmitTime = doc.createAttribute("jr:preload");
+                jrHandsetSubmitTime.setValue("timestamp");
+                handsetSubmitTimeAttr.setNamedItem(jrHandsetSubmitTime);
+
+                Attr jrPreloadHandsetSubmitTime = doc.createAttribute("jr:preloadParams");
+                jrPreloadHandsetSubmitTime.setValue("end");
+                handsetSubmitTimeAttr.setNamedItem(jrPreloadHandsetSubmitTime);
+
+                Attr idHandsetSubmitTime = doc.createAttribute("id");
+                idHandsetSubmitTime.setValue("handset_submit_time");
+                handsetSubmitTimeAttr.setNamedItem(idHandsetSubmitTime);
+
+                modelElement.appendChild(bindHandsetSubmitTime);
             }
         }
         return XmlHelpers.exportAsString(doc);
