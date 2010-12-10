@@ -133,7 +133,14 @@ public class ProcessSubmission extends ApplabServlet {
 
         // The <name>:0 notation for the key is used here as these are special case answers
         // that cannot be duplicated so will always have the instance number of 0
-        int backendSurveyId = Integer.parseInt(surveyResponses.get("survey_id:0").getAnswerText(attachmentReferences));
+        // Use the old method first if possible
+        int backendSurveyId;
+        if (surveyResponses.containsKey("survey_id:1")) {
+            backendSurveyId = Integer.parseInt(surveyResponses.get("survey_id:1").getAnswerText(attachmentReferences));
+        }
+        else {
+            backendSurveyId = Integer.parseInt(surveyResponses.get("survey_id:0").getAnswerText(attachmentReferences));
+        }
         String salesforceId = SurveyDatabaseHelpers.verifySurveyID(backendSurveyId);
         if (salesforceId == null) {
             return HttpServletResponse.SC_NOT_FOUND;
