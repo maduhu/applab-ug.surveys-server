@@ -26,7 +26,7 @@ public class GetFormList extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     protected void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
-        writeFormsList(response.getWriter(), context.getHandsetId(), context.getUrl());
+        writeFormsList(response.getWriter(), context.getHandsetId(), ApplabConfiguration.getHostUrl()/*context.getUrl()*/);
         context.close();
     }
 
