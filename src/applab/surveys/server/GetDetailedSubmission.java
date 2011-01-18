@@ -109,6 +109,7 @@ public class GetDetailedSubmission extends ApplabServlet {
         commandText.append("s.mobile_number AS mobileNumber, ");
         commandText.append("s.survey_status AS surveyStatus, ");
         commandText.append("s.customer_care_status AS customerCareStatus ");
+        commandText.append("s.location AS location ");
         commandText.append("FROM answers a, zebrasurveysubmissions s ");
         commandText.append("WHERE a.submission_id = ? ");
         commandText.append("AND a.submission_id = s.id ");
@@ -136,6 +137,7 @@ public class GetDetailedSubmission extends ApplabServlet {
         submission.setInterviewerName(resultSet.getString("interviewerName"));
         submission.setInterviewerId(resultSet.getString("interviewerId"));
         submission.setPhoneNumber(resultSet.getString("mobileNumber"));
+        submission.setLocation(resultSet.getString("location"));
         
         // Deal with the statuses
         SubmissionStatus dataTeamStatus = SubmissionStatus.parseDisplayName(resultSet.getString("surveyStatus"));

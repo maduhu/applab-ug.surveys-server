@@ -212,6 +212,7 @@ public class Survey {
         writer.append("Handset Submission Date,");
         writer.append("CKW ID,");
         writer.append("CKW Name,");
+        writer.append("Location,");
         writer.append("Customer Care Review,");
         writer.append("Data Team Review,");
         
@@ -248,6 +249,7 @@ public class Survey {
             writer.append(submission.getHandsetSubmissionTime() +',');
             writer.append(submission.getInterviewerId() +',');
             writer.append(submission.getInterviewerName() +',');
+            writer.append(submission.getLocation() + ',');
             writer.append(submission.getCustomerCareStatus().toString() +',');
             writer.append(submission.getStatus().toString() +',');
             for (String questionName : this.backendSurveyXml.getQuestionOrder()) {
@@ -501,6 +503,7 @@ public class Survey {
         commandText.append(" s.mobile_number AS mobileNumber,");
         commandText.append(" s.handset_submit_time AS handsetSubmitTime,");
         commandText.append(" s.server_entry_time AS serverEntryTime");
+        commandText.append(" s.location AS location");
         
         if (!basic) {
             commandText.append(", a.answer AS answer,");
@@ -591,6 +594,7 @@ public class Survey {
                 submission.setInterviewerId(resultSet.getString("interviewerId"));
                 submission.setInterviewerName(resultSet.getString("interviewerName"));
                 submission.setPhoneNumber(resultSet.getString("mobileNumber"));
+                submission.setLocation(resultSet.getString("location"));
                 submission.setHandsetSubmissionTime(DatabaseHelpers.getJavaDateFromString(resultSet.getString("handsetSubmitTime"), 0));
                 submission.setServerSubmissionTime(DatabaseHelpers.getJavaDateFromString(resultSet.getString("serverEntryTime"), 0));
 

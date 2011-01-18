@@ -58,6 +58,10 @@
 				<td>Phone Number</td>
 				<td><%= submission.getPhoneNumber() %></td>
 			</tr>
+			<tr>
+				<td>Location</td>
+				<td><%= submission.getLocation() %></td>
+			</tr>	
 			<%
 				Survey survey = submission.getSurvey();
 				for (String questionName : submission.getAnswerOrder()) { 

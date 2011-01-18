@@ -12,6 +12,7 @@ public class Submission {
     private String serverSubmissionTime;
     private String handsetSubmissionTime;
     private String phoneNumber;
+    private String location;
     
     private SubmissionStatus status;
     private CustomerCareStatus customerCareStatus;
@@ -124,6 +125,14 @@ public class Submission {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     public SubmissionStatus getStatus() {
