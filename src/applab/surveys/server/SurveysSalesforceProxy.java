@@ -49,26 +49,9 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
     public ArrayList<Survey> getPublishedSurveys(String imei) throws InvalidSObjectFault, MalformedQueryFault, InvalidFieldFault,
             InvalidIdFault, UnexpectedErrorFault, InvalidQueryLocatorFault, RemoteException {
 
-        // Apparently we have to split these queries up otherwise we get too many nested queries and SF chokes on the
-        // joins
-        QueryResult groupQuery = getBinding().query("Select Group__c from Person_Group_Association__c where Person__c IN " +
-                                "(Select Id from Person__c where Handset__r.IMEI__c = '" + imei + "')");
-
         ArrayList<Survey> surveys = new ArrayList<Survey>();
-
-        if (groupQuery.getSize() > 0) {
-            String groupIds = "";
-            for (int i = 0; i < groupQuery.getSize(); i++) {
-                Person_Group_Association__c group = (Person_Group_Association__c)groupQuery.getRecords(i);
-
-                // Check if we need to put the separator
-                if (i != 0) {
-                    groupIds += ", ";
-                }
-
-                groupIds += "'" + group.getGroup__c() + "'";
-            }
-
+        String groupIds = getGroupIds(imei);
+        if (!"".equalsIgnoreCase(groupIds)) {
             QueryResult query = getBinding().query(
                     "Select Name, Survey_Name__c from Survey__c where Survey_Status__c = 'Published' and Start_Date__c < TOMORROW and End_Date__c > YESTERDAY and Id in " +
                             "(Select Survey__c from Survey_Group_Association__c where Group__c IN (" + groupIds + "))");
