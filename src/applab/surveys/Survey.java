@@ -502,7 +502,7 @@ public class Survey {
         commandText.append(" s.customer_care_status AS customerCareStatus,");
         commandText.append(" s.mobile_number AS mobileNumber,");
         commandText.append(" s.handset_submit_time AS handsetSubmitTime,");
-        commandText.append(" s.server_entry_time AS serverEntryTime");
+        commandText.append(" s.server_entry_time AS serverEntryTime,");
         commandText.append(" s.location AS location");
         
         if (!basic) {
