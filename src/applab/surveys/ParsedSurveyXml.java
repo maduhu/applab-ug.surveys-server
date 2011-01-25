@@ -374,12 +374,14 @@ public class ParsedSurveyXml {
                     String value  = "";
                     String option = "";
                     for (Node itemChild = itemElement.getFirstChild(); itemChild != null; itemChild = itemChild.getNextSibling()) {
+                        if(null != itemChild.getLocalName()) {
                             if (itemChild.getLocalName().equals("label")) {
                                 option = getQuestionData((Element)itemChild);
                             }
                             else if (itemChild.getLocalName().equals("value")) {
                                 value = getCharacterDataFromElement((Element)itemChild);
                             }
+                        }
                     }
 
                     values += option + ":" + value + ";";
