@@ -310,18 +310,22 @@ public class ParsedSurveyXml {
             if (childNode.getNodeType() != Node.ELEMENT_NODE) {
                 continue; // only care about element nodes
             }
-            if (childNode.getLocalName().equals("label")) {
-                questionName = getQuestionData((Element)childNode);
-            }
-            else if (childNode.getLocalName().equals("repeat")) {
-                for (Node repeatChild = childNode.getFirstChild(); repeatChild != null; repeatChild = repeatChild.getNextSibling()) {
-                    if (repeatChild.getLocalName().equals("input")) {
-                        parseInput((Element)repeatChild);
-                    }
-
-                    // This will catch the single selects as well
-                    else if (repeatChild.getLocalName().contains("select")) {
-                        parseSelect((Element)repeatChild);
+            if(null != childNode.getLocalName()) {
+                if (childNode.getLocalName().equals("label")) {
+                    questionName = getQuestionData((Element)childNode);
+                }
+                else if (childNode.getLocalName().equals("repeat")) {
+                    for (Node repeatChild = childNode.getFirstChild(); repeatChild != null; repeatChild = repeatChild.getNextSibling()) {
+                        if(null != repeatChild.getLocalName()) {
+                            if (repeatChild.getLocalName().equals("input")) {
+                                parseInput((Element)repeatChild);
+                            }
+        
+                            // This will catch the single selects as well
+                            else if (repeatChild.getLocalName().contains("select")) {
+                                parseSelect((Element)repeatChild);
+                            }
+                        }
                     }
                 }
             }
