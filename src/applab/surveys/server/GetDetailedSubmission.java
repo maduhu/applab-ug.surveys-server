@@ -110,9 +110,9 @@ public class GetDetailedSubmission extends ApplabServlet {
         commandText.append("s.survey_status AS surveyStatus, ");
         commandText.append("s.customer_care_status AS customerCareStatus, ");
         commandText.append("s.location AS location ");
-        commandText.append("FROM answers a, zebrasurveysubmissions s, ");
-        commandText.append("WHERE a.submission_id = ?, ");
-        commandText.append("AND a.submission_id = s.id, ");
+        commandText.append("FROM answers a, zebrasurveysubmissions s ");
+        commandText.append("WHERE a.submission_id = ? ");
+        commandText.append("AND a.submission_id = s.id ");
         commandText.append("ORDER BY questionNumber, position");
         
         // Prepare the statement
