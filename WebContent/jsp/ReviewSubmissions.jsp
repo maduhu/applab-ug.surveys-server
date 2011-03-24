@@ -3,9 +3,10 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <%@page session="true" import="java.util.*, applab.surveys.*, applab.server.*"%>
 <% SubmissionStatistics stats = (SubmissionStatistics) session.getAttribute("survey.statistics");
-   String moreDetailsUrl = ApplabConfiguration.getHostUrl() + "getDetailedSubmission";
-   String filterSubmissionsUrl = ApplabConfiguration.getHostUrl() + "getSubmissions";
-   String exportToCsvUrl = ApplabConfiguration.getHostUrl() + "downloadFile";
+   String baseUrl = (String)session.getAttribute("survey.baseUrl");
+   String moreDetailsUrl = baseUrl + "getDetailedSubmission";
+   String filterSubmissionsUrl = baseUrl + "getSubmissions";
+   String exportToCsvUrl = baseUrl + "downloadFile";
    String startDate = (String) session.getAttribute("survey.startDate");
    String endDate   = (String) session.getAttribute("survey.endDate");
    String status       = (String) session.getAttribute("survey.status");

@@ -1,0 +1,35 @@
+<!-- Zebra specific context.
+     This file contains the configuration for the zebra server.
+     Configuration that is application wide should be set in here.
+     Configuration for an individual servlet should go in the web.xml.
+     Global configuration for all our webapps should go in context.xml in the Common Server.
+ -->
+<Context path="/zebra">
+    <!-- Database setting. TODO replace with a proper connection pooling datasource using JNDI -->
+    <Parameter name="databaseURL" value="jdbc:mysql://localhost:3306/zebra"
+               description="The url for the search database"
+    />
+    <Parameter name="databaseUsername" value="zebra"
+               description="Username for this DB"
+    />
+    <Parameter name="databasePassword" value="zebra"
+               description="Password for this DB"
+    />
+    <Parameter name="databaseReaderUsername" value="zebra"
+               description="Reader username for this DB"
+    />
+    <Parameter name="databaseReaderPassword" value="zebra"
+               description="Reader password for this DB"
+    />
+
+    <!-- Logging Parameters -->
+    <Parameter name="loggerName" value="zebra_logger"
+               description="The name of the logger as set in the log4j properties file"
+    />
+    <Parameter name="loggerPropertiesFile" value="WEB-INF/classes/log4j.properties"
+               description="Name of the log4j properties file"
+    />
+    <Parameter name="logLevel" value="16"
+               description="Level that can override the default log level set up in the log4j properties"
+    />
+</Context>

@@ -3,14 +3,15 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <%@page session="true" import="java.util.*, applab.surveys.*, applab.server.*"%>
 <% Submission submission = (Submission) session.getAttribute("survey.detailedSubmission");
-   String changeStatusUrl = ApplabConfiguration.getHostUrl() + "updateSubmissionStatus";
-   String surveySubmissionUrl = ApplabConfiguration.getHostUrl() + "getSubmissions";
+   String baseUrl = (String)session.getAttribute("survey.baseUrl");
+   String changeStatusUrl = baseUrl + "updateSubmissionStatus";
+   String surveySubmissionUrl = baseUrl + "getSubmissions";
    String surveySalesforceId  = (String) session.getAttribute("survey.surveySalesforceId");
-   String surveyId  = (String) session.getAttribute("survey.surveyId");
-   String startDate = (String) session.getAttribute("survey.startDate");
-   String endDate   = (String) session.getAttribute("survey.endDate");
-   String status    = (String) session.getAttribute("survey.status");
-   String showDraft = (String) session.getAttribute("survey.showDraft");
+   String surveyId  = (String)session.getAttribute("survey.surveyId");
+   String startDate = (String)session.getAttribute("survey.startDate");
+   String endDate   = (String)session.getAttribute("survey.endDate");
+   String status    = (String)session.getAttribute("survey.status");
+   String showDraft = (String)session.getAttribute("survey.showDraft");
 %>
 <html>
 	<head>

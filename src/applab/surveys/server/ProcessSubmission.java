@@ -33,7 +33,6 @@ import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import applab.CommunityKnowledgeWorker;
-import applab.server.ApplabConfiguration;
 import applab.server.ApplabServlet;
 import applab.server.DatabaseHelpers;
 import applab.server.HashHelpers;
@@ -59,8 +58,9 @@ public class ProcessSubmission extends ApplabServlet {
     protected void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
         response.setContentType("text/html");
         response.setHeader("Location", request.getRequestURI());
+        String intervieweeId = request.getParameter("intervieweeId");
 
-        // we are only expecting multi-part content
+        // We are only expecting multi-part content
         if (!ServletFileUpload.isMultipartContent(request)) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "request must be MIME encoded");
             return;
@@ -70,12 +70,11 @@ public class ProcessSubmission extends ApplabServlet {
 
         HashMap<String, SubmissionAnswer> surveyResponses = null;
 
-        // store the paths to the attachments in attachment path
+        // Store the paths to the attachments in attachment path
         HashMap<String, String> attachmentPaths = new HashMap<String, String>();
         Iterator<?> fileIterator = fileList.iterator();
 
         long totalSize = 0;
-        String farmerId = ""; // We extract the farmerId from the submission file name (TODO: Find better way to communicate it)
         while (fileIterator.hasNext()) {
             FileItem fileItem = (FileItem)fileIterator.next();
             totalSize = totalSize + fileItem.getSize();
@@ -83,10 +82,16 @@ public class ProcessSubmission extends ApplabServlet {
             String contentType = fileItem.getContentType().toLowerCase(Locale.ENGLISH);
             contentType = contentType.intern(); // so that == works for comparison
 
-            // survey answer content
+            // Survey answer content
             if (contentType == "text/xml") {
-                String fileName = fileItem.getName(); // This has the farmerId embedded
-                farmerId = getFarmerId(fileName);
+
+                // This has the farmerId embedded in the old system. TODO - remove in > 3.2
+                String fileName = fileItem.getName();
+
+                // Check that we have the id. If not try and get it the old way
+                if (intervieweeId == null || intervieweeId.equals("")) {
+                    intervieweeId = getIntervieweeId(fileName);
+                }
                 Document xmlDocument = XmlHelpers.parseXml(fileItem.getString());
                 surveyResponses = parseSurveySubmission(xmlDocument);
 
@@ -94,40 +99,54 @@ public class ProcessSubmission extends ApplabServlet {
                 log(fileItem.getString());
             }
 
-            // attachments (TODO: open this further?)
+            // Attachments (TODO: open this further?)
             else if (contentType == "image/jpeg" || contentType == "image/gif" || contentType == "image/png" || contentType == "image/bmp"
                     || contentType == "video/3gp" || contentType == "video/mp4" || contentType == "video/3gpp"
                     || contentType == "audio/3gp" || contentType == "audio/mp4" || contentType == "audio/m4a"
                     || contentType == "audio/3gpp") {
-                saveAttachment(fileItem, attachmentPaths);
+                saveAttachment(fileItem, attachmentPaths, context);
             }
         }
 
-        // now that we've processed all of the data, insert the contents into our database
+        // Now that we've processed all of the data, insert the contents into our database
         // and construct the HTTP response
         String imei = context.getHandsetId();
-        int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths, imei, totalSize, farmerId);
+        int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths, imei, totalSize, intervieweeId);
         response.setStatus(httpResponseCode);
     }
 
-    public static String getFarmerId(String fileName) {
-        // Extract the farmerId from fileName
-        String farmerId = "";
+    /**
+     * Extract the intervieweeId from the filename. TODO - Remove in > 3.2
+     * 
+     * @param fileName
+     * @return
+     */
+    public static String getIntervieweeId(String fileName) {
+
+        String intervieweeId = "";
         String regex = "(.*)\\_\\[(.*)\\]\\_[0-9]{4}\\-[0-9]{2}\\-[0-9]{2}\\_[0-9]{2}\\-[0-9]{2}\\-[0-9]{2}\\.xml$";
-        Pattern pattern = Pattern.compile(regex); 
+        Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(fileName);
-        if(matcher.matches()) {
-            farmerId = matcher.group(2);
+        if (matcher.matches()) {
+            intervieweeId = matcher.group(2);
         }
-        return farmerId;
+        return intervieweeId;
     }
 
     /**
-     * @param fileName 
+     * Store the submission in our database
      * 
+     * @param surveyResponses      - Hashmap of the answers to the survey
+     * @param attachmentReferences -
+     * @param handsetId            - IMEI of the submitting phone
+     * @param submissionSize       - In bytes
+     * @param intervieweeName      - Id of the person being interviewed
+     * 
+     * @return
      */
     public static int storeSurveySubmission(HashMap<String, SubmissionAnswer> surveyResponses,
-                                            HashMap<String, String> attachmentReferences, String handsetId, long submissionSize, String intervieweeName)
+                                            HashMap<String, String> attachmentReferences, String handsetId, long submissionSize,
+                                            String intervieweeName)
             throws NoSuchAlgorithmException, ServiceException,
             ClassNotFoundException, SQLException, ParseException, SAXException, IOException, ParserConfigurationException {
 
@@ -145,18 +164,18 @@ public class ProcessSubmission extends ApplabServlet {
         if (salesforceId == null) {
             return HttpServletResponse.SC_NOT_FOUND;
         }
-        
+
         // The following permanent fields should not be included in creating a hex string
         Date handsetSubmissionTime = new Date();
         if (surveyResponses.containsKey("handset_submit_time:0")) {
             String tempTime = surveyResponses.remove("handset_submit_time:0").getAnswerText(attachmentReferences);
             String date = tempTime.substring(0, 10);
-            String time = tempTime.substring(11,19);
+            String time = tempTime.substring(11, 19);
             String dateTime = date + " " + time;
             handsetSubmissionTime = DatabaseHelpers.getJavaDateFromString(dateTime, 0);
         }
-        
-        // create hex string
+
+        // Create hex string
         String hashSource = "";
         for (SubmissionAnswer responseValue : surveyResponses.values()) {
             hashSource += responseValue.getAnswerText(attachmentReferences);
@@ -168,13 +187,13 @@ public class ProcessSubmission extends ApplabServlet {
         if (surveyResponses.containsKey("location:0")) {
             location = surveyResponses.remove("location:0").getAnswerText(attachmentReferences);
         }
-        
+
         // Dirty hack to get around the problem of old form formats. TODO Remove in 2.10
         // When every CKW should have downloaded the new form version.
         if (surveyResponses.containsKey("location:1")) {
             surveyResponses.remove("location:1").getAnswerText(attachmentReferences);
         }
-        
+
         if (surveyResponses.containsKey("interviewee_name:1")) {
             surveyResponses.remove("interviewee_name:1").getAnswerText(attachmentReferences);
         }
@@ -183,15 +202,16 @@ public class ProcessSubmission extends ApplabServlet {
         // If it's there and we do not have a farmerId, we use that instead
         if (surveyResponses.containsKey("interviewee_name:0")) {
             String legacyIntervieweeName = surveyResponses.remove("interviewee_name:0").getAnswerText(attachmentReferences);
-            if(intervieweeName.isEmpty() && legacyIntervieweeName != null) {
+            if (intervieweeName.isEmpty() && legacyIntervieweeName != null) {
                 intervieweeName = legacyIntervieweeName;
             }
         }
+
         // Always upper case intervieweeName (farmerId)
-        if(intervieweeName != null && !intervieweeName.isEmpty()) {
+        if (intervieweeName != null && !intervieweeName.isEmpty()) {
             intervieweeName = intervieweeName.toUpperCase();
         }
-        
+
         // Extract the permanent fields
         CommunityKnowledgeWorker interviewer = CommunityKnowledgeWorker.load(handsetId);
 
@@ -201,11 +221,11 @@ public class ProcessSubmission extends ApplabServlet {
         // Load the survey so we can verify the answer columns against the questions in the Xml.
         Survey survey = new Survey(salesforceId);
         survey.loadSurvey(salesforceId, true);
-        
+
         boolean hasAnswers = false;
         ArrayList<String> answerColumns = new ArrayList<String>();
         for (String answerKey : surveyResponses.keySet()) {
-            
+
             // The question binding is used as our column names for survey answers
             SubmissionAnswer answer = surveyResponses.get(answerKey);
             String answerColumn = answer.getQuestionName();
@@ -217,13 +237,13 @@ public class ProcessSubmission extends ApplabServlet {
             }
         }
 
-        // make sure we have valid questions
+        // Make sure we have valid questions
         if (hasAnswers) {
-            
+
             // Create the connection to the database
             Connection connection = SurveyDatabaseHelpers.getWriterConnection();
             connection.setAutoCommit(false);
-            
+
             StringBuilder commandText = new StringBuilder();
             commandText.append("insert into zebrasurveysubmissions ");
             commandText.append("(survey_id, server_entry_time, handset_submit_time, handset_id, interviewer_id, ");
@@ -233,7 +253,7 @@ public class ProcessSubmission extends ApplabServlet {
             commandText.append(", interviewee_name");
             commandText.append(", is_draft");
             commandText.append(") values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            
+
             // Create the prepared statement
             PreparedStatement submissionStatement = connection.prepareStatement(commandText.toString(), Statement.RETURN_GENERATED_KEYS);
 
@@ -257,7 +277,7 @@ public class ProcessSubmission extends ApplabServlet {
             }
 
             try {
-                submissionStatement.execute();  
+                submissionStatement.execute();
             }
             catch (SQLException e) {
                 submissionStatement.close();
@@ -292,7 +312,6 @@ public class ProcessSubmission extends ApplabServlet {
                 // Trim of the q to allow us to organise the answers in numerical order
                 String questionNumber = questionName.substring(1, questionName.length());
 
-                
                 answerStatements.setInt(1, submissionId);
                 answerStatements.setString(2, questionNumber);
                 answerStatements.setString(3, questionName);
@@ -336,35 +355,38 @@ public class ProcessSubmission extends ApplabServlet {
         }
     }
 
-    private void saveAttachment(FileItem attachment, HashMap<String, String> attachmentReferences) throws Exception {
+    private void saveAttachment(FileItem attachment, HashMap<String, String> attachmentReferences, ServletRequestContext context)
+            throws Exception {
         String attachmentReference = createAttachmentReference(attachment.getContentType());
 
         String fullPath = this.getServletContext().getRealPath(attachmentReference);
         File targetFile = new File(fullPath);
 
-        // create the parent directories if necessary
+        // Create the parent directories if necessary
         File parentDirectory = targetFile.getParentFile();
         if (parentDirectory != null) {
             parentDirectory.mkdirs();
         }
         attachment.write(targetFile);
 
-        // store the full public path here, not the relative one. Need to remove the leading '/' from the path reference
-        String publicAttachmentReference = ApplabConfiguration.getHostUrl() + attachmentReference.substring(1);
+        // Store the full public path here, not the relative one. Need to remove the leading '/' from the path reference
+        String publicAttachmentReference = context.getFullPath(attachmentReference.substring(1));
         attachmentReferences.put(attachment.getName(), publicAttachmentReference);
     }
 
-    // given a content type, generate a relative file reference to the generated name
+    // Given a content type, generate a relative file reference to the generated name
     // public so that we can test this functionality
     public static String createAttachmentReference(String contentType) {
-        // grab everything after the forward slash and convert to file extension (e.g. image/gif -> .gif)
+
+        // Grab everything after the forward slash and convert to file extension (e.g. image/gif -> .gif)
         // use everything before the forward slash and use it for our directory (e.g. image/gif -> survey_images)
         int separatorIndex = contentType.lastIndexOf("/");
         assert (separatorIndex > 0 && separatorIndex < contentType.length()) : "callers should only pass valid content types";
 
         String directoryName = "/survey_" + contentType.substring(0, separatorIndex) + "s/";
         String fileExtension = "." + contentType.substring(separatorIndex + 1);
-        // for certain extensions, we can make substitutions here if it proves necessary (e.g. jpeg->jpg)
+
+        // For certain extensions, we can make substitutions here if it proves necessary (e.g. jpeg->jpg)
 
         return directoryName + generateAttachmentName() + fileExtension;
     }
@@ -392,29 +414,31 @@ public class ProcessSubmission extends ApplabServlet {
      *            DOM containing the submission XML
      */
     private static HashMap<String, SubmissionAnswer> parseSurveySubmission(Document xmlDocument) {
-        // normalize the root node
+
+        // Normalize the root node
         Element rootNode = xmlDocument.getDocumentElement();
         rootNode.normalize();
-        
+
         HashMap<String, SubmissionAnswer> parsedSubmission = new HashMap<String, SubmissionAnswer>();
         HashMap<String, Integer> instanceRecord = new HashMap<String, Integer>();
 
         // Dig out the survey id from the submission
         String salesforceSurveyId = rootNode.getAttribute("id");
         if (!salesforceSurveyId.equals("") && SurveyDatabaseHelpers.getZebraSurveyId(salesforceSurveyId) != null) {
-            SubmissionAnswer submissionAnswer = new SubmissionAnswer("survey_id", 0, SurveyDatabaseHelpers.getZebraSurveyId(salesforceSurveyId), null);
+            SubmissionAnswer submissionAnswer = new SubmissionAnswer("survey_id", 0, SurveyDatabaseHelpers
+                    .getZebraSurveyId(salesforceSurveyId), null);
             String answerKey = submissionAnswer.getKey();
             parsedSubmission.put(answerKey, submissionAnswer);
             instanceRecord.put("survey_id", 0);
         }
 
-        // now parse the tree and populate surveyResponses with the raw data
+        // Now parse the tree and populate surveyResponses with the raw data
         for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
                 parseSurveySubmissionElement((Element)childNode, parsedSubmission, null, instanceRecord);
             }
             else {
-                // don't care about other types of nodes
+                // Don't care about other types of nodes
             }
         }
 
@@ -426,7 +450,8 @@ public class ProcessSubmission extends ApplabServlet {
      */
     private static void parseSurveySubmissionElement(Element submissionElement, HashMap<String, SubmissionAnswer> existingSubmission,
                                                      SubmissionAnswer parentItem, HashMap<String, Integer> instanceRecord) {
-        // question name is always the name of the start element
+
+        // Question name is always the name of the start element
         String questionName = submissionElement.getNodeName();
 
         int newInstance = 0;
@@ -440,7 +465,7 @@ public class ProcessSubmission extends ApplabServlet {
         existingSubmission.put(answerKey, submissionAnswer);
         instanceRecord.put(questionName, newInstance);
 
-        // walk the child nodes, and either populate with a text-answer, or recurse for the multiple-answer case
+        // Walk the child nodes, and either populate with a text-answer, or recurse for the multiple-answer case
         for (Node childNode = submissionElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             switch (childNode.getNodeType()) {
                 case Node.ELEMENT_NODE:

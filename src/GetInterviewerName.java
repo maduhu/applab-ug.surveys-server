@@ -14,6 +14,7 @@ import applab.server.DatabaseId;
 import applab.server.SalesforceProxy;
 import applab.server.ServletRequestContext;
 import applab.server.SqlImplementation;
+import applab.server.WebAppId;
 
 /**
  * This servelet is used to update both search and survey logs with the interviewee info, until we roll out the new code
@@ -43,7 +44,7 @@ public class GetInterviewerName extends ApplabServlet {
             if((!handsetIdString.isEmpty()) && (handsetIdString.length() > 0)) {
                 SoapBindingStub binding = SalesforceProxy.createBinding();
                 QueryResult ckwQuery = binding.query("SELECT Name, Person__r.First_Name__c, Person__r.Last_Name__c, Person__r.Handset__r.IMEI__c from CKW__c where Person__r.Handset__r.IMEI__c IN ("+ handsetIdString +")");
-                Connection connection = DatabaseHelpers.createConnection(DatabaseId.Search);
+                Connection connection = DatabaseHelpers.createConnection(WebAppId.search);
                 Statement statement = connection.createStatement();
                 for (int counter = 0; counter < ckwQuery.getSize(); counter++) {
                     CKW__c ckw = (CKW__c)ckwQuery.getRecords(counter);
@@ -71,7 +72,7 @@ public class GetInterviewerName extends ApplabServlet {
             if((!handsetIdString.isEmpty()) && (handsetIdString.length() > 0)) {
                 SoapBindingStub binding = SalesforceProxy.createBinding();
                 QueryResult ckwQuery = binding.query("SELECT Name, Person__r.First_Name__c, Person__r.Last_Name__c, Person__r.Handset__r.IMEI__c from CKW__c where Person__r.Handset__r.IMEI__c IN ("+ handsetIdString +")");
-                Connection connection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
+                Connection connection = DatabaseHelpers.createConnection(WebAppId.zebra);
                 Statement statement = connection.createStatement();
                 for (int counter = 0; counter < ckwQuery.getSize(); counter++) {
                     CKW__c ckw = (CKW__c)ckwQuery.getRecords(counter);

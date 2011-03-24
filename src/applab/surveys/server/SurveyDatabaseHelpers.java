@@ -24,6 +24,7 @@ import applab.server.DatabaseHelpers;
 import applab.server.DatabaseId;
 import applab.server.DatabaseTable;
 import applab.server.SelectCommand;
+import applab.server.WebAppId;
 
 /**
  * Helper methods for interacting with our survey and search databases
@@ -38,7 +39,7 @@ public class SurveyDatabaseHelpers {
     public static Connection getReaderConnection () throws ClassNotFoundException, SQLException {
         
         if (readerConnection == null || readerConnection.isClosed()) {
-            readerConnection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
+            readerConnection = DatabaseHelpers.createReaderConnection(WebAppId.zebra);
         }
         return readerConnection;
     }
@@ -46,7 +47,7 @@ public class SurveyDatabaseHelpers {
     public static Connection getWriterConnection () throws ClassNotFoundException, SQLException {
         
         if (writerConnection == null || writerConnection.isClosed()) {
-            writerConnection = DatabaseHelpers.createConnection(DatabaseId.Surveys);
+            writerConnection = DatabaseHelpers.createConnection(WebAppId.zebra);
         }
         return writerConnection;
     }

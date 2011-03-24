@@ -30,24 +30,27 @@ public class ReviewSubmissions extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     @Override
-    public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws ClassNotFoundException, SQLException,
+    public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context)
+            throws ClassNotFoundException, SQLException,
             IOException, ServiceException, ParseException, ServletException, SAXException, ParserConfigurationException {
         getSubmissions(request, response, context);
     }
-    
+
     @Override
-    public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws ClassNotFoundException, SQLException,
+    public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context)
+            throws ClassNotFoundException, SQLException,
             IOException, ServiceException, ParseException, ServletException, SAXException, ParserConfigurationException {
         getSubmissions(request, response, context);
     }
-    
-    private void getSubmissions(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws ClassNotFoundException, SQLException,
+
+    private void getSubmissions(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context)
+            throws ClassNotFoundException, SQLException,
             IOException, ServiceException, ParseException, ServletException, SAXException, ParserConfigurationException {
 
         // Can create the session here as it is the access point of the session (No login at the moment)
         HttpSession session = request.getSession(true);
         if (session == null) {
-//TODO - Make a generic error page.
+            // TODO - Make a generic error page.
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "FAIL!!!");
         }
         else {
@@ -59,41 +62,42 @@ public class ReviewSubmissions extends ApplabServlet {
             if ("on".equals(request.getParameter("showDraft"))) {
                 showDraft = true;
             }
-            
+
             // Extract the optional parameters
             java.sql.Date startDate = null;
             java.sql.Date endDate = null;
             try {
-                startDate =  DatabaseHelpers.getSqlDateFromString(request.getParameter("startDate"), 0);
+                startDate = DatabaseHelpers.getSqlDateFromString(request.getParameter("startDate"), 0);
             }
             catch (Exception e) {
 
                 // Do nothing and leave the dates blank
             }
             try {
-                endDate   = DatabaseHelpers.getSqlDateFromString(request.getParameter("endDate"), 0);
+                endDate = DatabaseHelpers.getSqlDateFromString(request.getParameter("endDate"), 0);
             }
             catch (Exception e) {
 
                 // Do nothing and leave the dates blank
             }
-           
+
             java.util.Date now = new java.util.Date();
             // If we only have one of the dates provided then set the other one to now
             if (startDate != null && endDate == null) {
-                endDate = new java.sql.Date(now.getTime());    
+                endDate = new java.sql.Date(now.getTime());
             }
-            
+
             if (startDate == null && endDate != null) {
-                startDate = new java.sql.Date(now.getTime());    
+                startDate = new java.sql.Date(now.getTime());
             }
-            
-            String statusParameter = request.getParameter("status") == null && request.getParameter("status") == "null" ? null: request.getParameter("status");
+
+            String statusParameter = request.getParameter("status") == null && request.getParameter("status") == "null" ? null : request
+                    .getParameter("status");
 
             SubmissionStatistics statistics = SubmissionStatistics.getStatistics(salesforceSurveyId, startDate, endDate);
             SubmissionStatus statusFilter = null;
             if (statistics != null) {
-        
+
                 // We have some statistics so lets load the submission
                 statusFilter = SubmissionStatus.parseHtmlParameter(statusParameter);
                 statistics.getSurvey().loadSubmissions(statusFilter, startDate, endDate, true, salesforceSurveyId, showDraft);
@@ -120,12 +124,13 @@ public class ReviewSubmissions extends ApplabServlet {
                 session.setAttribute("survey.status", statusFilter.getHtmlParameterValue());
             }
             else {
-               session.setAttribute("survey.status", "none");
+                session.setAttribute("survey.status", "none");
             }
-            
+
             session.setAttribute("survey.showDraft", showDraft);
-                
+
             // Play the jsp page to display the details
+            session.setAttribute("surver.baseUrl", context.getUrl() + "/");
             String url = "/jsp/ReviewSubmissions.jsp";
             ServletContext sc = getServletContext();
             RequestDispatcher rd = sc.getRequestDispatcher(url);

@@ -22,6 +22,7 @@ import applab.server.DatabaseId;
 import applab.server.DatabaseTable;
 import applab.server.SalesforceProxy;
 import applab.server.SelectCommand;
+import applab.server.WebAppId;
 import applab.surveys.server.SurveysSalesforceProxy;
 
 import com.sforce.soap.enterprise.QueryResult;
@@ -465,7 +466,7 @@ public class Survey {
      */
     String loadSalesforceId() throws ClassNotFoundException, SQLException {
         assert (this.primaryKey != -1) : "We should only reach this code if we have a valid primary key";
-        Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
+        Connection connection = DatabaseHelpers.createReaderConnection(WebAppId.zebra);
         Statement statement = connection.createStatement();
         String commandText = "SELECT survey_id AS SalesforceSurveyId from zebrasurvey where id=" + this.primaryKey;
         ResultSet resultSet = statement.executeQuery(commandText);
@@ -490,7 +491,7 @@ public class Survey {
             throws ClassNotFoundException, SQLException, ParseException, SAXException, IOException, ParserConfigurationException{
         
         // Build the query that gets the submissions for a given survey, status and within given dates.
-        Connection connection = DatabaseHelpers.createReaderConnection(DatabaseId.Surveys);
+        Connection connection = DatabaseHelpers.createReaderConnection(WebAppId.zebra);
         
         // Build the query
         StringBuilder commandText = new StringBuilder();
