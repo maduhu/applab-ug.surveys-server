@@ -318,6 +318,7 @@ public class Survey {
             commandText.append(salesforceId);
             commandText.append("'");
             QueryResult query = binding.query(commandText.toString());
+            SalesforceProxy.disposeBinding(binding);
             if (query.getSize() > 1) {
                 throw new RemoteException("We should have at most 1 survey with Name " + salesforceId + ", but we found " + query.getSize());
             } else if (query.getSize() == 0) {

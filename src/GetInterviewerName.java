@@ -54,6 +54,7 @@ public class GetInterviewerName extends ApplabServlet {
                     		ckw.getPerson__r().getHandset__r().getIMEI__c() + "' and (interviewer_id = '' OR interviewer_id is null)";
                     statement.executeUpdate(command);
                 }
+                SalesforceProxy.disposeBinding(binding);
             }
         }
         
@@ -82,6 +83,7 @@ public class GetInterviewerName extends ApplabServlet {
                     		ckw.getPerson__r().getHandset__r().getIMEI__c() + "' and (interviewer_id = '' OR interviewer_id is null)";
                     statement.executeUpdate(command);
                 }
+                SalesforceProxy.disposeBinding(binding);
             }
         }
     }
