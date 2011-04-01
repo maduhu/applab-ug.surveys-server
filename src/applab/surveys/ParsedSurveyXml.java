@@ -286,7 +286,7 @@ public class ParsedSurveyXml {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
 
                 // Input tag
-                if (childNode.getLocalName().equals("input")) {
+                if (childNode.getLocalName().equals("input") || childNode.getLocalName().equals("upload")) {
                     parseInput((Element)childNode);
                 }
                 else if (childNode.getLocalName().contains("select")) {
@@ -317,7 +317,7 @@ public class ParsedSurveyXml {
                 else if (childNode.getLocalName().equals("repeat")) {
                     for (Node repeatChild = childNode.getFirstChild(); repeatChild != null; repeatChild = repeatChild.getNextSibling()) {
                         if(null != repeatChild.getLocalName()) {
-                            if (repeatChild.getLocalName().equals("input")) {
+                            if (repeatChild.getLocalName().equals("input") || childNode.getLocalName().equals("upload")) {
                                 parseInput((Element)repeatChild);
                             }
         

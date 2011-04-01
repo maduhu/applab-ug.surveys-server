@@ -58,7 +58,7 @@ public class ProcessSubmission extends ApplabServlet {
     protected void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
         response.setContentType("text/html");
         response.setHeader("Location", request.getRequestURI());
-        String intervieweeId = request.getParameter("intervieweeId");
+        String intervieweeId = request.getHeader("x-applab-interviewee-id");
 
         // We are only expecting multi-part content
         if (!ServletFileUpload.isMultipartContent(request)) {
@@ -229,7 +229,6 @@ public class ProcessSubmission extends ApplabServlet {
             // The question binding is used as our column names for survey answers
             SubmissionAnswer answer = surveyResponses.get(answerKey);
             String answerColumn = answer.getQuestionName();
-
             // Verify that these questions have been created
             if (survey.getBackEndSurveyXml().hasQuestion(answerColumn)) {
                 answerColumns.add(answerKey);
@@ -387,7 +386,6 @@ public class ProcessSubmission extends ApplabServlet {
         String fileExtension = "." + contentType.substring(separatorIndex + 1);
 
         // For certain extensions, we can make substitutions here if it proves necessary (e.g. jpeg->jpg)
-
         return directoryName + generateAttachmentName() + fileExtension;
     }
 

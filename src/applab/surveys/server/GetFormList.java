@@ -32,22 +32,17 @@ public class GetFormList extends ApplabServlet {
 
     public static void writeFormsList(PrintWriter writer, String imei, ServletRequestContext context) throws Exception {
         SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
-        try {
-            ArrayList<Survey> publishedSurveys = salesforceProxy.getPublishedSurveys(imei);
-            if (publishedSurveys.size() > 0) {
-                writer.write("<forms>");
-                for (Survey survey : publishedSurveys) {
-                    writer.write("<form url=\"" + context.getFullPath("getForm?surveyid=" + survey.getSalesforceId())
+        ArrayList<Survey> publishedSurveys = salesforceProxy.getPublishedSurveys(imei);
+        if (publishedSurveys.size() > 0) {
+            writer.write("<forms>");
+            for (Survey survey : publishedSurveys) {
+                writer.write("<form url=\"" + context.getFullPath("getForm?surveyid=" + survey.getSalesforceId())
                             + "\" >" + survey.getName() + "</form>");
-                }
-                writer.write("</forms>");
             }
-            else {
-                writer.write("No Surveys available");
-            }
+            writer.write("</forms>");
         }
-        finally {
-            salesforceProxy.dispose();
+        else {
+            writer.write("No Surveys available");
         }
     }
 }
