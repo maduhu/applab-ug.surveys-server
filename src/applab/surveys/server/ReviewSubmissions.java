@@ -130,7 +130,7 @@ public class ReviewSubmissions extends ApplabServlet {
             session.setAttribute("survey.showDraft", showDraft);
 
             // Play the jsp page to display the details
-            session.setAttribute("surver.baseUrl", context.getUrl() + "/");
+            session.setAttribute("survey.baseUrl", context.getUrl() + "/");
             String url = "/jsp/ReviewSubmissions.jsp";
             ServletContext sc = getServletContext();
             RequestDispatcher rd = sc.getRequestDispatcher(url);

@@ -79,7 +79,7 @@ public class GetDetailedSubmission extends ApplabServlet {
             session.setAttribute("survey.showDraft", showDraft);
 
             // Play the jsp page to display the details
-            session.setAttribute("surver.baseUrl", context.getUrl() + "/");
+            session.setAttribute("survey.baseUrl", context.getUrl() + "/");
             String url = "/jsp/SubmissionDetails.jsp";
             ServletContext servletContext = getServletContext();
             RequestDispatcher requestDispatcher = servletContext.getRequestDispatcher(url);
