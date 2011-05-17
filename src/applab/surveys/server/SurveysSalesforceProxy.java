@@ -32,13 +32,13 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
     }
 
     public boolean surveyIdExists(String survey_id) throws Exception {
-        QueryResult query = getBinding().query("Select Name from Survey__c where Name='" + survey_id + "'");
+        QueryResult query = getBinding().query("SELECT Name FROM Survey__c WHERE Name='" + survey_id + "'");
         return (query.getSize() == 1);
     }
 
     public String getSurveyName(String survey_id) throws InvalidSObjectFault, MalformedQueryFault, InvalidFieldFault, InvalidIdFault,
             UnexpectedErrorFault, InvalidQueryLocatorFault, RemoteException {
-        QueryResult query = getBinding().query("Select Survey_Name__c from Survey__c where Name='" + survey_id + "'");
+        QueryResult query = getBinding().query("SELECT Survey_Name__c FROM Survey__c WHERE Name='" + survey_id + "'");
         if (query.getSize() == 1) {
             Survey__c survey = (Survey__c)query.getRecords(0);
             return survey.getSurvey_Name__c();
@@ -53,8 +53,8 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
         String groupIds = getGroupIds(imei);
         if (!"".equalsIgnoreCase(groupIds)) {
             QueryResult query = getBinding().query(
-                    "Select Name, Survey_Name__c from Survey__c where Survey_Status__c = 'Published' and Start_Date__c < TOMORROW and End_Date__c > YESTERDAY and Id in " +
-                            "(Select Survey__c from Survey_Group_Association__c where Group__c IN (" + groupIds + "))");
+                    "SELECT Name, Survey_Name__c FROM Survey__c WHERE Survey_Status__c = 'Published' AND Start_Date__c < TOMORROW AND End_Date__c > YESTERDAY AND Id IN " +
+                            "(SELECT Survey__c FROM Survey_Group_Association__c WHERE Group__c IN (" + groupIds + ")) ORDER BY Survey_Name__c ASC");
 
             for (int i = 0; i < query.getSize(); i++) {
                 Survey__c survey = (Survey__c)query.getRecords(i);
