@@ -132,13 +132,27 @@
 					</td>
 				</tr>
 				<tr>
-					<td>Customer Care Team Review Comments</td>
+					
+					<td>Existing Customer Care Team Review Comments</td>
 					<td>
-						<input type="text" name="ccComments"/>
+						<textarea name="ccReview" readonly="readonly"><%= submission.getCustomerCareReview() %></textarea>
+						
 					</td>
-					<td>Data Team Review Comments</td>
+					<td>Existing Data Team Review Comments</td>
 					<td>
-						<input type="text" name="dtComments"/>
+						<textarea name="dtReview" readonly="readonly"><%= submission.getDataTeamReview() %></textarea>
+					</td>
+				</tr>
+				<tr>
+					
+					<td>Add More Customer Care Team Review Comments</td>
+					<td>
+						<textarea name="addCcReview" ></textarea>
+						
+					</td>
+					<td>Add More Data Team Review Comments</td>
+					<td>
+						<textarea name="addDtReview" ></textarea>
 					</td>
 				</tr>
 				<tr>

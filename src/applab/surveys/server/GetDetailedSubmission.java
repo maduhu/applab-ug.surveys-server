@@ -53,6 +53,7 @@ public class GetDetailedSubmission extends ApplabServlet {
         String status = request.getParameter("status");
         String showDraft = request.getParameter("showDraft");
 
+        
         // Load the survey
         Survey survey = new Survey(surveySalesforceId);
         survey.loadSurvey(surveySalesforceId, true);
@@ -77,7 +78,7 @@ public class GetDetailedSubmission extends ApplabServlet {
             session.setAttribute("survey.endDate", endDate);
             session.setAttribute("survey.status", status);
             session.setAttribute("survey.showDraft", showDraft);
-
+           
             // Play the jsp page to display the details
             session.setAttribute("survey.baseUrl", context.getUrl() + "/");
             String url = "/jsp/SubmissionDetails.jsp";
@@ -110,7 +111,9 @@ public class GetDetailedSubmission extends ApplabServlet {
         commandText.append("s.mobile_number AS mobileNumber, ");
         commandText.append("s.survey_status AS surveyStatus, ");
         commandText.append("s.customer_care_status AS customerCareStatus, ");
-        commandText.append("s.location AS location ");
+        commandText.append("s.location AS location, ");
+        commandText.append("s.customer_care_review AS customerCareReview, ");
+        commandText.append("s.data_team_review AS dataTeamReview ");
         commandText.append("FROM answers a, zebrasurveysubmissions s ");
         commandText.append("WHERE a.submission_id = ? ");
         commandText.append("AND a.submission_id = s.id ");
@@ -145,7 +148,9 @@ public class GetDetailedSubmission extends ApplabServlet {
         submission.setStatus(dataTeamStatus);
         CustomerCareStatus customerCareStatus = CustomerCareStatus.parseDisplayName(resultSet.getString("customerCareStatus"));
         submission.setCustomerCareStatus(customerCareStatus);
-        
+        submission.setCustomerCareReview(resultSet.getString("customerCareReview"));
+        submission.setDataTeamReview(resultSet.getString("dataTeamReview"));
+
         // Loop through the result set and add the answers.
         do {
             

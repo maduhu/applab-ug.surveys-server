@@ -34,7 +34,11 @@ public class UpdateSubmissionStatus extends ApplabServlet {
         int submissionId = Integer.valueOf(request.getParameter("submissionId"));
         SubmissionStatus dataTeamStatus = SubmissionStatus.parseHtmlParameter(request.getParameter("dtStatus"));
         CustomerCareStatus customerCareStatus = CustomerCareStatus.parseHtmlParameter(request.getParameter("ccStatus"));
-        updateSubmissionStatus(submissionId, dataTeamStatus.getDisplayName(), customerCareStatus.getDisplayName());
+        
+        String customerCareReview = request.getParameter("ccReview") + (request.getParameter("addCcReview") == "" ? "" : "\n" + request.getParameter("addCcReview"));
+        String dataTeamReview = request.getParameter("dtReview") + (request.getParameter("addDtReview") == "" ? "" : "\n" + request.getParameter("addDtReview"));
+       
+        updateSubmissionStatus(submissionId, dataTeamStatus.getDisplayName(), customerCareStatus.getDisplayName(), customerCareReview, dataTeamReview);
 
         // Redirect to the reviewsubmissionServlet.
         String url = "/getSubmissions";
@@ -43,13 +47,15 @@ public class UpdateSubmissionStatus extends ApplabServlet {
         
     }
 
-    static void updateSubmissionStatus(int submissionId, String surveyStatus, String customerCareStatus) throws ClassNotFoundException, SQLException {
+    static void updateSubmissionStatus(int submissionId, String surveyStatus, String customerCareStatus, String customerCareReview, String dataTeamReview) throws ClassNotFoundException, SQLException {
         Connection connection = SurveyDatabaseHelpers.getWriterConnection();
-        String query = "UPDATE zebrasurveysubmissions SET survey_status = ?, customer_care_status = ? WHERE id = ?";
+        String query = "UPDATE zebrasurveysubmissions SET survey_status = ?, customer_care_status = ?, customer_care_review = ?, data_team_review = ? WHERE id = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(query);
         preparedStatement.setString(1, surveyStatus);
         preparedStatement.setString(2, customerCareStatus);
-        preparedStatement.setInt(3, submissionId);
+        preparedStatement.setString(3, customerCareReview);
+        preparedStatement.setString(4, dataTeamReview);
+        preparedStatement.setInt(5, submissionId);
         preparedStatement.executeUpdate();
         connection.close();
     }
