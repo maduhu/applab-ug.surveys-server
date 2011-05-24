@@ -33,6 +33,7 @@ import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import applab.CommunityKnowledgeWorker;
+import applab.Person;
 import applab.server.ApplabServlet;
 import applab.server.DatabaseHelpers;
 import applab.server.HashHelpers;
@@ -136,11 +137,16 @@ public class ProcessSubmission extends ApplabServlet {
     /**
      * Store the submission in our database
      * 
-     * @param surveyResponses      - Hashmap of the answers to the survey
-     * @param attachmentReferences -
-     * @param handsetId            - IMEI of the submitting phone
-     * @param submissionSize       - In bytes
-     * @param intervieweeName      - Id of the person being interviewed
+     * @param surveyResponses
+     *            - Hashmap of the answers to the survey
+     * @param attachmentReferences
+     *            -
+     * @param handsetId
+     *            - IMEI of the submitting phone
+     * @param submissionSize
+     *            - In bytes
+     * @param intervieweeName
+     *            - Id of the person being interviewed
      * 
      * @return
      */
@@ -212,8 +218,34 @@ public class ProcessSubmission extends ApplabServlet {
             intervieweeName = intervieweeName.toUpperCase();
         }
 
-        // Extract the permanent fields
+        // Extract the permanent fields from a CKW first.
+        String interviewerId = "";
         CommunityKnowledgeWorker interviewer = CommunityKnowledgeWorker.load(handsetId);
+        Person interviewerPerson = null;
+
+        // If we don't find the CKW try to load as a person
+        if (interviewer == null) {
+            interviewerPerson = Person.load(handsetId);
+        }
+        else {
+            interviewerId = interviewer.getCkwSalesforceName();
+        }
+
+        // If we don't have an interviewer the use the test person.
+        if (interviewerPerson == null) {
+            interviewerPerson = Person.loadTestPerson();
+        }
+
+        // Still don't have an interviewer then bail out. If you ever get here you need to add a
+        // Test person to Salesforce
+        if (interviewerPerson == null) {
+            return HttpServletResponse.SC_BAD_REQUEST;
+        }
+        else {
+            if (interviewerId.equals("")) {
+                interviewerPerson.getSalesforceName();
+            }
+        }
 
         // Lastly, we need to remove the survey id, since we're storing that explicitly already
         surveyResponses.remove("survey_id:0");
@@ -229,6 +261,7 @@ public class ProcessSubmission extends ApplabServlet {
             // The question binding is used as our column names for survey answers
             SubmissionAnswer answer = surveyResponses.get(answerKey);
             String answerColumn = answer.getQuestionName();
+
             // Verify that these questions have been created
             if (survey.getBackEndSurveyXml().hasQuestion(answerColumn)) {
                 answerColumns.add(answerKey);
@@ -261,7 +294,7 @@ public class ProcessSubmission extends ApplabServlet {
             submissionStatement.setTimestamp(2, DatabaseHelpers.getTimestamp(new Date()));
             submissionStatement.setTimestamp(3, DatabaseHelpers.getTimestamp(handsetSubmissionTime));
             submissionStatement.setString(4, handsetId);
-            submissionStatement.setString(5, interviewer.getCkwSalesforceName());
+            submissionStatement.setString(5, interviewerId);
             submissionStatement.setString(6, interviewer.getFullName());
             submissionStatement.setString(7, duplicateDetectionHash);
             submissionStatement.setLong(8, submissionSize);

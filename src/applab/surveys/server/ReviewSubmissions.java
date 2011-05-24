@@ -63,6 +63,11 @@ public class ReviewSubmissions extends ApplabServlet {
                 showDraft = true;
             }
 
+            boolean includePeople = false;
+            if ("on".equals(request.getParameter("includePeople"))) {
+                includePeople = true;
+            }
+
             // Extract the optional parameters
             java.sql.Date startDate = null;
             java.sql.Date endDate = null;
@@ -100,7 +105,7 @@ public class ReviewSubmissions extends ApplabServlet {
 
                 // We have some statistics so lets load the submission
                 statusFilter = SubmissionStatus.parseHtmlParameter(statusParameter);
-                statistics.getSurvey().loadSubmissions(statusFilter, startDate, endDate, true, salesforceSurveyId, showDraft);
+                statistics.getSurvey().loadSubmissions(statusFilter, startDate, endDate, true, salesforceSurveyId, showDraft, includePeople);
 
                 // Bind the submission object
                 session.setAttribute("survey.statistics", statistics);
@@ -128,6 +133,7 @@ public class ReviewSubmissions extends ApplabServlet {
             }
 
             session.setAttribute("survey.showDraft", showDraft);
+            session.setAttribute("survey.includePeople", includePeople);
 
             // Play the jsp page to display the details
             session.setAttribute("survey.baseUrl", context.getUrl() + "/");

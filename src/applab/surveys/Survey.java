@@ -17,13 +17,12 @@ import javax.xml.rpc.ServiceException;
 
 import org.xml.sax.SAXException;
 
+import applab.server.CsvHelpers;
 import applab.server.DatabaseHelpers;
-import applab.server.DatabaseId;
 import applab.server.DatabaseTable;
 import applab.server.SalesforceProxy;
 import applab.server.SelectCommand;
 import applab.server.WebAppId;
-import applab.server.CsvHelpers;
 import applab.surveys.server.SurveysSalesforceProxy;
 
 import com.sforce.soap.enterprise.QueryResult;
@@ -140,14 +139,15 @@ public class Survey {
 	public HashMap<Integer, Submission> getSubmissions()
 			throws ClassNotFoundException, SQLException, ParseException,
 			SAXException, IOException, ParserConfigurationException {
-		return getSubmissions(null, null, null, true, false);
+		return getSubmissions(null, null, null, true, false, false);
 	}
 
 	public HashMap<Integer, Submission> getSubmissions(
 			SubmissionStatus submissionFilter, java.sql.Date startDate,
-			java.sql.Date endDate, boolean basic, boolean showDraft)
-			throws ClassNotFoundException, SQLException, ParseException,
-			SAXException, IOException, ParserConfigurationException {
+			java.sql.Date endDate, boolean basic, boolean showDraft,
+			boolean includePeople) throws ClassNotFoundException, SQLException,
+			ParseException, SAXException, IOException,
+			ParserConfigurationException {
 		if (submissionFilter != this.cachedSubmissionFilter) {
 			this.cachedSubmissions = null;
 			this.cachedSubmissionFilter = submissionFilter;
@@ -155,7 +155,7 @@ public class Survey {
 
 		if (this.cachedSubmissions == null) {
 			this.cachedSubmissions = loadSubmissions(submissionFilter,
-					startDate, endDate, basic, showDraft);
+					startDate, endDate, basic, showDraft, includePeople);
 		}
 		return this.cachedSubmissions;
 	}
@@ -183,7 +183,7 @@ public class Survey {
 	 */
 	public void loadSubmissions(SubmissionStatus submissionStatus,
 			java.sql.Date startDate, java.sql.Date endDate, boolean basic,
-			String salesforceId, boolean showDraft)
+			String salesforceId, boolean showDraft, boolean includePeople)
 			throws ClassNotFoundException, SQLException, ParseException,
 			SAXException, IOException, ParserConfigurationException,
 			ServiceException {
@@ -194,7 +194,7 @@ public class Survey {
 		}
 
 		this.getSubmissions(submissionStatus, startDate, endDate, basic,
-				showDraft);
+				showDraft, includePeople);
 	}
 
 	/**
@@ -249,8 +249,7 @@ public class Survey {
 					for (int j = 1; j <= question.getNumberOfSelects(); j++) {
 						writer.append(CsvHelpers
 								.escapeAndQuoteForCsv(questionDisplayName)
-								+ "_"
-								+ j + ",");
+								+ "_" + j + ",");
 					}
 				} else {
 					writer.append(CsvHelpers
@@ -277,11 +276,12 @@ public class Survey {
 					.getInterviewerId()) + ',');
 			writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
 					.getInterviewerName()) + ',');
-			writer.append(CsvHelpers.escapeAndQuoteForCsv(submission.getLocation()) + ',');
+			writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
+					.getLocation()) + ',');
 			writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
 					.getCustomerCareStatus().toString()) + ',');
-			writer.append(CsvHelpers.escapeAndQuoteForCsv(submission.getStatus()
-					.toString()) + ',');
+			writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
+					.getStatus().toString()) + ',');
 			for (String questionName : this.backendSurveyXml.getQuestionOrder()) {
 				Question question = this.backendSurveyXml.getQuestions().get(
 						questionName);
@@ -320,7 +320,8 @@ public class Survey {
 							answerText = answer.getFriendlyAnswerText(true,
 									this);
 						}
-						writer.append(CsvHelpers.escapeAndQuoteForCsv(answerText) + ',');
+						writer.append(CsvHelpers
+								.escapeAndQuoteForCsv(answerText) + ',');
 					}
 				}
 			}
@@ -551,9 +552,9 @@ public class Survey {
 
 	HashMap<Integer, Submission> loadSubmissions(SubmissionStatus statusFilter,
 			java.sql.Date startDate, java.sql.Date endDate, boolean basic,
-			boolean showDraft) throws ClassNotFoundException, SQLException,
-			ParseException, SAXException, IOException,
-			ParserConfigurationException {
+			boolean showDraft, boolean includePeople)
+			throws ClassNotFoundException, SQLException, ParseException,
+			SAXException, IOException, ParserConfigurationException {
 
 		// Build the query that gets the submissions for a given survey, status
 		// and within given dates.
@@ -601,6 +602,11 @@ public class Survey {
 		if (startDate != null && endDate != null) {
 			commandText.append(" AND s.server_entry_time >= ?");
 			commandText.append(" AND s.server_entry_time <= ?");
+		}
+
+		// Exclude non-CKW submissions
+		if (!includePeople) {
+			commandText.append(" AND s.interviewer_id LIKE 'CKW'");
 		}
 		commandText.append(" ORDER BY s.server_entry_time");
 

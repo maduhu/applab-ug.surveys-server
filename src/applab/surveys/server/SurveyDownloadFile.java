@@ -61,6 +61,10 @@ public class SurveyDownloadFile extends ApplabServlet {
                 if ("on".equals(request.getParameter("showDraft"))) {
                     showDraft = true;
                 }
+                boolean includePeople = false;
+                if ("on".equals(request.getParameter("includePeople"))) {
+                    includePeople = true;
+                }
                 try {
                     startDate =  DatabaseHelpers.getSqlDateFromString(request.getParameter("startDate"), 0);
                     startDateDescription = startDate.toString();
@@ -103,7 +107,7 @@ public class SurveyDownloadFile extends ApplabServlet {
                 else {
 
                     // We have some statistics so lets load the submission
-                    statistics.getSurvey().loadSubmissions(status, startDate, endDate, false, salesforceSurveyId, showDraft);
+                    statistics.getSurvey().loadSubmissions(status, startDate, endDate, false, salesforceSurveyId, showDraft, includePeople);
                     outputString = statistics.getSurvey().generateCsv();
                     fileDownloadName = "SubmissionCSV-" + startDateDescription + "-" + endDateDescription + "-" + statusDescription + ".csv";
                 }

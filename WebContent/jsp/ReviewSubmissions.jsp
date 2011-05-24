@@ -12,6 +12,7 @@
    String status       = (String) session.getAttribute("survey.status");
    String salesforceId = (String) session.getAttribute("survey.salesforceId");
    Boolean showDraft  =  (Boolean) session.getAttribute("survey.showDraft");
+   Boolean includePeople  =  (Boolean) session.getAttribute("survey.includePeople");
 %>
 <html>
 <head>
@@ -67,6 +68,14 @@
 					<% } %>
 					/>
 				</div>
+				<div>
+				    Include Non-CKWs:
+				    <input class="" type="checkbox" name="includePeople"
+				    <% if (includePeople) {%>
+				        checked="true"
+				    <% } %>
+				    />
+				</div>
 				<input type="submit" name="Submit"    value="Refine Search"/>
 			</form>
 			<div id="exportToCsv">
@@ -80,6 +89,8 @@
 						<input type="hidden" name="startDate" value="<%= startDate %>"/>
 						<input type="hidden" name="endDate"   value="<%= endDate %>"/>
 						<input type="hidden" name="status"    value="<%= status %>"/>
+						<input type="hidden" name="showDraft"    value="<%= showDraft %>"/>
+						<input type="hidden" name="includePeople"    value="<%= includePeople %>"/>
 					</form>
 				<% } %>
 			</div>
@@ -151,6 +162,8 @@
 						<input type="hidden" name="startDate" value="<%= startDate %>"/>
 						<input type="hidden" name="endDate"   value="<%= endDate %>"/>
 						<input type="hidden" name="status"    value="<%= status %>"/>
+						<input type="hidden" name="showDraft" value="<%= showDraft %>"/>
+						<input type="hidden" name="includePeople" value="<%= includePeople %>"/>
 						<input type="submit" value="More Details"/>
 					</form>
 				</td>
