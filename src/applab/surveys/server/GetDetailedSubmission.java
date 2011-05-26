@@ -149,8 +149,8 @@ public class GetDetailedSubmission extends ApplabServlet {
         submission.setStatus(dataTeamStatus);
         CustomerCareStatus customerCareStatus = CustomerCareStatus.parseDisplayName(resultSet.getString("customerCareStatus"));
         submission.setCustomerCareStatus(customerCareStatus);
-        submission.setCustomerCareReview(resultSet.getString("customerCareReview"));
-        submission.setDataTeamReview(resultSet.getString("dataTeamReview"));
+        submission.setCustomerCareReview((resultSet.getString("customerCareReview") == null) ? "" : resultSet.getString("customerCareReview"));
+        submission.setDataTeamReview((resultSet.getString("dataTeamReview") == null) ? "" : resultSet.getString("dataTeamReview"));
 
         // Loop through the result set and add the answers.
         do {
