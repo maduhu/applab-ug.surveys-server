@@ -226,25 +226,25 @@ public class ProcessSubmission extends ApplabServlet {
         // If we don't find the CKW try to load as a person
         if (interviewer == null) {
             interviewerPerson = Person.load(handsetId);
+
+            // If we don't have an interviewer the use the test person.
+            if (interviewerPerson == null) {
+                interviewerPerson = Person.loadTestPerson();
+            }
+
+            // Still don't have an interviewer then bail out. If you ever get here you need to add a
+            // Test person to Salesforce
+            if (interviewerPerson == null) {
+                return HttpServletResponse.SC_BAD_REQUEST;
+            }
+            else {
+                if (interviewerId.equals("")) {
+                    interviewerPerson.getSalesforceName();
+                }
+            }
         }
         else {
             interviewerId = interviewer.getCkwSalesforceName();
-        }
-
-        // If we don't have an interviewer the use the test person.
-        if (interviewerPerson == null) {
-            interviewerPerson = Person.loadTestPerson();
-        }
-
-        // Still don't have an interviewer then bail out. If you ever get here you need to add a
-        // Test person to Salesforce
-        if (interviewerPerson == null) {
-            return HttpServletResponse.SC_BAD_REQUEST;
-        }
-        else {
-            if (interviewerId.equals("")) {
-                interviewerPerson.getSalesforceName();
-            }
         }
 
         // Lastly, we need to remove the survey id, since we're storing that explicitly already
