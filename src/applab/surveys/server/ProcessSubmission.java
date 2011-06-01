@@ -33,6 +33,7 @@ import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import applab.CommunityKnowledgeWorker;
+import applab.Location;
 import applab.Person;
 import applab.server.ApplabServlet;
 import applab.server.DatabaseHelpers;
@@ -54,13 +55,13 @@ public class ProcessSubmission extends ApplabServlet {
 
     private static final long serialVersionUID = 1L;
     private static Random attachmentNameGenerator = new Random();
-
-    @Override
+	@Override
     protected void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
         response.setContentType("text/html");
         response.setHeader("Location", request.getRequestURI());
         String intervieweeId = request.getHeader("x-applab-interviewee-id");
-
+        String location = request.getHeader("x-applab-survey-location");
+        String submissionLocation = context.getSubmissionLocation();
         // We are only expecting multi-part content
         if (!ServletFileUpload.isMultipartContent(request)) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "request must be MIME encoded");
@@ -112,7 +113,7 @@ public class ProcessSubmission extends ApplabServlet {
         // Now that we've processed all of the data, insert the contents into our database
         // and construct the HTTP response
         String imei = context.getHandsetId();
-        int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths, imei, totalSize, intervieweeId);
+        int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths, imei, totalSize, intervieweeId, location, submissionLocation);
         response.setStatus(httpResponseCode);
     }
 
@@ -147,12 +148,13 @@ public class ProcessSubmission extends ApplabServlet {
      *            - In bytes
      * @param intervieweeName
      *            - Id of the person being interviewed
+     * @param submissionLocation 
      * 
      * @return
      */
     public static int storeSurveySubmission(HashMap<String, SubmissionAnswer> surveyResponses,
                                             HashMap<String, String> attachmentReferences, String handsetId, long submissionSize,
-                                            String intervieweeName)
+                                            String intervieweeName, String locationString, String submissionLocation)
             throws NoSuchAlgorithmException, ServiceException,
             ClassNotFoundException, SQLException, ParseException, SAXException, IOException, ParserConfigurationException {
 
@@ -193,7 +195,10 @@ public class ProcessSubmission extends ApplabServlet {
         if (surveyResponses.containsKey("location:0")) {
             location = surveyResponses.remove("location:0").getAnswerText(attachmentReferences);
         }
-
+        else  { 
+        	location = locationString;
+        }
+        
         // Dirty hack to get around the problem of old form formats. TODO Remove in 2.10
         // When every CKW should have downloaded the new form version.
         if (surveyResponses.containsKey("location:1")) {
@@ -284,7 +289,8 @@ public class ProcessSubmission extends ApplabServlet {
             commandText.append(", location");
             commandText.append(", interviewee_name");
             commandText.append(", is_draft");
-            commandText.append(") values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            commandText.append(", submission_location");
+            commandText.append(") values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             // Create the prepared statement
             PreparedStatement submissionStatement = connection.prepareStatement(commandText.toString(), Statement.RETURN_GENERATED_KEYS);
@@ -307,7 +313,8 @@ public class ProcessSubmission extends ApplabServlet {
             else {
                 submissionStatement.setString(12, "N");
             }
-
+            submissionStatement.setString(13, submissionLocation);
+            
             try {
                 submissionStatement.execute();
             }

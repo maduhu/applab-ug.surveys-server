@@ -19,6 +19,7 @@ public class Submission {
 	private Survey parentSurvey;
 	private String customerCareReview;
 	private String dataTeamReview;
+	private String submissionLocation;
 
 	// This constructor is used when loading a single submission details
 	public Submission() {
@@ -169,5 +170,13 @@ public class Submission {
 
 	public String getDataTeamReview() {
 		return this.dataTeamReview;
+	}
+
+	public void setSubmissionLocation(String submissionLocation) {
+		this.submissionLocation = submissionLocation;
+	}
+
+	public String getSubmissionLocation() {
+		return this.submissionLocation;
 	}
 }

@@ -229,6 +229,7 @@ public class Survey {
         writer.append("CKW ID,");
         writer.append("CKW Name,");
         writer.append("Location,");
+        writer.append("Submission Location,");
         writer.append("Customer Care Review,");
         writer.append("Data Team Review,");
 
@@ -279,9 +280,15 @@ public class Survey {
             writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
                     .getLocation()) + ',');
             writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
+                    .getSubmissionLocation()) + ',');
+            writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
                     .getCustomerCareStatus().toString()) + ',');
             writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
                     .getStatus().toString()) + ',');
+            writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
+                    .getCustomerCareReview().toString()) + ',');
+            writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
+                    .getDataTeamReview().toString()) + ',');
             for (String questionName : this.backendSurveyXml.getQuestionOrder()) {
                 Question question = this.backendSurveyXml.getQuestions().get(
                         questionName);

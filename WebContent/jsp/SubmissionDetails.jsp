@@ -65,6 +65,10 @@
 				<td>Location</td>
 				<td><%= submission.getLocation() %></td>
 			</tr>	
+			<tr>
+				<td>Submission Location</td>
+				<td><%= submission.getSubmissionLocation() %></td>
+			</tr>
 			<%
 				Survey survey = submission.getSurvey();
 				for (String questionName : submission.getAnswerOrder()) { 

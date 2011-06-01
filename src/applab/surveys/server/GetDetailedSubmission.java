@@ -114,7 +114,8 @@ public class GetDetailedSubmission extends ApplabServlet {
         commandText.append("s.customer_care_status AS customerCareStatus, ");
         commandText.append("s.location AS location, ");
         commandText.append("s.customer_care_review AS customerCareReview, ");
-        commandText.append("s.data_team_review AS dataTeamReview ");
+        commandText.append("s.data_team_review AS dataTeamReview, ");
+        commandText.append("s.submission_location AS submissionLocation ");
         commandText.append("FROM answers a, zebrasurveysubmissions s ");
         commandText.append("WHERE a.submission_id = ? ");
         commandText.append("AND a.submission_id = s.id ");
@@ -151,6 +152,7 @@ public class GetDetailedSubmission extends ApplabServlet {
         submission.setCustomerCareStatus(customerCareStatus);
         submission.setCustomerCareReview((resultSet.getString("customerCareReview") == null) ? "" : resultSet.getString("customerCareReview"));
         submission.setDataTeamReview((resultSet.getString("dataTeamReview") == null) ? "" : resultSet.getString("dataTeamReview"));
+        submission.setSubmissionLocation(resultSet.getString("submissionLocation"));
 
         // Loop through the result set and add the answers.
         do {
