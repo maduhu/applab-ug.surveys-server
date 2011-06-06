@@ -161,7 +161,12 @@ public class Submission {
 	}
 
 	public String getCustomerCareReview() {
-		return this.customerCareReview;
+		if (this.customerCareReview == null) {
+			return "";
+		}
+		else {
+			return this.customerCareReview;
+		}
 	}
 
 	public void setDataTeamReview(String dataTeamReview) {
@@ -169,7 +174,12 @@ public class Submission {
 	}
 
 	public String getDataTeamReview() {
-		return this.dataTeamReview;
+		if (this.dataTeamReview == null) {
+			return "";
+		}
+		else {
+			return this.dataTeamReview;
+		}
 	}
 
 	public void setSubmissionLocation(String submissionLocation) {
@@ -177,6 +187,11 @@ public class Submission {
 	}
 
 	public String getSubmissionLocation() {
-		return this.submissionLocation;
+		if (this.submissionLocation == null) {
+			return "";
+		}
+		else {
+			return this.submissionLocation;
+		}
 	}
 }

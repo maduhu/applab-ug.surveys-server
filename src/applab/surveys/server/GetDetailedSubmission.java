@@ -152,7 +152,7 @@ public class GetDetailedSubmission extends ApplabServlet {
         submission.setCustomerCareStatus(customerCareStatus);
         submission.setCustomerCareReview((resultSet.getString("customerCareReview") == null) ? "" : resultSet.getString("customerCareReview"));
         submission.setDataTeamReview((resultSet.getString("dataTeamReview") == null) ? "" : resultSet.getString("dataTeamReview"));
-        submission.setSubmissionLocation(resultSet.getString("submissionLocation"));
+        submission.setSubmissionLocation((resultSet.getString("submissionLocation") == null) ? "" : resultSet.getString("submissionLocation"));
 
         // Loop through the result set and add the answers.
         do {
