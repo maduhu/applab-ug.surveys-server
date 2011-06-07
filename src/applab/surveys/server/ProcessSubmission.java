@@ -62,6 +62,8 @@ public class ProcessSubmission extends ApplabServlet {
         String intervieweeId = request.getHeader("x-applab-interviewee-id");
         String location = request.getHeader("x-applab-survey-location");
         String submissionLocation = context.getSubmissionLocation();
+        String imei = context.getHandsetId();
+
         // We are only expecting multi-part content
         if (!ServletFileUpload.isMultipartContent(request)) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "request must be MIME encoded");
@@ -98,7 +100,7 @@ public class ProcessSubmission extends ApplabServlet {
                 surveyResponses = parseSurveySubmission(xmlDocument);
 
                 // Log the XML input
-                log(fileItem.getString());
+                log(imei + " Has submitted from - " + fileItem.getString());
             }
 
             // Attachments (TODO: open this further?)
@@ -112,7 +114,6 @@ public class ProcessSubmission extends ApplabServlet {
 
         // Now that we've processed all of the data, insert the contents into our database
         // and construct the HTTP response
-        String imei = context.getHandsetId();
         int httpResponseCode = storeSurveySubmission(surveyResponses, attachmentPaths, imei, totalSize, intervieweeId, location, submissionLocation);
         response.setStatus(httpResponseCode);
     }
@@ -225,6 +226,8 @@ public class ProcessSubmission extends ApplabServlet {
 
         // Extract the permanent fields from a CKW first.
         String interviewerId = "";
+        String fullName = "";
+        String mobileNumber = "";
         CommunityKnowledgeWorker interviewer = CommunityKnowledgeWorker.load(handsetId);
         Person interviewerPerson = null;
 
@@ -244,12 +247,16 @@ public class ProcessSubmission extends ApplabServlet {
             }
             else {
                 if (interviewerId.equals("")) {
-                    interviewerPerson.getSalesforceName();
+                    interviewerId = interviewerPerson.getSalesforceName();
+                    fullName = interviewerPerson.getFullName();
+                    mobileNumber = interviewerPerson.getMobileNumber();
                 }
             }
         }
         else {
             interviewerId = interviewer.getCkwSalesforceName();
+            fullName = interviewer.getFullName();
+            mobileNumber = interviewer.getMobileNumber();
         }
 
         // Lastly, we need to remove the survey id, since we're storing that explicitly already
@@ -301,10 +308,10 @@ public class ProcessSubmission extends ApplabServlet {
             submissionStatement.setTimestamp(3, DatabaseHelpers.getTimestamp(handsetSubmissionTime));
             submissionStatement.setString(4, handsetId);
             submissionStatement.setString(5, interviewerId);
-            submissionStatement.setString(6, interviewer.getFullName());
+            submissionStatement.setString(6, fullName);
             submissionStatement.setString(7, duplicateDetectionHash);
             submissionStatement.setLong(8, submissionSize);
-            submissionStatement.setString(9, interviewer.getMobileNumber());
+            submissionStatement.setString(9, mobileNumber);
             submissionStatement.setString(10, location);
             submissionStatement.setString(11, intervieweeName);
             if ("Draft".equals(survey.getSurveyStatus().toString())) {

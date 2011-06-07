@@ -29,12 +29,12 @@ import applab.surveys.Submission;
 import applab.surveys.SubmissionStatus;
 import applab.surveys.Survey;
 
-
 public class GetDetailedSubmission extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     @Override
-    public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws ClassNotFoundException, SQLException,
+    public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context)
+            throws ClassNotFoundException, SQLException,
             IOException, ServiceException, ParseException, ServletException, SAXException, ParserConfigurationException {
 
         // At the moment we are not really using the session except to pass objects to the jsp
@@ -44,7 +44,7 @@ public class GetDetailedSubmission extends ApplabServlet {
         if (session == null) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Bad Session");
         }
-        
+
         String surveyId = request.getParameter("surveyId");
         String surveySalesforceId = request.getParameter("surveySalesforceId");
         String submissionId = request.getParameter("submissionId");
@@ -53,14 +53,14 @@ public class GetDetailedSubmission extends ApplabServlet {
         String status = request.getParameter("status");
         String showDraft = request.getParameter("showDraft");
         String includePeople = request.getParameter("includePeople");
-        
+
         // Load the survey
         Survey survey = new Survey(surveySalesforceId);
         survey.loadSurvey(surveySalesforceId, true);
 
         // Get the submission details
         ResultSet submissionData = getDetailedSubmissionData(Integer.valueOf(submissionId));
-        
+
         if (DatabaseHelpers.getRowCount(submissionData) == 0) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Submission ID does not exist: " + submissionId);
         }
@@ -79,7 +79,7 @@ public class GetDetailedSubmission extends ApplabServlet {
             session.setAttribute("survey.status", status);
             session.setAttribute("survey.showDraft", showDraft);
             session.setAttribute("survey.includePeople", includePeople);
-           
+
             // Play the jsp page to display the details
             session.setAttribute("survey.baseUrl", context.getUrl() + "/");
             String url = "/jsp/SubmissionDetails.jsp";
@@ -92,12 +92,13 @@ public class GetDetailedSubmission extends ApplabServlet {
     /**
      * Get the data from the DB
      * 
-     * @param SubmissionId - The id in the database that corresponds to the submission required.
+     * @param SubmissionId
+     *            - The id in the database that corresponds to the submission required.
      */
     private ResultSet getDetailedSubmissionData(int submissionId) throws SQLException, ClassNotFoundException {
-        
+
         Connection connection = SurveyDatabaseHelpers.getReaderConnection();
-        
+
         // Build the SQL for the query.
         StringBuilder commandText = new StringBuilder();
         commandText.append("SELECT a.question_number AS questionNumber, ");
@@ -120,17 +121,17 @@ public class GetDetailedSubmission extends ApplabServlet {
         commandText.append("WHERE a.submission_id = ? ");
         commandText.append("AND a.submission_id = s.id ");
         commandText.append("ORDER BY questionNumber, position");
-        
+
         // Prepare the statement
         PreparedStatement query = connection.prepareStatement(commandText.toString());
-       
+
         // Pass the variables to the prepared statement
         query.setInt(1, submissionId);
-        
+
         // Execute the query
         return query.executeQuery();
     }
-    
+
     private Submission createSubmission(ResultSet resultSet, Survey survey)
             throws SQLException, ClassNotFoundException, SAXException, IOException, ParserConfigurationException {
 
@@ -144,7 +145,7 @@ public class GetDetailedSubmission extends ApplabServlet {
         submission.setInterviewerId(resultSet.getString("interviewerId"));
         submission.setPhoneNumber(resultSet.getString("mobileNumber"));
         submission.setLocation(resultSet.getString("location"));
-        
+
         // Deal with the statuses
         SubmissionStatus dataTeamStatus = SubmissionStatus.parseDisplayName(resultSet.getString("surveyStatus"));
         submission.setStatus(dataTeamStatus);
@@ -156,17 +157,16 @@ public class GetDetailedSubmission extends ApplabServlet {
 
         // Loop through the result set and add the answers.
         do {
-            
+
             int position = resultSet.getInt("position");
             String questionName = resultSet.getString("questionName");
 
-            // The addition here is that the DB is zero ordered but the display 
+            // The addition here is that the DB is zero ordered but the display
             // should start at 1
             String name = questionName + "_" + Integer.toString(position + 1);
             submission.addAnswer(name, Answer.create(questions.get(questionName), resultSet.getString("answer"), position));
-        }
-        while (resultSet.next());
-        
+        } while (resultSet.next());
+
         return submission;
     }
 }
