@@ -33,7 +33,6 @@ import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import applab.CommunityKnowledgeWorker;
-import applab.Location;
 import applab.Person;
 import applab.server.ApplabServlet;
 import applab.server.DatabaseHelpers;

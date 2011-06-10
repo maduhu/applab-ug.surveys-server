@@ -21,7 +21,6 @@ import java.sql.Statement;
 import java.text.ParseException;
 
 import applab.server.DatabaseHelpers;
-import applab.server.DatabaseId;
 import applab.server.DatabaseTable;
 import applab.server.SelectCommand;
 import applab.server.WebAppId;
