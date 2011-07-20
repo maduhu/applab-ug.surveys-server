@@ -16,9 +16,9 @@ import applab.server.Base64;
 import applab.server.XmlHelpers;
 
 /**
- *  This class provides the methods required to parse a purcform and generate a questions HashMap along with
- *  the question order array.
- *
+ * This class provides the methods required to parse a purcform and generate a questions HashMap along with the question
+ * order array.
+ * 
  */
 
 public class ParsedSurveyXml {
@@ -28,33 +28,37 @@ public class ParsedSurveyXml {
     private HashMap<String, Question> questions;
     private HashMap<String, TranslationMap> languageMap;
     private FormType formType;
-    
+
+    private int questionNumberCounter;
+
     public ParsedSurveyXml(String xml) {
         this.xml = xml;
         this.questionOrder = null;
         this.questions = null;
         this.languageMap = null;
         this.formType = null;
+        this.questionNumberCounter = 1;
     }
-    
-    public ArrayList<String> getQuestionOrder () throws SAXException, IOException, ParserConfigurationException {
+
+    public ArrayList<String> getQuestionOrder() throws SAXException, IOException, ParserConfigurationException {
         if (this.questionOrder == null) {
             parseQuestions();
         }
         return this.questionOrder;
     }
-    
+
     public HashMap<String, Question> getQuestions() throws SAXException, IOException, ParserConfigurationException {
         if (this.questions == null) {
             parseQuestions();
         }
         return this.questions;
     }
-    
+
     /**
      * Determine if a survey contains a question
      * 
-     * @param questionName - the question we are looking for.
+     * @param questionName
+     *            - the question we are looking for.
      * @return - boolean
      */
     public boolean hasQuestion(String questionName) throws SAXException, IOException, ParserConfigurationException {
@@ -66,7 +70,7 @@ public class ParsedSurveyXml {
         }
         return false;
     }
-    
+
     public FormType getFormType() {
         return this.formType;
     }
@@ -74,17 +78,20 @@ public class ParsedSurveyXml {
     /**
      * Extract the translated question name from the language map
      * 
-     * @param languageCode - The language that we are looking for
-     * @param question - the question we want the text xlated for
+     * @param languageCode
+     *            - The language that we are looking for
+     * @param question
+     *            - the question we want the text xlated for
      * @return
      */
     public String getXlation(String languageCode, Question question) {
 
         String xlatedName = "";
-        
+
         switch (this.formType) {
             case JavaRosa:
-                if (this.languageMap.containsKey(languageCode) && this.languageMap.get(languageCode).getLanguageMap().containsKey(question.getDisplayValue())) {
+                if (this.languageMap.containsKey(languageCode)
+                        && this.languageMap.get(languageCode).getLanguageMap().containsKey(question.getDisplayValue())) {
                     xlatedName = this.languageMap.get(languageCode).getLanguageMap().get(question.getDisplayValue());
                 }
                 break;
@@ -104,7 +111,7 @@ public class ParsedSurveyXml {
     public String getXlation(String languageCode, String answer) {
 
         String xlatedName = "";
-        
+
         switch (this.formType) {
             case JavaRosa:
                 if (this.languageMap.containsKey(languageCode) && this.languageMap.get(languageCode).getLanguageMap().containsKey(answer)) {
@@ -117,10 +124,11 @@ public class ParsedSurveyXml {
         }
         return xlatedName;
     }
-    
+
     /**
      * 
-     * @param input - original string
+     * @param input
+     *            - original string
      * @return - a gzipped base64 encoded string of the input
      */
     public String compressXml(String input) throws IOException {
@@ -129,7 +137,8 @@ public class ParsedSurveyXml {
 
     /**
      * 
-     * @param input gzipped, base64 encoded string.
+     * @param input
+     *            gzipped, base64 encoded string.
      * @return - the uncompressed original string
      */
     public String decompressXml(String input) throws IOException {
@@ -138,9 +147,9 @@ public class ParsedSurveyXml {
 
     /**
      * Check the parent node to decide which type of format the survey is in
-     */ 
+     */
     public void parseQuestions() throws SAXException, IOException, ParserConfigurationException {
-        
+
         this.questions = new HashMap<String, Question>();
         this.questionOrder = new ArrayList<String>();
         Document xmlDocument = XmlHelpers.parseXml(this.xml);
@@ -149,7 +158,7 @@ public class ParsedSurveyXml {
 
         // Decide which format the survey is saved in
         this.formType = getFormType(rootNode);
-        
+
         switch (this.formType) {
             case JavaRosa:
                 parseJavaRosaForm(rootNode);
@@ -159,25 +168,26 @@ public class ParsedSurveyXml {
                 break;
         }
     }
-    
-    private void parseJavaRosaForm(Element rootNode) throws SAXException, IOException, ParserConfigurationException  {
-        
+
+    private void parseJavaRosaForm(Element rootNode) throws SAXException, IOException, ParserConfigurationException {
+
         for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                if(childNode.getLocalName().equals("head")) {
+                if (childNode.getLocalName().equals("head")) {
                     parseJavaRosaHead((Element)childNode);
                 }
-                if(childNode.getLocalName().equals("body")) {
+                if (childNode.getLocalName().equals("body")) {
                     parseJavaRosaBody((Element)childNode);
                 }
             }
         }
     }
-    private void parseJavaRosaHead(Element rootNode) throws SAXException, IOException, ParserConfigurationException  {
-        
+
+    private void parseJavaRosaHead(Element rootNode) throws SAXException, IOException, ParserConfigurationException {
+
         for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
-                
+
                 // Model Tag - this contains the xlations
                 if (childNode.getLocalName().equals("model")) {
                     parseXlations((Element)childNode);
@@ -185,9 +195,9 @@ public class ParsedSurveyXml {
             }
         }
     }
-    
-    private void parseJavaRosaBody(Element rootNode) throws SAXException, IOException, ParserConfigurationException  {
-        
+
+    private void parseJavaRosaBody(Element rootNode) throws SAXException, IOException, ParserConfigurationException {
+
         for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
                 // Group tag
@@ -197,12 +207,13 @@ public class ParsedSurveyXml {
             }
         }
     }
+
     /**
      * 
      * @param rootNode
      */
     private void parseXlations(Element rootNode) {
-       
+
         this.languageMap = new HashMap<String, TranslationMap>();
         for (Node childNode = rootNode.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
@@ -221,15 +232,15 @@ public class ParsedSurveyXml {
                 }
             }
         }
-        
+
     }
-    
+
     private void parseLanguage(Element languageNode) {
         String languageCode = languageNode.getAttribute("lang");
         if (this.languageMap != null) {
-                TranslationMap translationMap = null;
+            TranslationMap translationMap = null;
             if (!this.languageMap.containsKey(languageCode)) {
-                 translationMap = new TranslationMap(languageCode);
+                translationMap = new TranslationMap(languageCode);
             }
             else {
                 translationMap = this.languageMap.get(languageCode);
@@ -261,11 +272,12 @@ public class ParsedSurveyXml {
     /**
      * Parse the form to generate the question hash map and the questionOrder array.
      * 
-     * The xml has changed from <xf:<elementType>> to just <<elementType>>. This is why there is the contains
-     * method used and some slightly dodgy bits here and there especially with the select and select1 nodes.
-     * TODO - clean out the old way when enough time has passed that the old forms are not in use 2.11 maybe. This removes the xf: prefix
+     * The xml has changed from <xf:<elementType>> to just <<elementType>>. This is why there is the contains method
+     * used and some slightly dodgy bits here and there especially with the select and select1 nodes. TODO - clean out
+     * the old way when enough time has passed that the old forms are not in use 2.11 maybe. This removes the xf: prefix
      * 
-     * @param rootNode - The node containing the XML
+     * @param rootNode
+     *            - The node containing the XML
      */
     private void parseXform(Element rootNode) throws SAXException, IOException, ParserConfigurationException {
 
@@ -306,21 +318,23 @@ public class ParsedSurveyXml {
 
         // Need to add this here so that the question is in the right place.
         this.questionOrder.add(binding);
+        Integer questionNumber = this.questionNumberCounter;
+        this.questionNumberCounter++;
         for (Node childNode = groupElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() != Node.ELEMENT_NODE) {
                 continue; // only care about element nodes
             }
-            if(null != childNode.getLocalName()) {
+            if (null != childNode.getLocalName()) {
                 if (childNode.getLocalName().equals("label")) {
                     questionName = getQuestionData((Element)childNode);
                 }
                 else if (childNode.getLocalName().equals("repeat")) {
                     for (Node repeatChild = childNode.getFirstChild(); repeatChild != null; repeatChild = repeatChild.getNextSibling()) {
-                        if(null != repeatChild.getLocalName()) {
+                        if (null != repeatChild.getLocalName()) {
                             if (repeatChild.getLocalName().equals("input") || childNode.getLocalName().equals("upload")) {
                                 parseInput((Element)repeatChild);
                             }
-        
+
                             // This will catch the single selects as well
                             else if (repeatChild.getLocalName().contains("select")) {
                                 parseSelect((Element)repeatChild);
@@ -330,11 +344,11 @@ public class ParsedSurveyXml {
                 }
             }
         }
-        this.questions.put(binding, new Question(binding, questionName, QuestionType.Repeat));
+        this.questions.put(binding, new Question(binding, questionName, QuestionType.Repeat, questionNumber));
     }
 
     /**
-     * Parse an input tag, which is used for free-entry questions, such as text, numbers, and dates. 
+     * Parse an input tag, which is used for free-entry questions, such as text, numbers, and dates.
      * 
      */
     private void parseInput(Element inputElement) {
@@ -344,19 +358,21 @@ public class ParsedSurveyXml {
         for (Node childNode = inputElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE) {
                 if (childNode.getLocalName().equals("label")) {
-                   question = new Question(inputElement.getAttribute("bind"), getQuestionData((Element)childNode), QuestionType.Input);
+                    String binding = getFormElementName(inputElement);
+                    question = new Question(binding, getQuestionData((Element)childNode), QuestionType.Input,this.questionNumberCounter);
                 }
             }
         }
         if (question != null) {
             this.questions.put(questionBinding, question);
+            this.questionNumberCounter++;
             this.questionOrder.add(questionBinding);
         }
     }
 
     /**
-     * Parse a select (select) tag, which is used for multiple-choice questions, either with
-     * only one choice (select1) or multiple choices (select). 
+     * Parse a select (select) tag, which is used for multiple-choice questions, either with only one choice (select1)
+     * or multiple choices (select).
      * 
      */
     private void parseSelect(Element selectElement) {
@@ -375,10 +391,10 @@ public class ParsedSurveyXml {
                     // Items are of the form <item><label>Choice Label</label><value>Choice value</value></item>
                     Element itemElement = (Element)childNode;
 
-                    String value  = "";
+                    String value = "";
                     String option = "";
                     for (Node itemChild = itemElement.getFirstChild(); itemChild != null; itemChild = itemChild.getNextSibling()) {
-                        if(null != itemChild.getLocalName()) {
+                        if (null != itemChild.getLocalName()) {
                             if (itemChild.getLocalName().equals("label")) {
                                 option = getQuestionData((Element)itemChild);
                             }
@@ -395,18 +411,19 @@ public class ParsedSurveyXml {
         String rawText = questionText + " -- " + values;
 
         // Create the question with the required type
-       if (selectElement.getLocalName().equals("select1")) {
-            this.questions.put(questionBinding, new Question(questionBinding, rawText, QuestionType.Select1));
+        if (selectElement.getLocalName().equals("select1")) {
+            this.questions.put(questionBinding, new Question(questionBinding, rawText, QuestionType.Select1, this.questionNumberCounter));
         }
         else {
-            this.questions.put(questionBinding, new Question(questionBinding, rawText, QuestionType.Select));
+            this.questions.put(questionBinding, new Question(questionBinding, rawText, QuestionType.Select, this.questionNumberCounter));
         }
+        this.questionNumberCounter++;
         this.questionOrder.add(questionBinding);
     }
 
     private String getFormElementName(Element formElement) {
 
-        // Bind attributes take top priority if they exist 
+        // Bind attributes take top priority if they exist
         String xformName = formElement.getAttribute("bind");
 
         // Otherwise look for a ref parameter
@@ -433,7 +450,8 @@ public class ParsedSurveyXml {
     /**
      * Parse the xfrom element to get required data
      * 
-     * @param element - To be parsed
+     * @param element
+     *            - To be parsed
      * @return - String that represents the required data
      */
     private String getCharacterDataFromElement(Element element) {
@@ -450,7 +468,7 @@ public class ParsedSurveyXml {
      * @param languageNode
      */
     private String setLanguageKey(Element labelNode) {
-        
+
         // Parse the name from the ref value
         String refString = labelNode.getAttribute("ref");
         int startIndex = refString.indexOf("('") + 2;
@@ -467,7 +485,7 @@ public class ParsedSurveyXml {
         if (rootNodeName.equals("xform")) {
             formType = FormType.Xform;
         }
-        else if (rootNodeName.equals("html")){
+        else if (rootNodeName.equals("html")) {
             formType = FormType.JavaRosa;
         }
         return formType;

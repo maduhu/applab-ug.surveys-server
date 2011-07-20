@@ -19,14 +19,16 @@ public class Question {
     private QuestionType type;
     private Integer totalInstances;
     private Integer numberOfSelects;
+    private Integer questionNumber;
 
-    public Question(String binding, String value, QuestionType type) {
+    public Question(String binding, String value, QuestionType type, int questionNumber) {
         this.binding = binding;
         this.rawValue = value;
         this.choices = new HashMap<String, String>();
         this.totalInstances = 0;
         this.numberOfSelects = 0;
         this.type = type;
+        this.questionNumber = questionNumber;
 
         // Using the question type parse any information we may need
         int index = -1;
@@ -96,6 +98,14 @@ public class Question {
         this.totalInstances = newTotal;
     }
     
+    public Integer getQuestionNumber() {
+        return questionNumber;
+    }
+
+    public void setQuestionNumber(Integer questionNumber) {
+        this.questionNumber = questionNumber;
+    }
+
     // From the raw text value of the question get the display value
     private int parseRawValue() {
         int index = this.rawValue.indexOf(" -- ");
