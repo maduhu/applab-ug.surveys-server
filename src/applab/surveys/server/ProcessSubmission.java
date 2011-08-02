@@ -473,7 +473,7 @@ public class ProcessSubmission extends ApplabServlet {
 
         // Generate the interview location
         Location locationObject = null;
-        if (location != null && location != "") {
+       
             locationObject = Location.parseLocation(location);
             surveySubmission.setInterviewLatitude(locationObject.latitude.toString());
             surveySubmission.setInterviewLongitude(locationObject.longitude.toString());
@@ -481,17 +481,17 @@ public class ProcessSubmission extends ApplabServlet {
             surveySubmission.setInterviewAccuracy(locationObject.accuracy.toString());
             surveySubmission.setInterviewGPSTimestamp(String.valueOf(locationObject.timestamp));
             locationObject = null;
-        }
+        
 
         // Generate the submission location
-        if (submissionLocation != null && submissionLocation != "") {
+      
             locationObject = Location.parseLocation(submissionLocation);
             surveySubmission.setSubmissionLatitude(locationObject.latitude.toString());
             surveySubmission.setSubmissionLongitude(locationObject.longitude.toString());
             surveySubmission.setSubmissionAltitude(locationObject.altitude.toString());
             surveySubmission.setSubmissionAccuracy(locationObject.accuracy.toString());
             surveySubmission.setSubmissionGPSTimestamp(String.valueOf(locationObject.timestamp));
-        }
+      
 
         // Send the submission to salesforce
         SurveySubmission resultSurveySubmission = serviceStub.processSurveySubmission(surveySubmission);
