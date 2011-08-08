@@ -58,13 +58,14 @@ public class SurveyDownloadFile extends ApplabServlet {
                 String endDateDescription = "NoEndDate";
                 String statusDescription = "NoStatus";
                 boolean showDraft = false;
-                if ("on".equals(request.getParameter("showDraft"))) {
+                if ("true".equals(request.getParameter("showDraft"))) {
                     showDraft = true;
                 }
                 boolean includePeople = false;
-                if ("on".equals(request.getParameter("includePeople"))) {
+                if ("true".equals(request.getParameter("includePeople"))) {
                     includePeople = true;
                 }
+
                 try {
                     startDate =  DatabaseHelpers.getSqlDateFromString(request.getParameter("startDate"), 0);
                     startDateDescription = startDate.toString();
