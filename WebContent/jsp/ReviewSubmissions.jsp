@@ -127,7 +127,7 @@
 		</tr>
 		<% if (stats != null ) {%>
 			<% for (Integer submissionId : stats.getSurvey().getSubmissionOrder()) {
-				Submission submission = stats.getSurvey().getSubmissions().get(submissionId);
+				Submission submission = stats.getSurvey().getSubmissions(false).get(submissionId);
 			%>
 			<tr>
 				<td>

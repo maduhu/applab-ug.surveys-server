@@ -4,7 +4,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Calendar;
 import java.util.HashMap;
+import java.util.TimeZone;
 
 import applab.surveys.server.SurveyDatabaseHelpers;
 
@@ -29,10 +32,10 @@ public class SubmissionStatistics {
     public Survey getSurvey() {
         return this.survey;
     }
-        
-    public static SubmissionStatistics getStatistics(String salesforceSurveyId, java.sql.Date startDate, java.sql.Date endDate) throws ClassNotFoundException, SQLException {
-        
-        
+
+    public static SubmissionStatistics getStatistics(String salesforceSurveyId, java.sql.Date startDate, java.sql.Date endDate)
+            throws ClassNotFoundException, SQLException {
+
         Connection connection = SurveyDatabaseHelpers.getReaderConnection();
         SubmissionStatistics statistics = null;
 
@@ -53,20 +56,33 @@ public class SubmissionStatistics {
             commandText.append(" AND server_entry_time <= ?");
         }
         commandText.append(" GROUP BY submissions.survey_id");
-        
+
         // Prepare the statement
         PreparedStatement query = connection.prepareStatement(commandText.toString());
-       
+
         // Pass the variables to the prepared statement
         query.setString(1, salesforceSurveyId);
-        
+
         if (startDate != null && endDate != null) {
-           query.setDate(2, startDate);             
-           query.setDate(3, endDate);             
+            Calendar startCalendar = Calendar.getInstance();
+            startCalendar.setTime(startDate);
+            startCalendar.set(Calendar.HOUR_OF_DAY, 0);
+            startCalendar.set(Calendar.MINUTE, 0);
+            startCalendar.set(Calendar.SECOND, 0);
+            Timestamp startTimeStamp = new Timestamp(startCalendar.getTimeInMillis());
+            query.setTimestamp(2, startTimeStamp);
+            Calendar endCalendar = Calendar.getInstance();
+            endCalendar.setTime(endDate);
+            endCalendar.set(Calendar.HOUR_OF_DAY, 23);
+            endCalendar.set(Calendar.MINUTE, 59);
+            endCalendar.set(Calendar.SECOND, 59);
+            Timestamp endTimeStamp = new Timestamp(endCalendar.getTimeInMillis());
+            query.setTimestamp(3, endTimeStamp);
+
         }
-        
+
         // Execute the query
-        ResultSet resultSet = query.executeQuery(); 
+        ResultSet resultSet = query.executeQuery();
 
         // Check if we have any results for this survey
         if (resultSet.next()) {

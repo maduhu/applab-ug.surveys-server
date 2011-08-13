@@ -87,6 +87,7 @@ public class ReviewSubmissions extends ApplabServlet {
             }
 
             java.util.Date now = new java.util.Date();
+
             // If we only have one of the dates provided then set the other one to now
             if (startDate != null && endDate == null) {
                 endDate = new java.sql.Date(now.getTime());

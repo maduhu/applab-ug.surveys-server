@@ -8,9 +8,12 @@ import java.sql.ResultSet;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
+import java.util.TimeZone;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.rpc.ServiceException;
@@ -53,6 +56,12 @@ public class Survey {
     private Boolean saveToSalesforce;
 
     private SubmissionStatus cachedSubmissionFilter;
+    private java.sql.Date cachedStartDate;
+    private java.sql.Date cachedEndDate;
+    private Boolean cachedShowDraft;
+    private Boolean cachedIncludePeople;
+    private Boolean cachedBasic;
+
     private ArrayList<Integer> submissionOrder;
     private HashMap<Integer, Submission> cachedSubmissions;
 
@@ -142,13 +151,17 @@ public class Survey {
             throws ClassNotFoundException, SQLException, ParseException,
             SAXException, IOException, ParserConfigurationException {
         this.cachedSubmissions = null;
-        return this.getSubmissions();
+        return this.getSubmissions(true);
     }
 
-    public HashMap<Integer, Submission> getSubmissions()
+    public HashMap<Integer, Submission> getSubmissions(Boolean forceReload)
             throws ClassNotFoundException, SQLException, ParseException,
             SAXException, IOException, ParserConfigurationException {
-        return getSubmissions(null, null, null, true, false, false);
+        
+        if (forceReload) {
+            getSubmissions(this.cachedSubmissionFilter, this.cachedStartDate, this.cachedEndDate, this.cachedBasic,this.cachedShowDraft, this.cachedIncludePeople);
+        }
+        return this.cachedSubmissions;
     }
 
     public HashMap<Integer, Submission> getSubmissions(
@@ -157,9 +170,22 @@ public class Survey {
                                                        boolean includePeople) throws ClassNotFoundException, SQLException,
             ParseException, SAXException, IOException,
             ParserConfigurationException {
-        if (submissionFilter != this.cachedSubmissionFilter) {
+
+        // Check to see if any of the filters have changed.
+        if (submissionFilter != this.cachedSubmissionFilter
+                || (this.cachedStartDate == null || !startDate.equals(this.cachedStartDate))
+                || (this.cachedEndDate == null || !endDate.equals(this.cachedEndDate))
+                || this.cachedShowDraft != showDraft
+                || this.cachedIncludePeople != includePeople
+                || this.cachedBasic != basic
+        ) {
             this.cachedSubmissions = null;
             this.cachedSubmissionFilter = submissionFilter;
+            this.cachedStartDate = startDate;
+            this.cachedEndDate = endDate;
+            this.cachedShowDraft = showDraft;
+            this.cachedIncludePeople = includePeople;
+            this.cachedBasic = basic;
         }
 
         if (this.cachedSubmissions == null) {
@@ -576,7 +602,6 @@ public class Survey {
                                                  boolean showDraft, boolean includePeople)
             throws ClassNotFoundException, SQLException, ParseException,
             SAXException, IOException, ParserConfigurationException {
-
         // Build the query that gets the submissions for a given survey, status
         // and within given dates.
         Connection connection = DatabaseHelpers
@@ -660,9 +685,22 @@ public class Survey {
 
         // Add the date filters if needed
         if (startDate != null && endDate != null) {
-            preparedStatement.setDate(index, startDate);
+
+            Calendar startCalendar = Calendar.getInstance();
+            startCalendar.setTime(startDate);
+            startCalendar.set(Calendar.HOUR_OF_DAY, 0);
+            startCalendar.set(Calendar.MINUTE, 0);
+            startCalendar.set(Calendar.SECOND, 0);
+            Timestamp startTimeStamp = new Timestamp(startCalendar.getTimeInMillis());
+            preparedStatement.setTimestamp(index, startTimeStamp);
             index++;
-            preparedStatement.setDate(index, endDate);
+            Calendar endCalendar = Calendar.getInstance();
+            endCalendar.setTime(endDate);
+            endCalendar.set(Calendar.HOUR_OF_DAY, 23);
+            endCalendar.set(Calendar.MINUTE, 59);
+            endCalendar.set(Calendar.SECOND, 59);
+            Timestamp endTimeStamp = new Timestamp(endCalendar.getTimeInMillis());
+            preparedStatement.setTimestamp(index, endTimeStamp);
         }
 
         // Execute the query.

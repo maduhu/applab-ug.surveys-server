@@ -249,7 +249,7 @@ CREATE TABLE `Answers` (
 	`id`                   bigint(20)  unsigned NOT NULL auto_increment,
 	`submission_id`        bigint(20)  unsigned NOT NULL, -- Foreign key to ZebraSurveySubmissions. References the zebraSurveySubmmisions.id.
 	`question_number`      int(6)      NOT NULL, -- The question number  from the survey that the answer refers to.
-	`question_name`        varchar(10) NOT NULL, -- The question number  from the survey that the answer refers to.
+	`question_name`        varchar(255) NOT NULL, -- The question binding  from the survey that the answer refers to.
 	`answer`               text,                 -- The answer to the question.
 	`parent`               varchar(128),         -- This is the name of the answer that is the parent of this answer
 	`parent_position`      int(4)      unsigned, -- This is the position instance of the parent answer
