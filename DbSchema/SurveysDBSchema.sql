@@ -36,6 +36,9 @@ CREATE TABLE `ZebraSurveySubmissions` (
   `location`               varchar(70),
   `survey_status`          enum('Not Reviewed', 'Pending', 'Rejected', 'Approved', 'Flagged') NOT NULL default 'Not Reviewed',
   `customer_care_status`   enum('Not Reviewed', 'First Level Approved', 'Flagged') NOT NULL default 'Not Reviewed',
+  `customer_care_review`   TEXT,
+  `data_team_review`         TEXT,
+  `submission_location`       varchar(70),
   `submission_size`        bigint(15)          NOT NULL default 0,
   `mobile_number`          varchar(19)         NOT NULL default 0,
   `is_draft`               enum('Y', 'N') NOT NULL default 'N', -- Indicates that this submission was a draft. Allows to be excluded from reporting.
