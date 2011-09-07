@@ -312,8 +312,7 @@ public class ProcessSubmission extends ApplabServlet {
             // Get the question name and instance number
             String questionName = answer.getQuestionName();
 
-            // Trim of the q to allow us to organise the answers in numerical order
-            String questionNumber = questionName.substring(1, questionName.length());
+            String questionNumber = answer.getQuestion().getQuestionNumber().toString();
 
             answerStatements.setInt(1, submissionId);
             answerStatements.setString(2, questionNumber);
