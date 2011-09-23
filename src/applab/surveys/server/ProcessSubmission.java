@@ -165,6 +165,7 @@ public class ProcessSubmission extends ApplabServlet {
             // submission is off the phone. Then find who deleted the form and lightly kill them.
             log("Handset with IMEI: " + imei + " submitted survey id " + salesforceId + ". It no longer exists in SF. Find out what happened");
             response.setStatus(HttpServletResponse.SC_CREATED);
+            return;
         }
 
         int httpResponseCode;
