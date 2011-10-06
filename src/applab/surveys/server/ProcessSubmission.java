@@ -159,30 +159,40 @@ public class ProcessSubmission extends ApplabServlet {
 
         // Load the survey so we can verify the answer columns against the questions in the Xml.
         Survey survey = new Survey(salesforceId);
-        if(!survey.loadSurvey(salesforceId, true)) {
+        if (!survey.loadSurvey(salesforceId, true)) {
 
             // Someone has deleted the form from salesforce. Should never be done. Fail silently so the
             // submission is off the phone. Then find who deleted the form and lightly kill them.
-            log("Handset with IMEI: " + imei + " submitted survey id " + salesforceId + ". It no longer exists in SF. Find out what happened");
+            log("Handset with IMEI: " + imei + " submitted survey id " + salesforceId
+                    + ". It no longer exists in SF. Find out what happened");
             response.setStatus(HttpServletResponse.SC_CREATED);
             return;
         }
 
-        int httpResponseCode;
+        int httpResponseCode = -1;
 
         // Validate the survey against the questions. This will remove any answers that are not in the survey.
         if (validateAnswers(surveyResponses, survey)) {
 
+            Boolean saveToBackend = true;
+
             // Decide where this survey should be saved to
             if (survey.getSaveToSalesforce()) {
-                String json = parseSubmissionToJson(surveyResponses, attachmentReferences, survey);
-                String[] returnValues = saveToSalesforce(json, imei, totalSize, intervieweeId, location,
+
+                // We may want to pass data to salesforce and then save the actual submission to backend.
+                saveToBackend = survey.getSaveToBackend();
+
+                // Comment the JSON out as it causes script limit issues in Salesforce
+                // String json = parseSubmissionToJson(surveyResponses, attachmentReferences, survey);
+                String json = "none";
+                String xml = parseSubmissionToXml(surveyResponses, attachmentReferences, survey);
+                String[] returnValues = saveToSalesforce(xml, json, imei, totalSize, intervieweeId, location,
                         submissionLocation, handsetSubmissionTime, duplicateDetectionHash, survey);
 
                 httpResponseCode = Integer.valueOf(returnValues[0]);
                 log("Handset with IMEI: " + imei + " submitted a survey with the following result " + returnValues[1]);
             }
-            else {
+            if (saveToBackend && (httpResponseCode == -1 || httpResponseCode == 201)) {
                 httpResponseCode = storeSurveySubmission(surveyResponses, attachmentReferences, imei,
                         totalSize, intervieweeId, location, submissionLocation, backendSurveyId, survey,
                         handsetSubmissionTime, duplicateDetectionHash);
@@ -366,7 +376,7 @@ public class ProcessSubmission extends ApplabServlet {
      * @return - The JSON string
      */
     public static String testParseSubmissionToJson(HashMap<String, SubmissionAnswer> surveyResponses,
-            HashMap<String, String> attachmentReferences, Survey survey) {
+                                                   HashMap<String, String> attachmentReferences, Survey survey) {
         return parseSubmissionToJson(surveyResponses, attachmentReferences, survey);
     }
 
@@ -381,10 +391,12 @@ public class ProcessSubmission extends ApplabServlet {
                 // Make sure that these possible null pointers are caught
                 String parentName = answer.getParent() == null ? "null" : answer.getParent().getQuestionName();
                 String parentInstance = answer.getParent() == null ? "0" : String.valueOf(answer.getParent().getInstance());
-                String answerText = answer.getAnswerText(attachmentReferences) == null ? "null" : answer.getAnswerText(attachmentReferences);
+                String answerText = answer.getAnswerText(attachmentReferences) == null ? "null" : answer
+                        .getAnswerText(attachmentReferences);
                 JsonAnswer jsonAnswer = new JsonAnswer(answerText, answer.getQuestionName(),
                         answer.getQuestion().getType().toString(), parentName, String.valueOf(answer.getInstance()),
-                        String.valueOf(answer.getQuestion().getQuestionNumber()), survey.getBackEndSurveyXml().getXlation("en", answer.getQuestion()),
+                        String.valueOf(answer.getQuestion().getQuestionNumber()), survey.getBackEndSurveyXml().getXlation("en",
+                                answer.getQuestion()),
                         parentInstance);
                 jsonSubmission.addAnswer(jsonAnswer);
             }
@@ -409,10 +421,80 @@ public class ProcessSubmission extends ApplabServlet {
     }
 
     /**
+     * Parse the submission into a Xml string that can the be sent to salesforce. The answers should have been validated
+     * against the survey already
+     * 
+     * @param surveyResponses
+     *            - HashMap of the answers to the survey
+     * @param attachmentReferences
+     *            - HashMap of the attachment locations on the server
+     * 
+     * @return - The XML string
+     */
+    public static String testParseSubmissionToXml(HashMap<String, SubmissionAnswer> surveyResponses,
+                                                  HashMap<String, String> attachmentReferences, Survey survey) {
+        return parseSubmissionToXml(surveyResponses, attachmentReferences, survey);
+    }
+
+    private static String parseSubmissionToXml(HashMap<String, SubmissionAnswer> surveyResponses,
+                                               HashMap<String, String> attachmentReferences, Survey survey) {
+
+        StringBuilder xml = new StringBuilder();
+        xml.append(XmlHelpers.getXmlHeader());
+
+        HashMap<String, String> attributes = new HashMap<String, String>();
+        xml.append(XmlHelpers.generateStartElement("answers", attributes));
+        for (Entry<String, SubmissionAnswer> answerKey : surveyResponses.entrySet()) {
+            SubmissionAnswer answer = answerKey.getValue();
+            if (!answer.getIsValid()) {
+                continue;
+            }
+
+            // Start the answer
+            xml.append(XmlHelpers.generateStartElement("answer", attributes));
+
+            // Make sure that these possible null pointers are caught
+            String parentName = answer.getParent() == null ? "null" : answer.getParent().getQuestionName();
+            String parentInstance = answer.getParent() == null ? "0" : String.valueOf(answer.getParent().getInstance());
+            String answerText = answer.getAnswerText(attachmentReferences) == null ? "null" : answer.getAnswerText(attachmentReferences);
+
+            // Add an element for each piece of data that is included
+            xml.append(XmlHelpers.generateStartElement("binding", attributes));
+            xml.append(XmlHelpers.escapeText(answer.getQuestionName()));
+            xml.append(XmlHelpers.generateEndElement("binding"));
+            xml.append(XmlHelpers.generateStartElement("answerText", attributes));
+            xml.append(XmlHelpers.escapeText(answerText));
+            xml.append(XmlHelpers.generateEndElement("answerText"));
+            xml.append(XmlHelpers.generateStartElement("instance", attributes));
+            xml.append(XmlHelpers.escapeText(String.valueOf(answer.getInstance())));
+            xml.append(XmlHelpers.generateEndElement("instance"));
+            xml.append(XmlHelpers.generateStartElement("questionNumber", attributes));
+            xml.append(XmlHelpers.escapeText(String.valueOf(answer.getQuestion().getQuestionNumber())));
+            xml.append(XmlHelpers.generateEndElement("questionNumber"));
+            xml.append(XmlHelpers.generateStartElement("questionType", attributes));
+            xml.append(XmlHelpers.escapeText(answer.getQuestion().getType().toString()));
+            xml.append(XmlHelpers.generateEndElement("questionType"));
+            xml.append(XmlHelpers.generateStartElement("parentBinding", attributes));
+            xml.append(XmlHelpers.escapeText(parentName));
+            xml.append(XmlHelpers.generateEndElement("parentBinding"));
+            xml.append(XmlHelpers.generateStartElement("parentInstance", attributes));
+            xml.append(XmlHelpers.escapeText(parentInstance));
+            xml.append(XmlHelpers.generateEndElement("parentInstance"));
+
+            // End the answer
+            xml.append(XmlHelpers.generateEndElement("answer"));
+        }
+        xml.append(XmlHelpers.generateEndElement("answers"));
+        return xml.toString();
+    }
+
+    /**
      * Save the submission to Salesforce
      * 
+     * @param xml
+     *            - The Xml String for the submission (pass "none" if using Json)
      * @param json
-     *            - The JSON string to be sent to the webservice
+     *            - The JSON string to be sent to the webservice (pass "none" if using XML)
      * @param imei
      *            - IMEI of the submitting phone
      * @param submissionSize
@@ -433,14 +515,16 @@ public class ProcessSubmission extends ApplabServlet {
      * @return - A String pair with the following format 1st element = String value of the respose code 2nd element =
      *         Message string.
      */
-    public static String[] saveToSalesforcePublic(String json, String imei, long submissionSize,
-                                            String intervieweeName, String location, String submissionLocation,
-                                            Date handsetSubmissionTime, String duplicateDetectionHash, Survey survey)
+    public static String[] saveToSalesforcePublic(String xml, String json, String imei, long submissionSize,
+                                                  String intervieweeName, String location, String submissionLocation,
+                                                  Date handsetSubmissionTime, String duplicateDetectionHash, Survey survey)
                    throws InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ClassNotFoundException, SQLException,
                    ServiceException {
-        return saveToSalesforce(json, imei, submissionSize, intervieweeName, location, submissionLocation, handsetSubmissionTime, duplicateDetectionHash, survey);
+        return saveToSalesforce(xml, json, imei, submissionSize, intervieweeName, location, submissionLocation, handsetSubmissionTime,
+                duplicateDetectionHash, survey);
     }
-    private static String[] saveToSalesforce(String json, String imei, long submissionSize,
+
+    private static String[] saveToSalesforce(String xml, String json, String imei, long submissionSize,
                                              String intervieweeName, String location, String submissionLocation,
                                              Date handsetSubmissionTime, String duplicateDetectionHash, Survey survey)
                     throws InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ClassNotFoundException, SQLException,
@@ -464,6 +548,7 @@ public class ProcessSubmission extends ApplabServlet {
         // Create and populate the webservice
         SurveySubmission surveySubmission = new SurveySubmission();
         surveySubmission.setJson(json);
+        surveySubmission.setXml(xml);
         surveySubmission.setImei(imei);
         surveySubmission.setFarmerId(intervieweeName);
         surveySubmission.setSurveyId(survey.getSalesforceId());
@@ -473,25 +558,22 @@ public class ProcessSubmission extends ApplabServlet {
 
         // Generate the interview location
         Location locationObject = null;
-       
-            locationObject = Location.parseLocation(location);
-            surveySubmission.setInterviewLatitude(locationObject.latitude.toString());
-            surveySubmission.setInterviewLongitude(locationObject.longitude.toString());
-            surveySubmission.setInterviewAltitude(locationObject.altitude.toString());
-            surveySubmission.setInterviewAccuracy(locationObject.accuracy.toString());
-            surveySubmission.setInterviewGPSTimestamp(String.valueOf(locationObject.timestamp));
-            locationObject = null;
-        
+
+        locationObject = Location.parseLocation(location);
+        surveySubmission.setInterviewLatitude(locationObject.latitude.toString());
+        surveySubmission.setInterviewLongitude(locationObject.longitude.toString());
+        surveySubmission.setInterviewAltitude(locationObject.altitude.toString());
+        surveySubmission.setInterviewAccuracy(locationObject.accuracy.toString());
+        surveySubmission.setInterviewGPSTimestamp(String.valueOf(locationObject.timestamp));
+        locationObject = null;
 
         // Generate the submission location
-      
-            locationObject = Location.parseLocation(submissionLocation);
-            surveySubmission.setSubmissionLatitude(locationObject.latitude.toString());
-            surveySubmission.setSubmissionLongitude(locationObject.longitude.toString());
-            surveySubmission.setSubmissionAltitude(locationObject.altitude.toString());
-            surveySubmission.setSubmissionAccuracy(locationObject.accuracy.toString());
-            surveySubmission.setSubmissionGPSTimestamp(String.valueOf(locationObject.timestamp));
-      
+        locationObject = Location.parseLocation(submissionLocation);
+        surveySubmission.setSubmissionLatitude(locationObject.latitude.toString());
+        surveySubmission.setSubmissionLongitude(locationObject.longitude.toString());
+        surveySubmission.setSubmissionAltitude(locationObject.altitude.toString());
+        surveySubmission.setSubmissionAccuracy(locationObject.accuracy.toString());
+        surveySubmission.setSubmissionGPSTimestamp(String.valueOf(locationObject.timestamp));
 
         // Send the submission to salesforce
         SurveySubmission resultSurveySubmission = serviceStub.processSurveySubmission(surveySubmission);
@@ -541,9 +623,10 @@ public class ProcessSubmission extends ApplabServlet {
      * @return - A date representing the handset submission time
      */
     public static Date getHandsetSubmissionTimePublic(HashMap<String, SubmissionAnswer> surveyResponses,
-                                                HashMap<String, String> attachmentReferences) throws ParseException {
+                                                      HashMap<String, String> attachmentReferences) throws ParseException {
         return getHandsetSubmissionTime(surveyResponses, attachmentReferences);
     }
+
     private static Date getHandsetSubmissionTime(HashMap<String, SubmissionAnswer> surveyResponses,
                                                  HashMap<String, String> attachmentReferences) throws ParseException {
 
@@ -568,10 +651,13 @@ public class ProcessSubmission extends ApplabServlet {
      * 
      * @return - The hash string
      */
-    public static String getDuplicateHashPublic(HashMap<String, SubmissionAnswer> surveyResponses, HashMap<String, String> attachmentReferences, String imei) {
+    public static String getDuplicateHashPublic(HashMap<String, SubmissionAnswer> surveyResponses,
+                                                HashMap<String, String> attachmentReferences, String imei) {
         return getDuplicateHash(surveyResponses, attachmentReferences, imei);
     }
-    private static String getDuplicateHash(HashMap<String, SubmissionAnswer> surveyResponses, HashMap<String, String> attachmentReferences, String imei) {
+
+    private static String getDuplicateHash(HashMap<String, SubmissionAnswer> surveyResponses, HashMap<String, String> attachmentReferences,
+                                           String imei) {
         String hashSource = imei;
         for (SubmissionAnswer responseValue : surveyResponses.values()) {
             hashSource += responseValue.getAnswerText(attachmentReferences);
@@ -661,9 +747,10 @@ public class ProcessSubmission extends ApplabServlet {
      * @throws SAXException
      */
     public static boolean validateAnswersPublic(HashMap<String, SubmissionAnswer> surveyResponses, Survey survey) throws SAXException,
-    IOException, ParserConfigurationException {
+            IOException, ParserConfigurationException {
         return validateAnswers(surveyResponses, survey);
     }
+
     private static boolean validateAnswers(HashMap<String, SubmissionAnswer> surveyResponses, Survey survey) throws SAXException,
             IOException, ParserConfigurationException {
 

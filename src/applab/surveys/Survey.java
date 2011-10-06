@@ -54,6 +54,7 @@ public class Survey {
 
     private SurveyStatus surveyStatus;
     private Boolean saveToSalesforce;
+    private Boolean saveToBackend;
 
     private SubmissionStatus cachedSubmissionFilter;
     private java.sql.Date cachedStartDate;
@@ -134,6 +135,14 @@ public class Survey {
 
     public void setSaveToSalesforce(Boolean saveToSalesforce) {
         this.saveToSalesforce = saveToSalesforce;
+    }
+
+    public Boolean getSaveToBackend() {
+        return saveToBackend;
+    }
+
+    public void setSaveToBackend(Boolean saveToBackend) {
+        this.saveToBackend = saveToBackend;
     }
 
     public ArrayList<Integer> getSubmissionOrder() {
@@ -396,7 +405,8 @@ public class Survey {
             commandText.append("SELECT ");
             commandText.append("Name, ");
             commandText.append("Survey_Status__c, ");
-            commandText.append("Save_To_Salesforce__c ");
+            commandText.append("Save_To_Salesforce__c, ");
+            commandText.append("Save_To_Backend__c ");
             commandText.append(" FROM Survey__c");
             commandText.append(" WHERE Name = '");
             commandText.append(salesforceId);
@@ -418,6 +428,7 @@ public class Survey {
             Survey__c salesforceSurvey = (Survey__c)query.getRecords(0);
             this.setSurveyStatus(salesforceSurvey.getSurvey_Status__c());
             this.setSaveToSalesforce(salesforceSurvey.getSave_To_Salesforce__c());
+            this.setSaveToBackend(salesforceSurvey.getSave_To_Backend__c());
         }
         this.loadSurveyFromDatabase();
         return true;

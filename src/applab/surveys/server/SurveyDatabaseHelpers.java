@@ -65,13 +65,14 @@ public class SurveyDatabaseHelpers {
                     return salesforceId;
                 }
             }
+            statement.close();
         }
         catch (Exception e) {
             e.printStackTrace();
         }
         return null;
     }
-      
+
     public static String getSurveyName(String surveyId) {
         try {
             Connection connection = getReaderConnection();
@@ -83,6 +84,7 @@ public class SurveyDatabaseHelpers {
                 statement.close();
                 return surveyName;
             }
+            statement.close();
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -101,6 +103,7 @@ public class SurveyDatabaseHelpers {
                 statement.close();
                 return databaseId;
             }
+            statement.close();
         }
         catch (Exception e) {
             e.printStackTrace();
