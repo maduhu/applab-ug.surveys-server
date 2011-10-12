@@ -50,12 +50,37 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
             InvalidIdFault, UnexpectedErrorFault, InvalidQueryLocatorFault, RemoteException {
 
         ArrayList<Survey> surveys = new ArrayList<Survey>();
-        String groupIds = getGroupIds(imei);
-        if (!"".equalsIgnoreCase(groupIds)) {
-            QueryResult query = getBinding().query(
-                    "SELECT Name, Survey_Name__c FROM Survey__c WHERE Survey_Status__c = 'Published' AND Start_Date__c < TOMORROW AND End_Date__c > YESTERDAY AND Id IN " +
-                            "(SELECT Survey__c FROM Survey_Group_Association__c WHERE Group__c IN (" + groupIds + ")) ORDER BY Survey_Name__c ASC");
-
+        String[] groupIds = getGroupIds(imei);
+        if (!"".equalsIgnoreCase(groupIds[0])) {
+            StringBuilder queryText = new StringBuilder();
+            queryText.append("SELECT ");
+            queryText.append("Name, ");
+            queryText.append("Survey_Name__c ");
+            queryText.append("FROM ");
+            queryText.append("Survey__c ");
+            queryText.append("WHERE ");
+            
+            // Allow staff members to download draft surveys
+            if ("true".equals(groupIds[1])) {
+                queryText.append("Survey_Status__c != 'Completed' ");
+            }
+            else {
+                queryText.append("Survey_Status__c = 'Published' ");
+            }
+            queryText.append("AND Start_Date__c < TOMORROW ");
+            queryText.append("AND End_Date__c > YESTERDAY ");
+            queryText.append("AND Id IN  ");
+            queryText.append("(SELECT Survey__c FROM Survey_Group_Association__c WHERE Group__c IN ( ");
+            queryText.append(groupIds[0]);
+            queryText.append(")) ");
+            queryText.append("ORDER BY ");
+            queryText.append("Survey_Name__c ASC");
+            queryText.append(" ");
+            queryText.append(" ");
+            queryText.append(" ");
+            queryText.append(" ");
+            queryText.append(" ");
+            QueryResult query = getBinding().query(queryText.toString());
             for (int i = 0; i < query.getSize(); i++) {
                 Survey__c survey = (Survey__c)query.getRecords(i);
                 surveys.add(new Survey(survey.getName(), survey.getSurvey_Name__c()));
