@@ -51,7 +51,7 @@ public class GetForm extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
-        String salesforceSurveyId = request.getParameter("survey_id");
+        String salesforceSurveyId = request.getParameter("surveyid");
 
         String surveyFormXml = getSurveyForm(salesforceSurveyId);
         if (surveyFormXml == null) {
