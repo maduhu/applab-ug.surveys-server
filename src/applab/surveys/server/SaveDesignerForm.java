@@ -49,7 +49,7 @@ public class SaveDesignerForm extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
-        String survey_id = request.getParameter("survey_id");
+        String survey_id = request.getParameter("surveyId");
 
         BufferedReader reader = request.getReader();
         StringBuilder sb = new StringBuilder();
