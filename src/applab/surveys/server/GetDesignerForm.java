@@ -36,6 +36,8 @@ public class GetDesignerForm extends ApplabServlet {
 
         if(xformData != null) {
             log(xformData);
+            //Charset set to UTF-8 for multi-language support. 
+            response.setContentType("text/html; charset=UTF-8");
             response.getWriter().write(xformData);           
         }
         // We send a blank response if the data is null, and the purcforms client will use the empty response to indicate a new form
