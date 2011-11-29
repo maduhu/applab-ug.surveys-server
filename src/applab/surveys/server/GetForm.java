@@ -128,7 +128,18 @@ public class GetForm extends ApplabServlet {
                         for (Node childInstanceNode = instanceElement.getFirstChild(); childInstanceNode != null; childInstanceNode = childInstanceNode.getNextSibling()) {
                              if (childInstanceNode.getNodeType() == Node.ELEMENT_NODE && childInstanceNode.getLocalName().equals(formName)) {
                                  Element formElement = (Element) childInstanceNode; 
-                                 
+                                 //remove style attribute if present, and also any empty xmlns attributes
+                                 for (int i = 0; i < formElement.getChildNodes().getLength(); i++) {
+                                     Node dataNode = formElement.getChildNodes().item(i);
+                                     if (dataNode.getNodeType() == Node.ELEMENT_NODE && ((Element)dataNode).hasAttribute("style")) {
+                                           ((Element)dataNode).removeAttribute("style");
+                                     }
+                                     if (dataNode.getNodeType() == Node.ELEMENT_NODE && ((Element)dataNode).hasAttribute("xmlns")) {
+                                         if (((Element)dataNode).getAttribute("xmlns").equals("")) {
+                                             ((Element)dataNode).removeAttribute("xmlns");
+                                         }
+                                     }
+                                  }
                                  // Create the new nodes for the instance model
                                  Node handsetSubmitTime = doc.createElement("handset_submit_time");
                                  Node formSurveyId = doc.createElement("survey_id");
@@ -136,6 +147,12 @@ public class GetForm extends ApplabServlet {
                                  formElement.appendChild(handsetSubmitTime);
                                  formElement.appendChild(formSurveyId);
                              }
+                        }
+                    }
+                    //sometimes the xmlns attribute shows up on the bind nodes, and this is not necessary
+                    else if (childModelNode.getNodeType() == Node.ELEMENT_NODE && childModelNode.getLocalName().equals("bind")) {
+                        if (((Element)childModelNode).hasAttribute("xmlns")) {
+                            ((Element)childModelNode).removeAttribute("xmlns");
                         }
                     }
                 }
