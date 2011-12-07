@@ -50,11 +50,11 @@
 				<td><%= submission.getHandsetSubmissionTime() %></td>
 			</tr>
 			<tr>
-				<td>CKW Name</td>
+				<td>Name</td>
 				<td><%= submission.getInterviewerName()%></td>
 			</tr>
 			<tr>
-				<td>CKW ID</td>
+				<td>ID</td>
 				<td><%= submission.getInterviewerId() %></td>
 			</tr>
 			<tr>
@@ -68,6 +68,17 @@
 			<tr>
 				<td>Submission Location</td>
 				<td><%= submission.getSubmissionLocation() %></td>
+			</tr>
+			<tr>
+				<td>Distance between Interviewer and Interviewee</td>
+				<td>
+				    <% if(submission.getInterviewerDistance() >= 0) {%>
+				    	<%= submission.getInterviewerDistance() %>
+				    <% }
+				       else { %>
+				        <%= "Unknown" %>
+				    <% } %>
+				</td>
 			</tr>
 			<%
 				Survey survey = submission.getSurvey();

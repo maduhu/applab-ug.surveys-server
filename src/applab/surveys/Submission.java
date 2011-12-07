@@ -2,6 +2,8 @@ package applab.surveys;
 
 import java.util.*;
 
+import applab.server.MathsHelper;
+
 public class Submission {
 	private HashMap<String, Answer> answers;
 	private ArrayList<String> answerOrder;
@@ -20,11 +22,13 @@ public class Submission {
 	private String customerCareReview;
 	private String dataTeamReview;
 	private String submissionLocation;
-
+	private double interviewerDistance;
+	
 	// This constructor is used when loading a single submission details
 	public Submission() {
 		this.answers = new HashMap<String, Answer>();
 		this.answerOrder = new ArrayList<String>();
+		this.interviewerDistance = -1;
 	}
 
 	// This constructor is required when generating many submissions as they
@@ -38,6 +42,7 @@ public class Submission {
 		this.answers = new HashMap<String, Answer>();
 		this.status = SubmissionStatus.NotReviewed;
 		this.answerOrder = new ArrayList<String>();
+		this.interviewerDistance = -1;
 	}
 
 	/**
@@ -193,5 +198,37 @@ public class Submission {
 		else {
 			return this.submissionLocation;
 		}
+	}
+	
+	public double getInterviewerDistance() {
+	    try{
+	    if(this.interviewerDistance == -1) {
+	        if(this.submissionLocation != "" && !this.submissionLocation.isEmpty() && this.location!="" && !this.location.isEmpty()) {
+	            double[] parsedLocation = parseLocation(location);
+	            double[] parsedSubmissionLocation = parseLocation(submissionLocation);	            
+	            this.interviewerDistance = MathsHelper.calcDistance(parsedLocation[0], parsedLocation[1], parsedSubmissionLocation[0], parsedSubmissionLocation[1]);
+	        }
+	    }	   
+	    //TODO: Change this to a more appropriate option other than the default -1 to show previously not saved values
+	    return this.interviewerDistance;
+	    }
+	    catch(Exception ex) {
+	        ex.printStackTrace();	        
+	        return 0;
+	    }
+	}
+	
+	/**
+	 * Splits submission location and interviewer location that are stored in a whitespace delimited string
+	 */
+	private double[] parseLocation(String location)
+	        throws NumberFormatException {
+	   String[] locationFragments = location.split(" ");
+	   double[] parsedlocation = new double[4];
+	  
+	   for(int index = 0; index < 4; index++) {
+	       parsedlocation[index] =  Double.parseDouble(locationFragments[index]);
+	   }
+       return parsedlocation;
 	}
 }

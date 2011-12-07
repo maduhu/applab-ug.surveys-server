@@ -58,14 +58,12 @@ public class ReviewSubmissions extends ApplabServlet {
             // Extract the request data
             String salesforceSurveyId = request.getParameter("surveyId");
 
+            // Always include people (non-CKWs)
+            Boolean includePeople = true;
+
             boolean showDraft = false;
             if ("on".equals(request.getParameter("showDraft"))) {
                 showDraft = true;
-            }
-
-            boolean includePeople = false;
-            if ("on".equals(request.getParameter("includePeople"))) {
-                includePeople = true;
             }
 
             // Extract the optional parameters
@@ -101,12 +99,15 @@ public class ReviewSubmissions extends ApplabServlet {
                     .getParameter("status");
 
             SubmissionStatistics statistics = SubmissionStatistics.getStatistics(salesforceSurveyId, startDate, endDate);
+
             SubmissionStatus statusFilter = null;
             if (statistics != null) {
 
                 // We have some statistics so lets load the submission
                 statusFilter = SubmissionStatus.parseHtmlParameter(statusParameter);
-                statistics.getSurvey().loadSubmissions(statusFilter, startDate, endDate, true, salesforceSurveyId, showDraft, includePeople);
+
+                statistics.getSurvey()
+                        .loadSubmissions(statusFilter, startDate, endDate, true, salesforceSurveyId, showDraft, includePeople);
 
                 // Bind the submission object
                 session.setAttribute("survey.statistics", statistics);
@@ -134,9 +135,8 @@ public class ReviewSubmissions extends ApplabServlet {
             }
 
             session.setAttribute("survey.showDraft", showDraft);
-            session.setAttribute("survey.includePeople", includePeople);
-
-            // Play the jsp page to display the details
+            session.setAttribute("includePeople", includePeople);
+            // Set up baseUrl to aid navigation to other linked pages
             session.setAttribute("survey.baseUrl", context.getUrl() + "/");
             String url = "/jsp/ReviewSubmissions.jsp";
             ServletContext sc = getServletContext();

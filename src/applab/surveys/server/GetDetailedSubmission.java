@@ -145,6 +145,7 @@ public class GetDetailedSubmission extends ApplabServlet {
         submission.setInterviewerId(resultSet.getString("interviewerId"));
         submission.setPhoneNumber(resultSet.getString("mobileNumber"));
         submission.setLocation(resultSet.getString("location"));
+        submission.setSubmissionLocation(resultSet.getString("submissionLocation"));
 
         // Deal with the statuses
         SubmissionStatus dataTeamStatus = SubmissionStatus.parseDisplayName(resultSet.getString("surveyStatus"));

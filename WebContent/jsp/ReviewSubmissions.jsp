@@ -11,15 +11,49 @@
    String endDate   = (String) session.getAttribute("survey.endDate");
    String status       = (String) session.getAttribute("survey.status");
    String salesforceId = (String) session.getAttribute("survey.salesforceId");
-   Boolean showDraft  =  (Boolean) session.getAttribute("survey.showDraft");
-   Boolean includePeople  =  (Boolean) session.getAttribute("survey.includePeople");
+   Boolean showDraft  =  (Boolean) session.getAttribute("survey.showDraft");   
+   Boolean includePeople  =  (Boolean) session.getAttribute("survey.includePeople");   
+   String baseSearchUrl = "https://na5.salesforce.com/_ui/common/search/client/ui/UnifiedSearchResults?str=";
 %>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
 <link rel="stylesheet" type="text/css" href="css/SubmissionReports.css" />
-<script type='text/JavaScript' src='js/dateWidget.js'></script>
+<link rel="stylesheet" type="text/css" href="css/jquery-ui-1.8.16.custom.css" />
+
 <script type='text/JavaScript' src='js/utils.js'></script>
+<script type='text/JavaScript' src='js/jquery-1.6.2.min.js'></script>
+<script type='text/JavaScript' src='js/jquery-ui-1.8.16.custom.min.js'></script>
+<script type='text/JavaScript' src='js/datepicker.js'></script>
+<script type="text/javascript">
+	var j$ = jQuery.noConflict();
+		j$(document).ready(function() {
+			 j$('#refineSubmissionStartDate').datetimepicker({  
+			      duration: '',  
+			      showTime: true, 
+			      showSecond: true,
+			      constrainInput: false,  
+			      stepMinutes: 1,  
+		 	      stepHours: 1,  
+		 	      altTimeField: '',  
+		 	      time24h: false,
+		 	      timeFormat: 'hh:mm:ss',
+		  	      dateFormat: 'yy-m-d'
+		     });
+			 j$('#refineSubmissionEndDate').datetimepicker({  
+			      duration: '',  
+			      showTime: true, 
+			      showSecond: true,
+			      constrainInput: false,  
+			      stepMinutes: 1,  
+		 	      stepHours: 1,  
+		 	      altTimeField: '',  
+		 	      time24h: false,
+		 	      timeFormat: 'hh:mm:ss',
+		  	      dateFormat: 'yy-m-d'
+		     });
+	});
+</script>
 </head>
 <body>
 	<div class="row">
@@ -31,7 +65,7 @@
 					Survey:
 				</div>
 				<div>
-					CKW:
+					Person/CKW:
 				</div>
 				<div>
 					Status:
@@ -52,12 +86,10 @@
 				<div>
 					Date From:
 					<input class="dateInput" id="refineSubmissionStartDate" type="text" name="startDate" value="<%= startDate %>">
-					<img alt="" src="images/DateSelect.gif" onclick='changeTimeString(0);scwShow(refineSubmissionStartDate, event);return false;'>
 				</div>
 				<div>
 					Date To:
 					<input class="dateInput" id="refineSubmissionEndDate" type="text" name="endDate" value="<%= endDate %>">
-					<img class="datePic" alt="" src="images/DateSelect.gif" onclick='changeTimeString(1);scwShow(refineSubmissionEndDate, event);return false;'>
 					<button onclick="clearField('refineSubmissionStartDate');clearField('refineSubmissionEndDate');return false;">Clear Dates</button>
 				</div>
 				<div>
@@ -67,14 +99,6 @@
 						checked="true"
 					<% } %>
 					/>
-				</div>
-				<div>
-				    Include Non-CKWs:
-				    <input class="" type="checkbox" name="includePeople"
-				    <% if (includePeople) {%>
-				        checked="true"
-				    <% } %>
-				    />
 				</div>
 				<input type="submit" name="Submit"    value="Refine Search"/>
 			</form>
@@ -89,8 +113,8 @@
 						<input type="hidden" name="startDate" value="<%= startDate %>"/>
 						<input type="hidden" name="endDate"   value="<%= endDate %>"/>
 						<input type="hidden" name="status"    value="<%= status %>"/>
-						<input type="hidden" name="showDraft"    value="<%= showDraft %>"/>
-						<input type="hidden" name="includePeople"    value="<%= includePeople %>"/>
+						<input type="hidden" name="showDraft"    value="<%= showDraft %>"/>	
+						<input type="hidden" name="includePeople" value="<%= includePeople %>"/>					
 					</form>
 				<% } %>
 			</div>
@@ -119,10 +143,11 @@
 			<th>Submission ID</th>
 			<th>Server Entry Time</th>
 			<th>Handset Submission Time</th>
-			<th>CKW ID</th>
-			<th>CKW Name</th>
+			<th>ID</th>
+			<th>Name</th>
 			<th>Customer Care Review</th>
 			<th>Data Team Review</th>
+			<th>Submission Distance(kms)</th>
 			<th>More Details</th>
 		</tr>
 		<% if (stats != null ) {%>
@@ -143,7 +168,7 @@
 					<%= submission.getHandsetSubmissionTime() %>
 				</td>
 				<td>
-					<%= submission.getInterviewerId() %>
+				<a href= <%= baseSearchUrl + submission.getInterviewerId() %> > <%= submission.getInterviewerId() %></a>
 				</td>
 				<td>
 					<%= submission.getInterviewerName() %>
@@ -153,6 +178,14 @@
 				</td>
 				<td>
 					<%= submission.getStatus().toString() %>
+				</td>
+				<td>
+				    <% if(submission.getInterviewerDistance() >= 0) {%>
+				    	<%= submission.getInterviewerDistance() %>
+				    <% }
+				       else { %>
+				        <%= "Unknown" %>
+				    <% } %>
 				</td>
 				<td>
 					<form action="<%= moreDetailsUrl %>" method="post">

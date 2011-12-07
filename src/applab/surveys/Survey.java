@@ -166,9 +166,10 @@ public class Survey {
     public HashMap<Integer, Submission> getSubmissions(Boolean forceReload)
             throws ClassNotFoundException, SQLException, ParseException,
             SAXException, IOException, ParserConfigurationException {
-        
+
         if (forceReload) {
-            getSubmissions(this.cachedSubmissionFilter, this.cachedStartDate, this.cachedEndDate, this.cachedBasic,this.cachedShowDraft, this.cachedIncludePeople);
+            getSubmissions(this.cachedSubmissionFilter, this.cachedStartDate, this.cachedEndDate, this.cachedBasic, this.cachedShowDraft,
+                    this.cachedIncludePeople);
         }
         return this.cachedSubmissions;
     }
@@ -186,8 +187,7 @@ public class Survey {
                 || (this.cachedEndDate == null || !endDate.equals(this.cachedEndDate))
                 || this.cachedShowDraft != showDraft
                 || this.cachedIncludePeople != includePeople
-                || this.cachedBasic != basic
-        ) {
+                || this.cachedBasic != basic) {
             this.cachedSubmissions = null;
             this.cachedSubmissionFilter = submissionFilter;
             this.cachedStartDate = startDate;
@@ -270,10 +270,11 @@ public class Survey {
         writer.append("Submission Id,");
         writer.append("Server Entry Date,");
         writer.append("Handset Submission Date,");
-        writer.append("CKW ID,");
-        writer.append("CKW Name,");
+        writer.append("ID,");
+        writer.append("Name,");
         writer.append("Location,");
         writer.append("Submission Location,");
+        writer.append("Interviewer - Interviewee Distance,");
         writer.append("Customer Care Review,");
         writer.append("Data Team Review,");
 
@@ -288,6 +289,7 @@ public class Survey {
                 if (question.getTotalInstances() > 1) {
                     questionDisplayName = questionDisplayName + "_" + i;
                 }
+                questionDisplayName = "(" + questionDisplayName + ") " + question.getDisplayValue();
 
                 if ("Select".equals(question.getType().toString())) {
                     for (int j = 1; j <= question.getNumberOfSelects(); j++) {
@@ -323,6 +325,16 @@ public class Survey {
                     .getInterviewerName()) + ',');
             writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
                     .getLocation()) + ',');
+            writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
+                    .getSubmissionLocation()) + ',');
+
+            if (submission.getInterviewerDistance() >= 0) {
+                writer.append(CsvHelpers.escapeAndQuoteForCsv(Double.toString(submission
+                        .getInterviewerDistance())) + ',');
+            }
+            else {
+                writer.append(CsvHelpers.escapeAndQuoteForCsv("Unknown,"));
+            }
             writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
                     .getSubmissionLocation()) + ',');
             writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
@@ -398,15 +410,15 @@ public class Survey {
 
         // TODO - use object caching to check for the survey already loaded.
 
-        this.existsInDb = false;
         if (getFromSalesforce) {
+
             SoapBindingStub binding = SalesforceProxy.createBinding();
             StringBuilder commandText = new StringBuilder();
             commandText.append("SELECT ");
             commandText.append("Name, ");
             commandText.append("Survey_Status__c, ");
-            commandText.append("Save_To_Salesforce__c, ");
-            commandText.append("Save_To_Backend__c ");
+            commandText.append("Save_To_Salesforce__c ");
+         //   commandText.append("Save_To_Backend__c ");
             commandText.append(" FROM Survey__c");
             commandText.append(" WHERE Name = '");
             commandText.append(salesforceId);
@@ -428,9 +440,11 @@ public class Survey {
             Survey__c salesforceSurvey = (Survey__c)query.getRecords(0);
             this.setSurveyStatus(salesforceSurvey.getSurvey_Status__c());
             this.setSaveToSalesforce(salesforceSurvey.getSave_To_Salesforce__c());
-            this.setSaveToBackend(salesforceSurvey.getSave_To_Backend__c());
+        //    this.setSaveToBackend(salesforceSurvey.getSave_To_Backend__c());
+
         }
         this.loadSurveyFromDatabase();
+
         return true;
     }
 

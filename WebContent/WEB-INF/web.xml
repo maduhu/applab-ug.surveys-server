@@ -91,4 +91,14 @@
     <servlet-name>SaveDesignerForm</servlet-name>
     <url-pattern>/saveXform</url-pattern>
   </servlet-mapping>
+  <servlet>
+    <description></description>
+    <display-name>UpdateCommodityPrices</display-name>
+    <servlet-name>UpdateCommodityPrices</servlet-name>
+    <servlet-class>applab.surveys.server.UpdateCommodityPrices</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>UpdateCommodityPrices</servlet-name>
+    <url-pattern>/UpdateCommodityPrices</url-pattern>
+  </servlet-mapping>
 </web-app>
