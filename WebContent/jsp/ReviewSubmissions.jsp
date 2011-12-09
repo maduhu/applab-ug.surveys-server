@@ -147,7 +147,6 @@
 			<th>Name</th>
 			<th>Customer Care Review</th>
 			<th>Data Team Review</th>
-			<th>Submission Distance(kms)</th>
 			<th>More Details</th>
 		</tr>
 		<% if (stats != null ) {%>
@@ -179,14 +178,7 @@
 				<td>
 					<%= submission.getStatus().toString() %>
 				</td>
-				<td>
-				    <% if(submission.getInterviewerDistance() >= 0) {%>
-				    	<%= submission.getInterviewerDistance() %>
-				    <% }
-				       else { %>
-				        <%= "Unknown" %>
-				    <% } %>
-				</td>
+				
 				<td>
 					<form action="<%= moreDetailsUrl %>" method="post">
 						<input type="hidden" name="submissionId" value="<%=submission.getId()%>"/>
