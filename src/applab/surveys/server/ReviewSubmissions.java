@@ -59,7 +59,7 @@ public class ReviewSubmissions extends ApplabServlet {
             String salesforceSurveyId = request.getParameter("surveyId");
 
             // Always include people (non-CKWs)
-            Boolean includePeople = true;
+            boolean includePeople = true;
 
             boolean showDraft = false;
             if ("on".equals(request.getParameter("showDraft"))) {
