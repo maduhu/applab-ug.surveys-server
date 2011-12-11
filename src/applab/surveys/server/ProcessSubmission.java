@@ -148,10 +148,14 @@ public class ProcessSubmission extends ApplabServlet {
         }
 
         Date handsetSubmissionTime = getHandsetSubmissionTime(surveyResponses, attachmentReferences);
+        Date submissionStartTime = getSubmissionStartTime(surveyResponses, attachmentReferences);
 
         // The following permanent fields should not be included in creating a hex string
         if (surveyResponses.containsKey("handset_submit_time:0")) {
             surveyResponses.remove("handset_submit_time:0");
+        }
+        if (surveyResponses.containsKey("submission_start_time:0")) {
+            surveyResponses.remove("submission_start_time:0");
         }
 
         // Generate the duplicate hash
@@ -174,28 +178,28 @@ public class ProcessSubmission extends ApplabServlet {
         // Validate the survey against the questions. This will remove any answers that are not in the survey.
         if (validateAnswers(surveyResponses, survey)) {
 
-            Boolean saveToBackend = true;
+            Boolean stopSaveToBackend = false;
 
             // Decide where this survey should be saved to
-            if (survey.getSaveToSalesforce()) {
+            if (survey.getSaveToSalesforce() || (survey.getPostProcessingMethod() != null && !survey.getPostProcessingMethod().equalsIgnoreCase("NONE"))) {
 
                 // We may want to pass data to salesforce and then save the actual submission to backend.
-                saveToBackend = survey.getSaveToBackend();
+                stopSaveToBackend = survey.getStopSaveToBackend();
 
                 // Comment the JSON out as it causes script limit issues in Salesforce
                 // String json = parseSubmissionToJson(surveyResponses, attachmentReferences, survey);
                 String json = "none";
                 String xml = parseSubmissionToXml(surveyResponses, attachmentReferences, survey);
                 String[] returnValues = saveToSalesforce(xml, json, imei, totalSize, intervieweeId, location,
-                        submissionLocation, handsetSubmissionTime, duplicateDetectionHash, survey);
+                        submissionLocation, handsetSubmissionTime, submissionStartTime, duplicateDetectionHash, survey);
 
                 httpResponseCode = Integer.valueOf(returnValues[0]);
                 log("Handset with IMEI: " + imei + " submitted a survey with the following result " + returnValues[1]);
             }
-            if (saveToBackend && (httpResponseCode == -1 || httpResponseCode == 201)) {
+            if (!stopSaveToBackend && (httpResponseCode == -1 || httpResponseCode == 201)) {
                 httpResponseCode = storeSurveySubmission(surveyResponses, attachmentReferences, imei,
                         totalSize, intervieweeId, location, submissionLocation, backendSurveyId, survey,
-                        handsetSubmissionTime, duplicateDetectionHash);
+                        handsetSubmissionTime, submissionStartTime, duplicateDetectionHash);
             }
         }
         else {
@@ -227,6 +231,8 @@ public class ProcessSubmission extends ApplabServlet {
      *            - The survey we are parsing
      * @param handsetSubmissionTime
      *            - A date for the time the submission was made
+     * @param submissionStartTime
+     *            - A date for the time the submission was started
      * @param duplicateDetectionHash
      *            - Hash of the submission to check for duplicates
      * 
@@ -236,7 +242,7 @@ public class ProcessSubmission extends ApplabServlet {
                                             HashMap<String, String> attachmentReferences, String imei, long submissionSize,
                                             String intervieweeName, String location, String submissionLocation,
                                             int backendSurveyId, Survey survey,
-                                            Date handsetSubmissionTime, String duplicateDetectionHash)
+                                            Date handsetSubmissionTime, Date submissionStartTime, String duplicateDetectionHash)
             throws NoSuchAlgorithmException, ServiceException,
             ClassNotFoundException, SQLException, ParseException, SAXException, IOException, ParserConfigurationException {
 
@@ -262,7 +268,14 @@ public class ProcessSubmission extends ApplabServlet {
         commandText.append(", interviewee_name");
         commandText.append(", is_draft");
         commandText.append(", submission_location");
-        commandText.append(") values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        if (submissionStartTime != null) {
+            commandText.append(", submission_start_time");
+        }
+        commandText.append(") values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?");
+        if (submissionStartTime != null) {
+            commandText.append(", ?");
+        }
+        commandText.append(")");
 
         // Create the prepared statement
         PreparedStatement submissionStatement = connection.prepareStatement(commandText.toString(), Statement.RETURN_GENERATED_KEYS);
@@ -286,6 +299,9 @@ public class ProcessSubmission extends ApplabServlet {
             submissionStatement.setString(12, "N");
         }
         submissionStatement.setString(13, submissionLocation);
+        if (submissionStartTime != null) {
+            submissionStatement.setTimestamp(14, DatabaseHelpers.getTimestamp(submissionStartTime));
+        }
 
         try {
             submissionStatement.execute();
@@ -517,16 +533,19 @@ public class ProcessSubmission extends ApplabServlet {
      */
     public static String[] saveToSalesforcePublic(String xml, String json, String imei, long submissionSize,
                                                   String intervieweeName, String location, String submissionLocation,
-                                                  Date handsetSubmissionTime, String duplicateDetectionHash, Survey survey)
+                                                  Date handsetSubmissionTime, Date submissionStartTime, String duplicateDetectionHash,
+                                                  Survey survey)
                    throws InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ClassNotFoundException, SQLException,
                    ServiceException {
         return saveToSalesforce(xml, json, imei, submissionSize, intervieweeName, location, submissionLocation, handsetSubmissionTime,
+                submissionStartTime,
                 duplicateDetectionHash, survey);
     }
 
     private static String[] saveToSalesforce(String xml, String json, String imei, long submissionSize,
                                              String intervieweeName, String location, String submissionLocation,
-                                             Date handsetSubmissionTime, String duplicateDetectionHash, Survey survey)
+                                             Date handsetSubmissionTime, Date submissionStartTime, String duplicateDetectionHash,
+                                             Survey survey)
                     throws InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException, ClassNotFoundException, SQLException,
             ServiceException {
 
@@ -555,6 +574,12 @@ public class ProcessSubmission extends ApplabServlet {
         surveySubmission.setResultHash(duplicateDetectionHash);
         surveySubmission.setSurveySize(String.valueOf(submissionSize));
         surveySubmission.setHandsetSubmitTime(String.valueOf(handsetSubmissionTime.getTime()));
+        if (submissionStartTime != null) {
+            surveySubmission.setSubmissionStartTime(String.valueOf(submissionStartTime.getTime()));
+        }
+        else {
+            surveySubmission.setSubmissionStartTime(null);
+        }
 
         // Generate the interview location
         Location locationObject = null;
@@ -639,6 +664,35 @@ public class ProcessSubmission extends ApplabServlet {
             handsetSubmissionTime = DatabaseHelpers.getJavaDateFromString(dateTime, 0);
         }
         return handsetSubmissionTime;
+    }
+
+    /**
+     * Get the time that the submission was started
+     * 
+     * @param surveyResponses
+     *            - Map containing the answers.
+     * @param attachmentReferences
+     *            - Map containing the paths to attachments.
+     * 
+     * @return - A date representing the handset submission time
+     */
+    public static Date getSubmissionStartTimePublic(HashMap<String, SubmissionAnswer> surveyResponses,
+                                                      HashMap<String, String> attachmentReferences) throws ParseException {
+        return getSubmissionStartTime(surveyResponses, attachmentReferences);
+    }
+
+    private static Date getSubmissionStartTime(HashMap<String, SubmissionAnswer> surveyResponses,
+                                                 HashMap<String, String> attachmentReferences) throws ParseException {
+
+        Date submissionStartTime = null;
+        if (surveyResponses.containsKey("submission_start_time:0")) {
+            String tempTime = surveyResponses.get("submission_start_time:0").getAnswerText(attachmentReferences);
+            String date = tempTime.substring(0, 10);
+            String time = tempTime.substring(11, 19);
+            String dateTime = date + " " + time;
+            submissionStartTime = DatabaseHelpers.getJavaDateFromString(dateTime, 0);
+        }
+        return submissionStartTime;
     }
 
     /**

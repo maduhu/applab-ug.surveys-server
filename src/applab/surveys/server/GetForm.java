@@ -140,10 +140,12 @@ public class GetForm extends ApplabServlet {
                                          }
                                      }
                                   }
-                                 // Create the new nodes for the instance model
+                              // Create the new nodes for the instance model
+                                 Node submissionStartTime = doc.createElement("submission_start_time");
                                  Node handsetSubmitTime = doc.createElement("handset_submit_time");
                                  Node formSurveyId = doc.createElement("survey_id");
                                  formSurveyId.setTextContent(surveyId);
+                                 formElement.appendChild(submissionStartTime);
                                  formElement.appendChild(handsetSubmitTime);
                                  formElement.appendChild(formSurveyId);
                              }
@@ -156,6 +158,34 @@ public class GetForm extends ApplabServlet {
                         }
                     }
                 }
+
+                // Add the start of submission time node to the survey model
+                Node bindStartSubmissionTime = doc.createElement("bind");
+                NamedNodeMap startSubmissionTimeAttr = bindStartSubmissionTime.getAttributes();
+
+                Attr nodesetStartSubmissionTime = doc.createAttribute("nodeset");
+                nodesetStartSubmissionTime.setValue("/" + formName + "/submission_start_time");
+                startSubmissionTimeAttr.setNamedItem(nodesetStartSubmissionTime);
+
+                Attr typeStartSubmissionTime = doc.createAttribute("type");
+                typeStartSubmissionTime.setValue("dateTime");
+                startSubmissionTimeAttr.setNamedItem(typeStartSubmissionTime);
+
+                Attr jrStartSubmissionTime = doc.createAttribute("jr:preload");
+                jrStartSubmissionTime.setValue("timestamp");
+                startSubmissionTimeAttr.setNamedItem(jrStartSubmissionTime);
+
+                Attr jrPreloadStartSubmissionTime = doc.createAttribute("jr:preloadParams");
+                jrPreloadStartSubmissionTime.setValue("start");
+                startSubmissionTimeAttr.setNamedItem(jrPreloadStartSubmissionTime);
+
+                Attr idStartSubmissionTime = doc.createAttribute("id");
+                idStartSubmissionTime.setValue("submission_start_time");
+                startSubmissionTimeAttr.setNamedItem(idStartSubmissionTime);
+
+                modelElement.appendChild(bindStartSubmissionTime);
+
+                // Add the handset submit time node to the survey model
                 Node bindHandsetSubmitTime = doc.createElement("bind");
                 NamedNodeMap handsetSubmitTimeAttr = bindHandsetSubmitTime.getAttributes();
 

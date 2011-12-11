@@ -27,6 +27,7 @@ CREATE TABLE `ZebraSurveySubmissions` (
   `survey_id`              int(10) unsigned    NOT NULL ,
   `server_entry_time`      datetime            NOT NULL default '0000-00-00 00:00:00',
   `handset_submit_time`    datetime            NOT NULL default '0000-00-00 00:00:00',
+  `submission_start_time`  datetime            NOT NULL default '0000-00-00 00:00:00',
   `handset_id`             varchar(255)        NOT NULL default '',
   `interviewer_id`         varchar(255)        NOT NULL default '',
   `interviewer_name`       varchar(255)        NOT NULL default '',
