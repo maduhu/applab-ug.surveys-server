@@ -54,19 +54,25 @@ public class ProcessMarketSubmissions {
     private final String LOW_RETAIL_PRICE = "low_retail_price_[a-z]*";
     private final String WHOLESALE_UNIT_OF_MEASUREMENT_WEIGHT = "weight_unit_measurement_[a-z]*_wholesale";
     private final String RETAIL_UNIT_OF_MEASUREMENT_WEIGHT = "weight_unit_measurement_[a-z]*_retail";
+    private final String ATTRIBUTION = "NAADS Survey";
+    private final String BASE_KEYWORD = "Subcounty_Market_Prices";
     private HashMap<String, Pattern> bindingPatterns;
     private List<MarketSurveyObject> marketSurveys;
     private ArrayList<Survey> surveys;
     private String marketDay;
     private ArrayList<Commodity> previousCommodityPrices;
-    private ArrayList<Commodity> currentCommodityPrices;
+    private List<Commodity> currentCommodityPrices;
     private SurveysSalesforceProxy surveysSalesforceProxy;
     private static Logger logger;
     private int daysBacktoProcess;
     private int daysToProcess;
+    private Calendar calendar;
+    private ArrayList<String> numbers;
+    private int categoryId;
 
     /**
-     * Constructor explicitly declaring dependencies passed as parameters 
+     * Constructor explicitly declaring dependencies passed as parameters
+     * 
      * @param logger
      * @param calendar
      * @param daysBacktoProcess
@@ -74,13 +80,14 @@ public class ProcessMarketSubmissions {
      * @param surveysSalesforceProxy
      */
     public ProcessMarketSubmissions(Calendar calendar, int daysBacktoProcess, int daysToProcess,
-            SurveysSalesforceProxy surveysSalesforceProxy) {
+            String marketDay, SurveysSalesforceProxy surveysSalesforceProxy) {
+        this.calendar = calendar;
+        this.marketDay = marketDay;
         this.daysBacktoProcess = daysBacktoProcess;
         this.daysToProcess = daysToProcess;
-        calendar.add(Calendar.DATE, daysBacktoProcess);
-        marketDay = DateHelpers.getDayOfWeek(calendar.getTime());
         ProcessMarketSubmissions.logger = Logger.getLogger(ProcessMarketSubmissions.class);
         this.surveysSalesforceProxy = surveysSalesforceProxy;
+        this.categoryId = 64;
     }
 
     /**
@@ -92,19 +99,24 @@ public class ProcessMarketSubmissions {
 
         this.previousCommodityPrices = null;
         this.bindingPatterns = compilePatterns();
+        this.numbers = createNumberPatterns();
         marketSurveys = surveysSalesforceProxy.getCommoditiesByMarketDay(marketDay);
         if (marketSurveys.isEmpty()) {
             logger.warn("No surveys for the given day: " + marketDay);
             return true;
         }
+        logger.warn("Market Survey objects loaded: " + marketSurveys.size());
         Set<String> salesforceIds = new HashSet<String>();
         for (MarketSurveyObject marketSurvey : marketSurveys) {
             salesforceIds.add(marketSurvey.getSurveyName());
         }
-        this.surveys = loadSurveys(salesforceIds, Calendar.getInstance());
-        this.currentCommodityPrices = processCommodityPrices(surveys);
-        logger.warn("Finished processing commodity prices");
-        boolean hasSavedCommodityPrices = saveCommodityPrices(currentCommodityPrices);
+        this.surveys = loadSurveys(salesforceIds);
+        boolean hasSavedCommodityPrices = true;
+        for (Survey survey : this.surveys) {
+            this.currentCommodityPrices = processCommodityPrices(survey);
+            logger.warn("Finished processing commodity prices for a survey");
+            hasSavedCommodityPrices &= saveCommodityPrices(currentCommodityPrices);
+        }
         return hasSavedCommodityPrices;
     }
 
@@ -121,22 +133,22 @@ public class ProcessMarketSubmissions {
      * @return
      * @throws Exception
      */
-    public ArrayList<Survey> loadSurveys(Set<String> salesforceSurveyIds, Calendar calendar) throws Exception {
+    public ArrayList<Survey> loadSurveys(Set<String> salesforceSurveyIds) throws Exception {
 
         ArrayList<Survey> surveys = new ArrayList<Survey>();
         calendar.add(Calendar.DATE, daysBacktoProcess);
         java.sql.Date endDate = new java.sql.Date(calendar.getTimeInMillis());
-        logger.warn("Submission begining:: " + endDate.toString());
+        logger.warn("Submission ends:: " + endDate.toString());
         calendar.add(Calendar.DATE, -daysToProcess);
         java.sql.Date startDate = new java.sql.Date(calendar.getTimeInMillis());
-        logger.warn("Submission endDate:: " + startDate.toString());
+        logger.warn("Submission begins:: " + startDate.toString());
 
         for (String salesforceSurveyId : salesforceSurveyIds) {
             try {
                 Survey survey = new Survey(salesforceSurveyId);
                 survey.loadSubmissions(SubmissionStatus.NotReviewed, startDate, endDate, false, salesforceSurveyId, false, true);
                 surveys.add(survey);
-                logger.warn("Loaded Survey: " + survey.getName());
+                logger.warn("Loaded Survey: " + survey.getName() + " Submission Count: " + survey.getSubmissions(false).size());
             }
             catch (Exception ex) {
                 throw new Exception("salesforceId" + salesforceSurveyId + ex.getMessage() + ex.getClass().getName());
@@ -145,29 +157,34 @@ public class ProcessMarketSubmissions {
         return surveys;
     }
 
-    public boolean saveCommodityPrices(ArrayList<Commodity> commodities) throws InvalidSObjectFault, MalformedQueryFault,
+    public boolean saveCommodityPrices(List<Commodity> commodities) throws InvalidSObjectFault, MalformedQueryFault,
             InvalidFieldFault, InvalidIdFault, UnexpectedErrorFault, InvalidQueryLocatorFault, RemoteException {
         boolean savedToBackEnd = false;
+        boolean savedToSearch = false;
         boolean savedToSalesForce = false;
-        try {
-            savedToBackEnd = saveCommodityPricesToBackendDataBase(commodities);
-            savedToSalesForce = saveCommodityPricesToSalesForce(commodities);
+        if (commodities != null && commodities.size() != 0) {
+            try {
+                savedToBackEnd = saveCommodityPricesToBackendDatabase(commodities);
+                savedToSearch = saveCommodityPricesToSearchDatabase(commodities);
+                savedToSalesForce = saveCommodityPricesToSalesForce(commodities);
+            }
+            catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return savedToBackEnd && savedToSalesForce && savedToSearch;
         }
-        catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return savedToBackEnd && savedToSalesForce;
+        return true;
     }
 
-    public boolean saveCommodityPricesToSalesForce(ArrayList<Commodity> commodities) throws InvalidSObjectFault, MalformedQueryFault,
+    public boolean saveCommodityPricesToSalesForce(List<Commodity> commodities) throws InvalidSObjectFault, MalformedQueryFault,
             InvalidFieldFault, InvalidIdFault, UnexpectedErrorFault, InvalidQueryLocatorFault, RemoteException {
         return surveysSalesforceProxy.updateCommodities(marketDay, commodities);
     }
 
-    public boolean saveCommodityPricesToBackendDataBase(List<Commodity> commodities)
+    public boolean saveCommodityPricesToBackendDatabase(List<Commodity> commodities)
             throws ClassNotFoundException, SQLException {
         // Create the connection to the database
         Connection connection = SurveyDatabaseHelpers.getWriterConnection();
@@ -209,49 +226,162 @@ public class ProcessMarketSubmissions {
         return true;
     }
 
-    public ArrayList<Commodity> processCommodityPrices(ArrayList<Survey> surveys) throws SAXException, IOException,
-            ParserConfigurationException, ClassNotFoundException, SQLException, ParseException {
-
-        ArrayList<Commodity> allcommodityPrices = new ArrayList<Commodity>();
-        ParsedSurveyXml parsedSurveyXml = null;
-        for (Survey survey : surveys) {
-            parsedSurveyXml = survey.getBackEndSurveyXml();
-            HashSet<String> commodityNames = new HashSet<String>();
-            List<Commodity> commodityPrices = new ArrayList<Commodity>();
-            List<MarketSurveyObject> relatedMarketSurveys = MarketSurveyObject.getBySurveyName(survey.getSalesforceId(), marketSurveys);
-            logger.warn("Related market survey objects " + relatedMarketSurveys.size());
-            MarketSurveyObject topMarketSurvey = relatedMarketSurveys.get(0);
-            for (String questionBinding : parsedSurveyXml.getQuestionOrder()) {
-                if (isCommodityPriceRelatedBinding(questionBinding)) {
-                    logger.warn("Question Binding: " + questionBinding);
-                    Question question = parsedSurveyXml.getQuestions().get(questionBinding);
-                    String commodityName = getCommodityName(questionBinding);
-                    logger.warn("Commodity Name: " + commodityName);
-                    Commodity commodity = null;
-
-                    if (!commodityNames.contains(commodityName)) {
-                        commodity = new Commodity(commodityName);
-                        commodity.setMarketName(topMarketSurvey.getMarketName());
-                        commodityNames.add(commodityName);
-                        commodityPrices.add(commodity);
-                        commodity.getQuestions().add(question);
-                        topMarketSurvey.getCommodities().add(commodity);
-                    }
-                    else {
-                        commodity = getCommoditybyName(commodityPrices, commodityName);
-                        commodity.getQuestions().add(question);
-                    }
-                }
+    public boolean saveCommodityPricesToSearchDatabase(List<Commodity> commodities) throws ClassNotFoundException, SQLException {
+        HashMap<String, Integer> previousKeywords = getPreviousMarketPriceKeywords();
+        List<CommodityPriceKeyword> updateCommodityPriceKeywords = new ArrayList<CommodityPriceKeyword>();
+        List<CommodityPriceKeyword> insertCommodityPriceKeywords = new ArrayList<CommodityPriceKeyword>();
+        for (Commodity commodity : commodities) {
+            CommodityPriceKeyword priceKeyword = new CommodityPriceKeyword(commodity, ATTRIBUTION, BASE_KEYWORD, categoryId);
+            // Sort commodity price keywords depending on whether they are updates or new keywords
+            if (previousKeywords.containsKey(priceKeyword.getKeyword())) {
+                priceKeyword.setId(previousKeywords.get(priceKeyword.getKeyword()));
+                updateCommodityPriceKeywords.add(priceKeyword);
             }
-            commodityPrices = CloneCommodities(commodityPrices, relatedMarketSurveys);
-            commodityPrices = setCommodityPrices(survey.getSubmissions(false).values(), commodityPrices, relatedMarketSurveys);
-            if (commodityPrices != null) {
-                logger.warn("null check for commodity prices");
-                allcommodityPrices.addAll(commodityPrices);
+            else {
+                insertCommodityPriceKeywords.add(priceKeyword);
             }
         }
-        logger.warn("commodity prices count ::" + allcommodityPrices.size());
-        return allcommodityPrices;
+        logger.warn("Keywords for update: " + updateCommodityPriceKeywords.size());
+        logger.warn("Keywords for insert: " + insertCommodityPriceKeywords.size());
+        return updateCommodityPricesInSearchDatabase(updateCommodityPriceKeywords)
+                && insertCommodityPricesToSearchDatabase(insertCommodityPriceKeywords);
+    }
+
+    public boolean updateCommodityPricesInSearchDatabase(List<CommodityPriceKeyword> commodityPriceKeywords) throws ClassNotFoundException,
+            SQLException {
+
+        // Create the connection to the database
+        Connection connection = SurveyDatabaseHelpers.getSearchWriterConnection();
+        connection.setAutoCommit(false);
+        StringBuilder commandText = new StringBuilder();
+        commandText.append("UPDATE keyword ");
+        commandText.append("SET content = ?, ");
+        commandText.append("updated = NOW() ");
+        commandText.append("WHERE Id = ? ");
+        PreparedStatement submissionStatement = connection.prepareStatement(commandText.toString());
+        for (CommodityPriceKeyword commodityPriceKeyword : commodityPriceKeywords) {
+            logger.warn("Generated pre-update keyword: " + commodityPriceKeyword.getKeyword());
+            submissionStatement.setString(1, commodityPriceKeyword.getContent());
+            submissionStatement.setInt(2, commodityPriceKeyword.getId());
+            submissionStatement.addBatch();
+            logger.warn("My SQL update statement: " + submissionStatement.toString());
+        }
+        try {
+            submissionStatement.executeBatch();
+            logger.warn("Executed batch update");
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+            connection.rollback();
+            connection.setAutoCommit(true);
+            submissionStatement.close();
+            logger.warn("Failed to update");
+            return false;
+        }
+        connection.commit();
+        logger.warn("Commited changes");
+        connection.setAutoCommit(true);
+        submissionStatement.close();
+        return true;
+    }
+
+    public boolean insertCommodityPricesToSearchDatabase(List<CommodityPriceKeyword> commodityPriceKeywords) throws ClassNotFoundException,
+            SQLException {
+
+        // Create the connection to the database
+        Connection connection = SurveyDatabaseHelpers.getSearchWriterConnection();
+        connection.setAutoCommit(false);
+        StringBuilder commandText = new StringBuilder();
+        commandText.append("INSERT INTO keyword ");
+        commandText.append("(keyword, categoryid, ");
+        commandText.append(" content, otrigger, isdeleted, weight, quizAction_quizId, quizAction_action, ");
+        commandText.append(" attribution, updated, createdate");
+        commandText.append(") values (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), CURDATE())");
+        PreparedStatement submissionStatement = connection.prepareStatement(commandText.toString());
+
+        for (CommodityPriceKeyword commodityPriceKeyword : commodityPriceKeywords) {
+            logger.warn("Generated pre-commit keyword: " + commodityPriceKeyword.getBaseKeyword() + commodityPriceKeyword.getContent());
+            submissionStatement.setString(1, commodityPriceKeyword.getKeyword());
+            submissionStatement.setInt(2, commodityPriceKeyword.getCategoryId());
+            submissionStatement.setString(3, commodityPriceKeyword.getContent());
+            submissionStatement.setInt(4, 0);
+            submissionStatement.setByte(5, (byte)0);
+            submissionStatement.setDouble(6, (byte)0);
+            submissionStatement.setInt(7, 0);
+            submissionStatement.setString(8, "");
+            submissionStatement.setString(9, commodityPriceKeyword.getAttribution());
+            submissionStatement.addBatch();
+            logger.warn("My SQL insert statement: " + submissionStatement.toString());
+        }
+        try {
+            submissionStatement.executeBatch();
+            logger.warn("Executed batch save");
+        }
+        catch (SQLException e) {
+            e.printStackTrace();
+            connection.rollback();
+            connection.setAutoCommit(true);
+            submissionStatement.close();
+            logger.warn("Failed to commit");
+            return false;
+        }
+        connection.commit();
+        logger.warn("Commited changes");
+        connection.setAutoCommit(true);
+        submissionStatement.close();
+        return true;
+    }
+
+    public List<Commodity> processCommodityPrices(Survey survey) throws SAXException, IOException,
+            ParserConfigurationException, ClassNotFoundException, SQLException, ParseException {
+
+        ParsedSurveyXml parsedSurveyXml = null;
+        parsedSurveyXml = survey.getBackEndSurveyXml();
+        HashSet<String> commodityNames = new HashSet<String>();
+        List<Commodity> commodityPrices = new ArrayList<Commodity>();
+        List<MarketSurveyObject> relatedMarketSurveys = MarketSurveyObject.getBySurveyName(survey.getSalesforceId(), marketSurveys);
+        logger.warn("Processing Survey: " + survey.getSalesforceId() + " Market survey objects " + relatedMarketSurveys.size());
+        // Get top most related market survey object only since the others have same structure
+        MarketSurveyObject topMarketSurvey = relatedMarketSurveys.get(0);
+        logger.warn("Questions to be processed: " + parsedSurveyXml.getQuestionOrder().size());
+        for (String questionBinding : parsedSurveyXml.getQuestionOrder()) {
+            if (isCommodityPriceRelatedBinding(questionBinding)) {
+                logger.warn("Question Binding: " + questionBinding);
+                Question question = parsedSurveyXml.getQuestions().get(questionBinding);
+                String commodityName = getCommodityName(questionBinding);
+                logger.warn("Commodity Name: " + commodityName);
+                Commodity commodity = null;
+
+                if (!commodityNames.contains(commodityName)) {
+                    commodity = new Commodity(commodityName);
+                    commodity.setMarketName(topMarketSurvey.getMarketName());
+                    commodity.setRegionName(topMarketSurvey.getRegionName());
+                    commodity.setDistrictName(topMarketSurvey.getDistrictName());
+                    commodity.setSubcountyName(topMarketSurvey.getSubcountyName());
+                    commodityNames.add(commodityName);
+                    commodityPrices.add(commodity);
+                    logger.warn("Commodity added: " + commodity.getName());
+                    commodity.getQuestions().add(question);
+                    topMarketSurvey.getCommodities().add(commodity);
+                }
+                else {
+                    commodity = getCommoditybyName(commodityPrices, commodityName);
+                    commodity.getQuestions().add(question);
+                }
+            }
+        }
+        logger.warn("Commodity Prices for one Market Survey: " + commodityPrices.size());
+        commodityPrices = cloneCommodities(commodityPrices, relatedMarketSurveys);
+        logger.warn("Commodity Prices for" + relatedMarketSurveys.size() + " Market Surveys: " + commodityPrices.size());
+        commodityPrices = setCommodityPrices(survey.getSubmissions(false).values(), commodityPrices, relatedMarketSurveys);
+        if (commodityPrices != null && commodityPrices.size() != 0) {
+            logger.warn("null check for commodity prices");
+            logger.warn("commodity prices count ::" + commodityPrices.size());
+        }
+        else {
+            logger.warn("Commodity prices object null or empty for: " + survey.getSalesforceId());
+        }
+        return commodityPrices;
     }
 
     public List<Commodity> setCommodityPrices(Collection<Submission> surveySubmissions, List<Commodity> commodities,
@@ -292,13 +422,13 @@ public class ProcessMarketSubmissions {
                             // Check if answers to both submissions are to weight related questions
                             if (answer1.getParentQuestion().getBinding().endsWith("wholesale")
                                     && answer2.getParentQuestion().getBinding().endsWith("wholesale")) {
-                                wholesaleWeightUnit1 = Double.valueOf(answer1.getRawAnswerText());
-                                wholesaleWeightUnit2 = Double.valueOf(answer2.getRawAnswerText());
+                                wholesaleWeightUnit1 = extractNumberFromString(answer1.getRawAnswerText());
+                                wholesaleWeightUnit2 = extractNumberFromString(answer2.getRawAnswerText());
                             }
                             else if (answer1.getParentQuestion().getBinding().endsWith("retail")
                                     && answer2.getParentQuestion().getBinding().endsWith("retail")) {
-                                retailWeightUnit1 = Double.valueOf(answer1.getRawAnswerText());
-                                retailWeightUnit2 = Double.valueOf(answer2.getRawAnswerText());
+                                retailWeightUnit1 = extractNumberFromString(answer1.getRawAnswerText());
+                                retailWeightUnit2 = extractNumberFromString(answer2.getRawAnswerText());
                             }
                             else if (answer1.getParentQuestion().getBinding().startsWith("high_wholesale_price_")
                                     && answer2.getParentQuestion().getBinding().startsWith("high_wholesale_price_")) {
@@ -347,11 +477,11 @@ public class ProcessMarketSubmissions {
                 for (Commodity commodity : commodities) {
                     Commodity previousCommodity = getCommodityByNameAndMarketName(commodity.getName(), commodity.getMarketName(),
                             this.previousCommodityPrices);
+                    // Check if there are any previous commodity prices for this commodity.
+                    // Returns null if this is the first entry, in which case no comparison is required.
                     if (previousCommodity == null) {
                         previousCommodity = getPreviousCommodityPrice(commodity.getName(), commodity.getMarketName());
                     }
-                    // Check if there are any previous commodity prices for this commodity.
-                    // Returns null if this is the first entry, in which case no comparison is required.
                     if (previousCommodity == null) {
                         logger.warn("Commodity questions count:: " + commodity.getQuestions().size());
                         String temp = "";
@@ -368,10 +498,10 @@ public class ProcessMarketSubmissions {
                                 logger.warn("Question:: " + question.getBinding() + " answer :: " + answer.getRawAnswerText());
                                 // Check if answer is to weight related questions
                                 if (answer.getParentQuestion().getBinding().endsWith("wholesale")) {
-                                    commodity.setWeightOfWholesaleUnitOfMeasure(Double.valueOf(answer.getRawAnswerText()));
+                                    commodity.setWeightOfWholesaleUnitOfMeasure(extractNumberFromString(answer.getRawAnswerText()));
                                 }
                                 else if (answer.getParentQuestion().getBinding().endsWith("retail")) {
-                                    commodity.setWeightOfRetailUnitOfMeasure(Double.valueOf(answer.getRawAnswerText()));
+                                    commodity.setWeightOfRetailUnitOfMeasure(extractNumberFromString(answer.getRawAnswerText()));
                                 }
                                 else if (answer.getParentQuestion().getBinding().startsWith("high_wholesale_price_")) {
                                     commodity.setHighWholesalePrice(Double.valueOf(answer.getRawAnswerText()));
@@ -404,10 +534,10 @@ public class ProcessMarketSubmissions {
                             if (answer != null) {
                                 // Check if answers to both submissions are to weight related questions
                                 if (answer.getParentQuestion().getBinding().endsWith("wholesale")) {
-                                    wholesaleWeightUnit1 = Double.valueOf(answer.getRawAnswerText());
+                                    wholesaleWeightUnit1 = extractNumberFromString(answer.getRawAnswerText());
                                 }
                                 else if (answer.getParentQuestion().getBinding().endsWith("retail")) {
-                                    retailWeightUnit1 = Double.valueOf(answer.getRawAnswerText());
+                                    retailWeightUnit1 = extractNumberFromString(answer.getRawAnswerText());
                                 }
                                 else if (answer.getParentQuestion().getBinding().startsWith("high_wholesale_price_")) {
                                     highWholesalePrice1 = Double.valueOf(answer.getRawAnswerText());
@@ -448,12 +578,12 @@ public class ProcessMarketSubmissions {
         if (allSubmissions.length == 0) {
             return allSubmissions;
         }
+        logger.warn("Survey Person Ids: " + marketSurvey.getPersonIds().size() + " and " + marketSurvey.getCkwIds().size());
         List<Submission> relevantSubmissions = new ArrayList<Submission>();
         for (int i = 0; i < allSubmissions.length; i++) {
             logger.warn("Check for relevance PersonId:: " + allSubmissions[i].getInterviewerId());
-            logger.warn("PersonId first:: " + marketSurvey.getPersonIds().get(0));
-            logger.warn("PersonId second:: " + marketSurvey.getPersonIds().get(1));
-            if (marketSurvey.getPersonIds().contains(allSubmissions[i].getInterviewerId())) {
+            if (marketSurvey.getPersonIds().contains(allSubmissions[i].getInterviewerId())
+                    || marketSurvey.getCkwIds().contains(allSubmissions[i].getInterviewerId())) {
                 relevantSubmissions.add(allSubmissions[i]);
             }
         }
@@ -467,26 +597,37 @@ public class ProcessMarketSubmissions {
         double normalisedPrice1 = price1 / weightOfUnitOfMeasure1;
         double normalisedPrice2 = price2 / weightOfUnitOfMeasure2;
         double[] result = new double[2];
-
-        if (normalisedPrice1 > normalisedPrice2) {
-            if (getHigher) {
-                result[0] = price1;
-                result[1] = weightOfUnitOfMeasure1;
-            }
-            else {
+        if (normalisedPrice1 == 0 || normalisedPrice2 == 0) {
+            if (normalisedPrice1 == 0 && normalisedPrice2 != 0) {
                 result[0] = price2;
                 result[1] = weightOfUnitOfMeasure2;
+            }
+            else {
+                result[0] = price1;
+                result[1] = weightOfUnitOfMeasure1;
             }
         }
         else {
 
-            if (getHigher) {
-                result[0] = price2;
-                result[1] = weightOfUnitOfMeasure2;
+            if (normalisedPrice1 > normalisedPrice2) {
+                if (getHigher) {
+                    result[0] = price1;
+                    result[1] = weightOfUnitOfMeasure1;
+                }
+                else {
+                    result[0] = price2;
+                    result[1] = weightOfUnitOfMeasure2;
+                }
             }
             else {
-                result[0] = price1;
-                result[1] = weightOfUnitOfMeasure1;
+                if (getHigher) {
+                    result[0] = price2;
+                    result[1] = weightOfUnitOfMeasure2;
+                }
+                else {
+                    result[0] = price1;
+                    result[1] = weightOfUnitOfMeasure1;
+                }
             }
         }
         return result;
@@ -547,7 +688,7 @@ public class ProcessMarketSubmissions {
         PreparedStatement preparedStatement = connection.prepareStatement(commandText.toString());
         ResultSet resultSet = preparedStatement.executeQuery();
         ArrayList<Commodity> commodities = new ArrayList<Commodity>();
-
+        logger.warn("Loading privious Commodity Prices");
         while (resultSet.next()) {
             Commodity commodity = new Commodity();
             commodity.setId(resultSet.getInt("Id"));
@@ -560,7 +701,36 @@ public class ProcessMarketSubmissions {
             commodity.setMarketName(resultSet.getString("marketName"));
             commodities.add(commodity);
         }
+        logger.warn("Loaded previous commodities: " + commodities.size());
         return commodities;
+    }
+
+    public HashMap<String, Integer> getPreviousMarketPriceKeywords() throws ClassNotFoundException, SQLException {
+        Connection connection = SurveyDatabaseHelpers.getSearchReaderConnection();
+        StringBuilder commandText = new StringBuilder();
+        commandText.append("SELECT k.id AS Id, ");
+        commandText.append("k.keyword AS priceKeyword ");
+        commandText.append("FROM keyword AS k ");
+        commandText.append("WHERE k.categoryId = ");
+        commandText.append(this.categoryId);
+        commandText.append(" AND k.isDeleted = 0 ");
+        commandText.append("AND k.keyword LIKE '");
+        commandText.append(BASE_KEYWORD);
+        commandText.append("%'");
+        logger.warn("Select query " + commandText.toString());
+        PreparedStatement preparedStatement = connection.prepareStatement(commandText.toString());
+        ResultSet resultSet = preparedStatement.executeQuery();
+        logger.warn("Loading previous keywords");
+        HashMap<String, Integer> map = new HashMap<String, Integer>();
+
+        while (resultSet.next()) {
+            String keyword = resultSet.getString("priceKeyword");
+            if (!map.containsKey(keyword)) {
+                map.put(keyword, resultSet.getInt("Id"));
+            }
+        }
+        logger.warn("Loaded previous commodities: " + map.size());
+        return map;
     }
 
     /**
@@ -616,7 +786,7 @@ public class ProcessMarketSubmissions {
      * @param commodities
      * @param marketSurveys
      */
-    public List<Commodity> CloneCommodities(List<Commodity> commodities, List<MarketSurveyObject> marketSurveys) {
+    public List<Commodity> cloneCommodities(List<Commodity> commodities, List<MarketSurveyObject> marketSurveys) {
         if (marketSurveys.size() > 1) {
             MarketSurveyObject topMarketSurvey = marketSurveys.get(0);
             for (int i = 1; i < marketSurveys.size(); i++) {
@@ -670,6 +840,38 @@ public class ProcessMarketSubmissions {
 
         }
         return null;
+    }
+
+    public double extractNumberFromString(String text) {
+        char[] characaters = text.toCharArray();
+        String newText = "";
+        for (char character : characaters) {
+            String item = String.valueOf(character);
+            if (numbers.contains(item)) {
+                newText = newText + item;
+            }
+            else if (newText.length() > 0) {
+                return Double.valueOf(newText);
+            }
+            else {
+                return 0;
+            }
+        }
+        if (newText.length() > 0) {
+            return Double.valueOf(newText);
+        }
+        else {
+            return 0;
+        }
+    }
+
+    private ArrayList<String> createNumberPatterns() {
+        ArrayList<String> numbers = new ArrayList<String>();
+        String[] digits = new String[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "." };
+        for (String digit : digits) {
+            numbers.add(digit);
+        }
+        return numbers;
     }
 
     /**

@@ -19,13 +19,16 @@ import java.util.*;
  * Represents a Commodity Price saved in the backend database
  * */
 
-public class Commodity {
+public class Commodity implements Cloneable {
 
     private int id;
     private String marketName;
+    private String subcountyName;
+    private String districtName;
+    private String regionName;
     private String name;
     private String wholesaleUnitOfMeasure;
-    private String retailUnitOfMeasure;
+    private String retailUnitOfMeasure;    
     private Date lastUpdateDate;
     private double weightOfWholesaleUnitOfMeasure;
     private double weightOfRetailUnitOfMeasure;
@@ -54,10 +57,11 @@ public class Commodity {
         this.name = name;
     }
 
-    public Commodity(String name, String marketName) {
+    public Commodity(String name, String marketName, String subcountyName) {
         this();
         this.name = name;
         this.marketName = marketName;
+        this.subcountyName = subcountyName;
     }
 
     public int getId() {
@@ -134,6 +138,14 @@ public class Commodity {
 
     public void setName(String name) {
         this.name = name.toLowerCase();
+    }
+    
+    public String getSubcountyName() {
+        return subcountyName;
+    }
+
+    public void setSubcountyName(String subcountyName) {
+        this.subcountyName = subcountyName;
     }
 
     public Date getLastUpdateDate() {
@@ -214,6 +226,34 @@ public class Commodity {
 
     public void setQuestions(ArrayList<Question> questions) {
         this.questions = questions;
+    }
+    
+    /**
+     * Makes a shallow copy of the Commodity in case the same survey is used for multiple markets
+     */
+    public Object clone() {
+        try {
+            return super.clone();
+        }
+        catch (CloneNotSupportedException e) {
+            throw new InternalError("Failed to clone commodity " + this.name);
+        }
+    }
+
+    public String getRegionName() {
+        return regionName;
+    }
+
+    public void setRegionName(String regionName) {
+        this.regionName = regionName;
+    }
+
+    public String getDistrictName() {
+        return districtName;
+    }
+
+    public void setDistrictName(String districtName) {
+        this.districtName = districtName;
     }
 
 }

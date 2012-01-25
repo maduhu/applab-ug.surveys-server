@@ -14,6 +14,7 @@
 package applab.surveys.server;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -34,21 +35,40 @@ public class SurveyDatabaseHelpers {
     final static String JDBC_DRIVER = "com.mysql.jdbc.Driver";
     static Connection readerConnection;
     static Connection writerConnection;
-    
-    public static Connection getReaderConnection () throws ClassNotFoundException, SQLException {
-        
+    static Connection searchReaderConnection;
+    static Connection searchWriterConnection;
+
+    public static Connection getReaderConnection() throws ClassNotFoundException, SQLException {
+
         if (readerConnection == null || readerConnection.isClosed()) {
             readerConnection = DatabaseHelpers.createReaderConnection(WebAppId.zebra);
         }
         return readerConnection;
     }
-    
-    public static Connection getWriterConnection () throws ClassNotFoundException, SQLException {
-        
+
+    public static Connection getWriterConnection() throws ClassNotFoundException, SQLException {
+
         if (writerConnection == null || writerConnection.isClosed()) {
             writerConnection = DatabaseHelpers.createConnection(WebAppId.zebra);
         }
         return writerConnection;
+    }
+
+    public static Connection getSearchReaderConnection() throws ClassNotFoundException, SQLException {
+
+        if (searchReaderConnection == null || searchReaderConnection.isClosed()) {
+            searchReaderConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/ycppquiz", "ycppquiz", "ycppquiz");
+        }
+        return searchReaderConnection;
+    }
+
+    public static Connection getSearchWriterConnection() throws ClassNotFoundException, SQLException {
+
+        if (searchWriterConnection == null || searchWriterConnection.isClosed()) {
+            Class.forName(JDBC_DRIVER);
+            searchWriterConnection = DriverManager.getConnection("jdbc:mysql://localhost:3306/ycppquiz", "ycppquiz", "ycppquiz");
+        }
+        return searchWriterConnection;
     }
 
     public static String verifySurveyID(int surveyPrimaryKey) {
@@ -147,7 +167,8 @@ public class SurveyDatabaseHelpers {
         return false;
     }
 
-    public static boolean saveXform(String surveyId, String xform_data, String surveyName, String creationDate) throws ClassNotFoundException, SQLException, ParseException {
+    public static boolean saveXform(String surveyId, String xform_data, String surveyName, String creationDate)
+            throws ClassNotFoundException, SQLException, ParseException {
         try {
             Connection connection = getWriterConnection();
             String query = "INSERT into zebrasurvey (survey_name, survey_id, created_at, xform) values (?, ?, ?, ?)";

@@ -17,12 +17,14 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.xml.rpc.ServiceException;
 
 import org.apache.log4j.Logger;
 
 import applab.surveys.*;
+
 import com.sforce.soap.enterprise.*;
 import com.sforce.soap.enterprise.fault.*;
 import com.sforce.soap.enterprise.sobject.*;
@@ -30,9 +32,9 @@ import com.sforce.soap.enterprise.sobject.*;
 import applab.server.SalesforceProxy;
 
 public class SurveysSalesforceProxy extends SalesforceProxy {
-    
+
     private static Logger logger = Logger.getLogger(SalesforceProxy.class);
-    
+
     public SurveysSalesforceProxy() throws ServiceException, InvalidIdFault, UnexpectedErrorFault, LoginFault, RemoteException {
         super();
     }
@@ -95,13 +97,26 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
         return surveys;
     }
 
-    public HashMap<String, MarketSurveyObject> getCommoditiesByMarketDay(String marketDay) throws InvalidSObjectFault, MalformedQueryFault,
+    /**
+     * Loads MarketDay Objects from Salesforce
+     * 
+     * @param marketDay
+     * @return
+     * @throws InvalidSObjectFault
+     * @throws MalformedQueryFault
+     * @throws InvalidFieldFault
+     * @throws InvalidIdFault
+     * @throws UnexpectedErrorFault
+     * @throws InvalidQueryLocatorFault
+     * @throws RemoteException
+     */
+    public List<MarketSurveyObject> getCommoditiesByMarketDay(String marketDay) throws InvalidSObjectFault, MalformedQueryFault,
             InvalidFieldFault, InvalidIdFault, UnexpectedErrorFault,
             InvalidQueryLocatorFault, RemoteException {
 
-        HashMap<String, MarketSurveyObject> marketSurveys = new HashMap<String, MarketSurveyObject>();
+        Map<String, MarketSurveyObject> marketSurveys = new HashMap<String, MarketSurveyObject>();
         StringBuilder marketsQueryText = new StringBuilder();
-        marketsQueryText.append("SELECT m.Group__c, m.Name ");
+        marketsQueryText.append("SELECT m.Group__c, m.Name, m.Subcounty__r.Name, m.District__r.Name, m.District__r.Region__c ");
         marketsQueryText.append("FROM Markets__c m ");
         marketsQueryText.append(" WHERE m.Market_Day__c = '");
         marketsQueryText.append(marketDay);
@@ -109,17 +124,64 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
         QueryResult marketsQuery = getBinding().query(marketsQueryText.toString());
 
         String groupNames = "";
-        for (int i = 0; i < marketsQuery.getSize(); i++) {
+        for (int i = 0, j = 0; i < marketsQuery.getSize(); i++) {
             Markets__c market = (Markets__c)marketsQuery.getRecords(i);
-            marketSurveys.put(market.getGroup__c(), new MarketSurveyObject(market.getGroup__c(), market.getName()));
-            logger.warn("Market Loaded : " + market.getName());
-            // Check if we need to put the separator
-            if (i != 0) {
-                groupNames += ", ";
+            // Check if there is a group associated to Market
+            // Only markets with a group should be processed
+            if (market.getGroup__c() != null && !market.getGroup__c().isEmpty()) {
+                marketSurveys.put(market.getGroup__c(), new MarketSurveyObject(market.getGroup__c(), market.getId(), market.getDistrict__r().getRegion__c(), market.getDistrict__r().getName(), market.getSubcounty__r().getName(), market.getName()));
+                logger.warn("Market Loaded : " + market.getName());
+                // Check if we need to put the separator
+                if (j != 0) {
+                    groupNames += ", ";
+                }
+                groupNames += "'" + market.getGroup__c() + "'";
+                j++;
             }
-            groupNames += "'" + market.getGroup__c() + "'";
         }
 
+        StringBuilder personGroupQueryText = new StringBuilder();
+        personGroupQueryText.append("SELECT pg.Person__r.Name, pg.Person__c, pg.Group__c ");
+        personGroupQueryText.append("FROM Person_Group_Association__c pg ");
+        personGroupQueryText.append("WHERE pg.Group__c IN (");
+        personGroupQueryText.append(groupNames);
+        personGroupQueryText.append(")");
+        QueryResult personGroupQuery = getBinding().query(personGroupQueryText.toString());
+
+        for (int i = 0; i < personGroupQuery.getSize(); i++) {
+            Person_Group_Association__c personGroupAssociation = (Person_Group_Association__c)personGroupQuery.getRecords(i);
+            MarketSurveyObject marketSurvey = marketSurveys.get(personGroupAssociation.getGroup__c());
+            if (marketSurvey != null) {
+                marketSurvey.getPersonIds().add(personGroupAssociation.getPerson__r().getName());
+            }
+        }
+
+        String personNames = "";
+        for (int i = 0; i < personGroupQuery.getSize(); i++) {
+            Person_Group_Association__c personGroupAssoc = (Person_Group_Association__c)personGroupQuery.getRecords(i);
+            if (i != 0) {
+                personNames += ", ";
+            }
+            personNames += "'" + personGroupAssoc.getPerson__c() + "'";
+        }
+
+        StringBuilder ckwQueryText = new StringBuilder();
+        ckwQueryText.append("SELECT ckw.Person__r.Name, ckw.Person__c, ckw.Name ");
+        ckwQueryText.append("FROM CKW__c ckw ");
+        ckwQueryText.append("WHERE ckw.Person__c IN (");
+        ckwQueryText.append(personNames);
+        ckwQueryText.append(")");
+        QueryResult ckwQuery = getBinding().query(ckwQueryText.toString());
+
+        for (int i = 0; i < ckwQuery.getSize(); i++) {
+            CKW__c ckw = (CKW__c)ckwQuery.getRecords(i);
+            for (MarketSurveyObject marketSurvey : marketSurveys.values()) {
+                if (marketSurvey.getPersonIds().contains(ckw.getPerson__r().getName())) {
+                    marketSurvey.getCkwIds().add(ckw.getName());
+                    logger.warn("CKW-ID: " + ckw.getName());
+                }
+            }
+        }
         StringBuilder queryText = new StringBuilder();
         queryText.append("SELECT sg.Name, sg.Group__c, sg.Survey__r.Name, sg.Group__r.Name ");
         queryText.append("FROM Survey_Group_Association__c sg ");
@@ -131,39 +193,61 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
         for (int i = 0; i < query.getSize(); i++) {
             Survey_Group_Association__c surveyGroupAssociation = (Survey_Group_Association__c)query.getRecords(i);
             marketSurveys.get(surveyGroupAssociation.getGroup__c()).setSurveyName(surveyGroupAssociation.getSurvey__r().getName());
+            logger.warn("Loaded Survey : " + surveyGroupAssociation.getSurvey__r().getName() + " and Market attached : "
+                    + marketSurveys.get(surveyGroupAssociation.getGroup__c()).getMarketName());
         }
-        return marketSurveys;
-      //  return removeBlankMarketSurveys(marketSurveys);
+        List<MarketSurveyObject> marketSurveysList = new ArrayList<MarketSurveyObject>(marketSurveys.values());
+        return marketSurveysList;
     }
 
-    public boolean updateCommodities(String marketDay, ArrayList<Commodity> commodities) throws InvalidSObjectFault, MalformedQueryFault,
+    /**
+     * Updates market commodity prices with computed values
+     * 
+     * @param marketDay
+     * @param currentCommodityPrices2
+     * @return
+     * @throws InvalidSObjectFault
+     * @throws MalformedQueryFault
+     * @throws InvalidFieldFault
+     * @throws InvalidIdFault
+     * @throws UnexpectedErrorFault
+     * @throws InvalidQueryLocatorFault
+     * @throws RemoteException
+     */
+    public boolean updateCommodities(String marketDay, List<Commodity> currentCommodityPrices2) throws InvalidSObjectFault, MalformedQueryFault,
             InvalidFieldFault, InvalidIdFault, UnexpectedErrorFault, InvalidQueryLocatorFault, RemoteException {
 
-        Commodities__c[] salesforceComodities = new Commodities__c[commodities.size()];
+        List<Commodities__c> updateCommodities = new ArrayList<Commodities__c>();
         StringBuilder queryText = new StringBuilder();
-        queryText.append("SELECT c.Id, c.Name, c.Markets__r.Name, ");
+        queryText.append("SELECT c.Id, c.Name, c.Market__r.Name, ");
         queryText.append("c.Lowest_Retail_Price__c, ");
         queryText.append("c.Highest_Retail_Price__c, ");
-        queryText.append("c.Lowest_WholeSale_Price__c, ");
-        queryText.append("c.Highest_WholeSale_Price__c ");
+        queryText.append("c.Lowest_Wholesale_Price__c, ");
+        queryText.append("c.Highest_Wholesale_Price__c ");
         queryText.append("FROM Commodities__c c  ");
-        queryText.append("WHERE c.Markets__r.Market_Day__c = '");
+        queryText.append("WHERE c.Market__r.Market_Day__c = '");
         queryText.append(marketDay);
         queryText.append("' ");
         QueryResult query = getBinding().query(queryText.toString());
+        logger.warn("Commodities sent for update: " + currentCommodityPrices2.size());
+        logger.warn("Commodites loade from Salesforce: " + query.getSize());
         for (int i = 0; i < query.getSize(); i++) {
             Commodities__c salesforceCommodity = (Commodities__c)query.getRecords(i);
             Commodity commodity = getByNameAndMarketName(salesforceCommodity.getName(), salesforceCommodity.getMarket__r().getName(),
-                    commodities);
-            // TODO: Add flagging logic in case the difference between previous and current price is too large
-            salesforceCommodity.setLowest_Retail_Price__c(commodity.getLowRetailPrice());
-            salesforceCommodity.setHighest_Retail_Price__c(commodity.getHighRetailPrice());
-            salesforceCommodity.setLowest_Wholesale_Price__c(commodity.getLowWholesalePrice());
-            salesforceCommodity.setHighest_Wholesale_Price__c(commodity.getHighWholesalePrice());
-            salesforceComodities[i] = salesforceCommodity;
+                    currentCommodityPrices2);
+            if (commodity != null) {
+                logger.warn("Commodity to be updated: " + commodity.getName() + " : " + commodity.getMarketName());
+                // TODO: Add flagging logic in case the difference between previous and current price is too large
+                salesforceCommodity.setLowest_Retail_Price__c(commodity.getLowRetailPrice());
+                salesforceCommodity.setHighest_Retail_Price__c(commodity.getHighRetailPrice());
+                salesforceCommodity.setLowest_Wholesale_Price__c(commodity.getLowWholesalePrice());
+                salesforceCommodity.setHighest_Wholesale_Price__c(commodity.getHighWholesalePrice());
+                updateCommodities.add(salesforceCommodity);
+            }
         }
         try {
-            getBinding().update(salesforceComodities);
+            Commodities__c[] salesforceCommodities = new Commodities__c[updateCommodities.size()];
+            getBinding().update(updateCommodities.toArray(salesforceCommodities));
             return true;
         }
         catch (Exception ex) {
@@ -172,9 +256,11 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
         }
     }
 
-    private Commodity getByNameAndMarketName(String name, String marketName, ArrayList<Commodity> commodities) {
-        for (Commodity commodity : commodities) {
-            if (commodity.getMarketName().equals(marketName) && commodity.getName().toLowerCase().equals(name.toLowerCase())) {
+    private Commodity getByNameAndMarketName(String name, String marketName, List<Commodity> currentCommodityPrices) {
+        logger.warn("Check for: " + name + " " + marketName);
+        for (Commodity commodity : currentCommodityPrices) {
+            if (commodity.getMarketName().toLowerCase().equals(marketName.toLowerCase())
+                    && commodity.getName().toLowerCase().equals(name.toLowerCase())) {
                 return commodity;
             }
         }
