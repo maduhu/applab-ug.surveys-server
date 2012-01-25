@@ -342,7 +342,7 @@ public class Survey {
                         .getInterviewerDistance())) + ',');
             }
             else {
-                writer.append(CsvHelpers.escapeAndQuoteForCsv("Unknown,"));
+            	writer.append(CsvHelpers.escapeAndQuoteForCsv("Unknown") + ',');
             }
             writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
                     .getSubmissionLocation()) + ',');
