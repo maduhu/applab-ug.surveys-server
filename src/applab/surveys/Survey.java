@@ -139,22 +139,22 @@ public class Survey {
     }
 
     public String getPostProcessingMethod() {
-		return postProcessingMethod;
-	}
+        return postProcessingMethod;
+    }
 
-	public void setPostProcessingMethod(String postProcessingMethod) {
-		this.postProcessingMethod = postProcessingMethod;
-	}
+    public void setPostProcessingMethod(String postProcessingMethod) {
+        this.postProcessingMethod = postProcessingMethod;
+    }
 
-	public Boolean getStopSaveToBackend() {
-		return stopSaveToBackend;
-	}
+    public Boolean getStopSaveToBackend() {
+        return stopSaveToBackend;
+    }
 
-	public void setStopSaveToBackend(Boolean stopSaveToBackend) {
-		this.stopSaveToBackend = stopSaveToBackend;
-	}
+    public void setStopSaveToBackend(Boolean stopSaveToBackend) {
+        this.stopSaveToBackend = stopSaveToBackend;
+    }
 
-	public ArrayList<Integer> getSubmissionOrder() {
+    public ArrayList<Integer> getSubmissionOrder() {
         return this.submissionOrder;
     }
 
@@ -342,10 +342,8 @@ public class Survey {
                         .getInterviewerDistance())) + ',');
             }
             else {
-            	writer.append(CsvHelpers.escapeAndQuoteForCsv("Unknown") + ',');
+                writer.append(CsvHelpers.escapeAndQuoteForCsv("Unknown") + ',');
             }
-            writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
-                    .getSubmissionLocation()) + ',');
             writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
                     .getCustomerCareStatus().toString()) + ',');
             writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
