@@ -138,7 +138,7 @@ public class Submission {
 	}
 
 	public String getLocation() {
-		return this.location;
+		return this.location == null ? "" : this.location;
 	}
 
 	public void setLocation(String location) {
@@ -203,9 +203,9 @@ public class Submission {
 	public double getInterviewerDistance() {
 	    try{
 	    if(this.interviewerDistance == -1) {
-	        if(this.submissionLocation != "" && !this.submissionLocation.isEmpty() && this.location!="" && !this.location.isEmpty()) {
-	            double[] parsedLocation = parseLocation(location);
-	            double[] parsedSubmissionLocation = parseLocation(submissionLocation);	            
+	        if(!getSubmissionLocation().isEmpty() && !getLocation().isEmpty()) {
+	            double[] parsedLocation = parseLocation(getLocation());
+	            double[] parsedSubmissionLocation = parseLocation(getSubmissionLocation());	            
 	            this.interviewerDistance = MathsHelper.calcDistance(parsedLocation[0], parsedLocation[1], parsedSubmissionLocation[0], parsedSubmissionLocation[1]);
 	        }
 	    }	   
