@@ -265,3 +265,62 @@ CONSTRAINT `ZebraAnswer_ibfk_1` FOREIGN KEY (`submission_id`) REFERENCES `zebras
 
 -- Indexes for this table
 CREATE INDEX `Submission_id` ON `Answers` (`submission_id`);
+
+-- The tables below are for the metric calculations
+CREATE TABLE `Partner` (
+  `id`           bigint(20) unsigned NOT NULL auto_increment,
+  `name`         varchar(150)        NOT NULL,
+  `short_code`   varchar(5)          NOT NULL,
+  `created_date` datetime            NOT NULL,
+  `active`       enum('Y', 'N')               default 'Y',
+  PRIMARY KEY (`id`),
+  CONSTRAINT `Partner_uidx_1` UNIQUE(name)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+CREATE TABLE `Dashboard` (
+  `id`                         bigint(20) unsigned NOT NULL auto_increment,
+  `partner_id`                 bigint(20) unsigned NOT NULL,
+  `name`                       varchar(255)        NOT NULL,
+  `include_interviewer_gender` enum('Y', 'N')               default 'N',
+  `include_survey_count`       enum('Y', 'N')               default 'N',
+  `created_date`               datetime            NOT NULL,
+  `active`                     enum('Y', 'N')               default 'Y',
+  PRIMARY KEY (`id`),
+  KEY `partner_id` (`partner_id`),
+  CONSTRAINT `ZebraDashboard_ibfk_1` FOREIGN KEY (`partner_id`) REFERENCES `Partner` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+CREATE TABLE `MetricParameter` (
+  `id`                    bigint(20) unsigned                                      NOT NULL auto_increment,
+  `dashboard_id`          bigint(20) unsigned                                      NOT NULL,
+  `survey_id`             int(10) unsigned                                         NOT NULL,
+  `name`                  varchar(80)                                              NOT NULL,
+  `binding`               varchar(255)                                             NOT NULL,
+  `calculation_type`      enum('average', 'percentage', 'sum', 'count')            NOT NULL,
+  `question_type`         enum('bool', 'number', 'singleSelect', 'multiSelect')    NOT NULL,
+  `select_options`        varchar(255)                                             NOT NULL,
+  `group_by_field`        varchar(255),
+  `lickert`               int(2)                                                   NOT NULL default 0,
+  `only_answered_surveys` enum('Y', 'N')                                                    default 'N',
+  `created_date`          datetime                                                 NOT NULL,
+  `is_repeat`             enum('Y', 'N')                                                    default 'N',
+  `active`                enum('Y', 'N')                                                    default 'Y',
+  PRIMARY KEY (`id`),
+  KEY `dashboard_id` (`dashboard_id`),
+  CONSTRAINT `ZebraMetricParameter_ibfk_1` FOREIGN KEY (`dashboard_id`) REFERENCES `Dashboard` (`id`),
+  KEY `survey_id` (`survey_id`),
+  CONSTRAINT `ZebraMetricParameter_ibfk_2` FOREIGN KEY (`survey_id`) REFERENCES `ZebraSurvey` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+CREATE TABLE `DashboardSurvey` (
+  `id`                    bigint(20) unsigned                                      NOT NULL auto_increment,
+  `dashboard_id`          bigint(20) unsigned                                      NOT NULL,
+  `survey_id`             int(10) unsigned                                         NOT NULL,
+  `created_date`          datetime                                                 NOT NULL,
+  `active`                enum('Y', 'N')                                                    default 'Y',
+  PRIMARY KEY (`id`),
+  KEY `dashboard_id` (`dashboard_id`),
+  CONSTRAINT `ZebraDashboardSurvey_ibfk_1` FOREIGN KEY (`dashboard_id`) REFERENCES `Dashboard` (`id`),
+  KEY `survey_id` (`survey_id`),
+  CONSTRAINT `ZebraDashboardSurvey_ibfk_2` FOREIGN KEY (`survey_id`) REFERENCES `ZebraSurvey` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
