@@ -44,7 +44,13 @@ public abstract class Answer {
     // create an answer based on the raw answer text and question
     public static Answer create(Question question, String rawAnswerText, int instance) {
         if (question == null) {
-            throw new IllegalArgumentException("question must be non-null");
+        	
+        	/**
+			 * Removed Section : CKW-1727 Some survey submissions fail when you
+			 * try to view details and export to CSV throw new
+			 * IllegalArgumentException("question must be non-null");
+			 */
+			rawAnswerText = "Question and question number no longer exist in survey";
         }
         
         if (rawAnswerText == null) {
