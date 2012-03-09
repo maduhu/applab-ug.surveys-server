@@ -12,7 +12,6 @@
    String status       = (String) session.getAttribute("survey.status");
    String salesforceId = (String) session.getAttribute("survey.salesforceId");
    Boolean showDraft  =  (Boolean) session.getAttribute("survey.showDraft");   
-   Boolean includePeople  =  (Boolean) session.getAttribute("survey.includePeople");   
    String baseSearchUrl = "https://na5.salesforce.com/_ui/common/search/client/ui/UnifiedSearchResults?str=";
 %>
 <html>
@@ -95,7 +94,7 @@
 				<div>
 					Show Drafts:
 					<input class="" type="checkbox" name="showDraft"
-					<% if (showDraft) {%>
+					<% if (showDraft == "true") {%>
 						checked="true"
 					<% } %>
 					/>
@@ -114,7 +113,6 @@
 						<input type="hidden" name="endDate"   value="<%= endDate %>"/>
 						<input type="hidden" name="status"    value="<%= status %>"/>
 						<input type="hidden" name="showDraft"    value="<%= showDraft %>"/>	
-						<input type="hidden" name="includePeople" value="<%= includePeople %>"/>					
 					</form>
 				<% } %>
 			</div>
@@ -188,7 +186,6 @@
 						<input type="hidden" name="endDate"   value="<%= endDate %>"/>
 						<input type="hidden" name="status"    value="<%= status %>"/>
 						<input type="hidden" name="showDraft" value="<%= showDraft %>"/>
-						<input type="hidden" name="includePeople" value="<%= includePeople %>"/>
 						<input type="submit" value="More Details"/>
 					</form>
 				</td>
