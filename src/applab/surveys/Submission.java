@@ -68,9 +68,11 @@ public class Submission {
 	}
 
 	public void addAnswer(String name, Answer answer) {
-		if (answer == null) {
-			throw new IllegalArgumentException("answer cannot be null");
-		}
+
+		/**
+		 * if (answer == null) { throw new
+		 * IllegalArgumentException("answer cannot be null"); }
+		 */
 		this.answers.put(name, answer);
 		this.answerOrder.add(name);
 	}
