@@ -53,7 +53,7 @@ public class GetForm extends ApplabServlet {
     public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
         String salesforceSurveyId = request.getParameter("surveyid");
 
-        String surveyFormXml = getSurveyForm(salesforceSurveyId);
+        String surveyFormXml = getSurveyForm(salesforceSurveyId, response);
         if (surveyFormXml == null) {
             // bad parameter, respond that the form was not found
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Survey ID does not exist: " + salesforceSurveyId);
@@ -70,9 +70,10 @@ public class GetForm extends ApplabServlet {
      * @throws SQLException 
      * 
      */
-    private static String getSurveyForm(String salesforceSurveyId) throws TransformerException, SAXException, IOException,
+    private static String getSurveyForm(String salesforceSurveyId, HttpServletResponse response) throws TransformerException, SAXException, IOException,
             ParserConfigurationException, SQLException, ClassNotFoundException {
         if (salesforceSurveyId == null || salesforceSurveyId.isEmpty()) {
+        	response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             return null;
         }
         String formData;
@@ -90,6 +91,7 @@ public class GetForm extends ApplabServlet {
                 surveyId = resultSet.getString("id");
             }
             else {
+            	response.sendError(HttpServletResponse.SC_BAD_REQUEST);
                 return null;
             }
         }
@@ -98,6 +100,7 @@ public class GetForm extends ApplabServlet {
         }
 
         if (formData == null || formData.isEmpty()) {
+        	response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             return null;
         }
 
