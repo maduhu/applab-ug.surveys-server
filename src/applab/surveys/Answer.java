@@ -46,12 +46,7 @@ public abstract class Answer {
 	public static Answer create(Question question, String rawAnswerText,
 			int instance) {
 		if (question == null) {
-
-			/**
-			 * Removed Section : CKW-1727 Some survey submissions fail when you
-			 * try to view details and export to CSV throw new
-			 * IllegalArgumentException("question must be non-null");
-			 */
+			rawAnswerText = "Question and question number no longer exist in survey";
 			return null;
 		} else {
 			if (rawAnswerText == null) {
