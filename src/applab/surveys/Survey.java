@@ -13,7 +13,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.TimeZone;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.rpc.ServiceException;
@@ -56,6 +55,8 @@ public class Survey {
     private Boolean saveToSalesforce;
     private String postProcessingMethod;
     private Boolean stopSaveToBackend;
+    private String exportUrl;
+    private String exportType;
 
     private SubmissionStatus cachedSubmissionFilter;
     private java.sql.Date cachedStartDate;
@@ -152,6 +153,22 @@ public class Survey {
 
     public void setStopSaveToBackend(Boolean stopSaveToBackend) {
         this.stopSaveToBackend = stopSaveToBackend;
+    }
+
+    public String getExportUrl() {
+        return exportUrl;
+    }
+
+    public void setExportUrl(String exportUrl) {
+        this.exportUrl = exportUrl;
+    }
+
+    public String getExportType() {
+        return exportType;
+    }
+
+    public void setExportType(String exportType) {
+        this.exportType = exportType;
     }
 
     public ArrayList<Integer> getSubmissionOrder() {
@@ -404,6 +421,12 @@ public class Survey {
         return writer.toString();
     }
 
+    public boolean loadSurvey(boolean getFromSalesforce)
+            throws InvalidIdFault, UnexpectedErrorFault, LoginFault, 
+                RemoteException, SQLException, ClassNotFoundException, ServiceException {
+        return this.loadSurvey(this.salesforceId, getFromSalesforce);
+    }
+
     /**
      * Load the details of a survey that are stored in the salesforce cloud
      * 
@@ -426,7 +449,9 @@ public class Survey {
             commandText.append("Survey_Status__c, ");
             commandText.append("Save_To_Salesforce__c, ");
             commandText.append("Post_Processing_Method__c, ");
-            commandText.append("Stop_Save_To_Backend__c ");
+            commandText.append("Stop_Save_To_Backend__c, ");
+            commandText.append("Export_URL__c, ");
+            commandText.append("Export_Type__c ");
             commandText.append(" FROM Survey__c");
             commandText.append(" WHERE Name = '");
             commandText.append(salesforceId);
@@ -450,6 +475,8 @@ public class Survey {
             this.setSaveToSalesforce(salesforceSurvey.getSave_To_Salesforce__c());
             this.setStopSaveToBackend(salesforceSurvey.getStop_Save_To_Backend__c());
             this.setPostProcessingMethod(salesforceSurvey.getPost_Processing_Method__c());
+            this.setExportUrl(salesforceSurvey.getExport_URL__c());
+            this.setExportType(salesforceSurvey.getExport_Type__c());
 
         }
         this.loadSurveyFromDatabase();
