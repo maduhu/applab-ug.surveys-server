@@ -62,7 +62,6 @@ public class Survey {
     private java.sql.Date cachedStartDate;
     private java.sql.Date cachedEndDate;
     private Boolean cachedShowDraft;
-    private Boolean cachedIncludePeople;
     private Boolean cachedBasic;
 
     private ArrayList<Integer> submissionOrder;
@@ -194,16 +193,14 @@ public class Survey {
             SAXException, IOException, ParserConfigurationException {
 
         if (forceReload) {
-            getSubmissions(this.cachedSubmissionFilter, this.cachedStartDate, this.cachedEndDate, this.cachedBasic, this.cachedShowDraft,
-                    this.cachedIncludePeople);
+            getSubmissions(this.cachedSubmissionFilter, this.cachedStartDate, this.cachedEndDate, this.cachedBasic, this.cachedShowDraft);
         }
         return this.cachedSubmissions;
     }
 
     public HashMap<Integer, Submission> getSubmissions(
                                                        SubmissionStatus submissionFilter, java.sql.Date startDate,
-                                                       java.sql.Date endDate, boolean basic, boolean showDraft,
-                                                       boolean includePeople) throws ClassNotFoundException, SQLException,
+                                                       java.sql.Date endDate, boolean basic, boolean showDraft) throws ClassNotFoundException, SQLException,
             ParseException, SAXException, IOException,
             ParserConfigurationException {
 
@@ -212,20 +209,18 @@ public class Survey {
                 || (this.cachedStartDate == null || !startDate.equals(this.cachedStartDate))
                 || (this.cachedEndDate == null || !endDate.equals(this.cachedEndDate))
                 || this.cachedShowDraft != showDraft
-                || this.cachedIncludePeople != includePeople
                 || this.cachedBasic != basic) {
             this.cachedSubmissions = null;
             this.cachedSubmissionFilter = submissionFilter;
             this.cachedStartDate = startDate;
             this.cachedEndDate = endDate;
             this.cachedShowDraft = showDraft;
-            this.cachedIncludePeople = includePeople;
             this.cachedBasic = basic;
         }
 
         if (this.cachedSubmissions == null) {
             this.cachedSubmissions = loadSubmissions(submissionFilter,
-                    startDate, endDate, basic, showDraft, includePeople);
+                    startDate, endDate, basic, showDraft);
         }
         return this.cachedSubmissions;
     }
@@ -252,7 +247,7 @@ public class Survey {
      */
     public void loadSubmissions(SubmissionStatus submissionStatus,
                                 java.sql.Date startDate, java.sql.Date endDate, boolean basic,
-                                String salesforceId, boolean showDraft, boolean includePeople)
+                                String salesforceId, boolean showDraft)
             throws ClassNotFoundException, SQLException, ParseException,
             SAXException, IOException, ParserConfigurationException,
             ServiceException {
@@ -263,7 +258,7 @@ public class Survey {
         }
 
         this.getSubmissions(submissionStatus, startDate, endDate, basic,
-                showDraft, includePeople);
+                showDraft);
     }
 
     /**
@@ -660,7 +655,7 @@ public class Survey {
 
     HashMap<Integer, Submission> loadSubmissions(SubmissionStatus statusFilter,
                                                  java.sql.Date startDate, java.sql.Date endDate, boolean basic,
-                                                 boolean showDraft, boolean includePeople)
+                                                 boolean showDraft)
             throws ClassNotFoundException, SQLException, ParseException,
             SAXException, IOException, ParserConfigurationException {
         // Build the query that gets the submissions for a given survey, status
@@ -711,10 +706,6 @@ public class Survey {
             commandText.append(" AND s.server_entry_time <= ?");
         }
 
-        // Exclude non-CKW submissions
-        if (!includePeople) {
-            commandText.append(" AND s.interviewer_id LIKE 'CKW%'");
-        }
         commandText.append(" ORDER BY s.server_entry_time");
 
         if (!basic) {

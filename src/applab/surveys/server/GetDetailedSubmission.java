@@ -52,7 +52,6 @@ public class GetDetailedSubmission extends ApplabServlet {
         String endDate = request.getParameter("endDate");
         String status = request.getParameter("status");
         String showDraft = request.getParameter("showDraft");
-        String includePeople = request.getParameter("includePeople");
 
         // Load the survey
         Survey survey = new Survey(surveySalesforceId);
@@ -78,7 +77,6 @@ public class GetDetailedSubmission extends ApplabServlet {
             session.setAttribute("survey.endDate", endDate);
             session.setAttribute("survey.status", status);
             session.setAttribute("survey.showDraft", showDraft);
-            session.setAttribute("survey.includePeople", includePeople);
 
             // Play the jsp page to display the details
             session.setAttribute("survey.baseUrl", context.getUrl() + "/");

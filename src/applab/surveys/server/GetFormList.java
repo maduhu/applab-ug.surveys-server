@@ -33,13 +33,11 @@ public class GetFormList extends ApplabServlet {
     public static void writeFormsList(PrintWriter writer, String imei, ServletRequestContext context) throws Exception {
         SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
         ArrayList<Survey> publishedSurveys = salesforceProxy.getPublishedSurveys(imei);
-        writer.write("gotten here 1!!");
         if (publishedSurveys.size() > 0) {
             writer.write("<forms>");
             for (Survey survey : publishedSurveys) {
-                //writer.write("<form url=\"" + context.getFullPath("getForm?surveyid=" + survey.getSalesforceId())
-                           // + "\" >" + survey.getName() + "</form>");
-            	writer.write("gotten here!!");
+                writer.write("<form url=\"" + context.getFullPath("getForm?surveyid=" + survey.getSalesforceId())
+                            + "\" >" + survey.getName() + "</form>");
             }
             writer.write("</forms>");
         }

@@ -498,10 +498,19 @@ public class ProcessedSubmission {
             xml.append(XmlHelpers.escapeText(String.valueOf(answer.getInstance())));
             xml.append(XmlHelpers.generateEndElement("instance"));
             xml.append(XmlHelpers.generateStartElement("questionNumber", attributes));
-            xml.append(XmlHelpers.escapeText(String.valueOf(answer.getQuestion().getQuestionNumber())));
+
+            // Must ensure that the question still exists in the XML
+            Question question = answer.getQuestion();
+            String type = "QuestionRemoved";
+            String questionNumber = "N/A";
+            if (question != null) {
+                type = question.getType().toString();
+                questionNumber = String.valueOf(question.getQuestionNumber());
+            }
+            xml.append(XmlHelpers.escapeText(questionNumber));
             xml.append(XmlHelpers.generateEndElement("questionNumber"));
             xml.append(XmlHelpers.generateStartElement("questionType", attributes));
-            xml.append(XmlHelpers.escapeText(answer.getQuestion().getType().toString()));
+            xml.append(XmlHelpers.escapeText(type));
             xml.append(XmlHelpers.generateEndElement("questionType"));
             xml.append(XmlHelpers.generateStartElement("parentBinding", attributes));
             xml.append(XmlHelpers.escapeText(parentName));
@@ -717,7 +726,6 @@ public class ProcessedSubmission {
             }
             else {
                 answer.setIsValid(false);
-                break;
             }
             this.surveyResponses.put(answerKey, answer);
         }
@@ -958,6 +966,7 @@ public class ProcessedSubmission {
             }
             catch (Exception ignore) {}
             output += " " + e.getMessage();
+            e.printStackTrace();
             returnValues[1] = output;
         }
         return returnValues;
