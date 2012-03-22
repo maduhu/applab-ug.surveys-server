@@ -10,9 +10,8 @@
    String startDate = (String) session.getAttribute("survey.startDate");
    String endDate   = (String) session.getAttribute("survey.endDate");
    String status       = (String) session.getAttribute("survey.status");
-   String salesforceId = (String) session.getAttribute("survey.salesforceId");
-   Boolean showDraft  =  (Boolean) session.getAttribute("survey.showDraft");   
-   Boolean includePeople  =  (Boolean) session.getAttribute("survey.includePeople");   
+   String salesforceId = (String) session.getAttribute("survey.salesforceId");  
+   Boolean showDraft  =  (Boolean) session.getAttribute("survey.showDraft");    
    String baseSearchUrl = "https://na5.salesforce.com/_ui/common/search/client/ui/UnifiedSearchResults?str=";
 %>
 <html>
@@ -95,9 +94,6 @@
 				<div>
 					Show Drafts:
 					<input class="" type="checkbox" name="showDraft"
-					<% if (showDraft) {%>
-						checked="true"
-					<% } %>
 					/>
 				</div>
 				<input type="submit" name="Submit"    value="Refine Search"/>
@@ -112,9 +108,8 @@
 						<input type="hidden" name="surveySalesforceId"  value="<%= salesforceId %>"/>
 						<input type="hidden" name="startDate" value="<%= startDate %>"/>
 						<input type="hidden" name="endDate"   value="<%= endDate %>"/>
-						<input type="hidden" name="status"    value="<%= status %>"/>
-						<input type="hidden" name="showDraft"    value="<%= showDraft %>"/>	
-						<input type="hidden" name="includePeople" value="<%= includePeople %>"/>					
+						<input type="hidden" name="status"    value="<%= status %>"/>				
+						<input type="hidden" name="showDraft"    value="<%= showDraft %>"/>
 					</form>
 				<% } %>
 			</div>
@@ -147,6 +142,7 @@
 			<th>Name</th>
 			<th>Customer Care Review</th>
 			<th>Data Team Review</th>
+			<th>Submission Distance(kms)</th>
 			<th>More Details</th>
 		</tr>
 		<% if (stats != null ) {%>
@@ -178,7 +174,14 @@
 				<td>
 					<%= submission.getStatus().toString() %>
 				</td>
-				
+				<td>
+				    <% if(submission.getInterviewerDistance() >= 0) {%>
+				    	<%= submission.getInterviewerDistance() %>
+				    <% }
+				       else { %>
+				        <%= "Unknown" %>
+				    <% } %>
+				</td>
 				<td>
 					<form action="<%= moreDetailsUrl %>" method="post">
 						<input type="hidden" name="submissionId" value="<%=submission.getId()%>"/>
@@ -188,7 +191,6 @@
 						<input type="hidden" name="endDate"   value="<%= endDate %>"/>
 						<input type="hidden" name="status"    value="<%= status %>"/>
 						<input type="hidden" name="showDraft" value="<%= showDraft %>"/>
-						<input type="hidden" name="includePeople" value="<%= includePeople %>"/>
 						<input type="submit" value="More Details"/>
 					</form>
 				</td>

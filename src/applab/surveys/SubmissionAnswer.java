@@ -39,20 +39,21 @@ public class SubmissionAnswer {
     public void setQuestion(Question question) {
         this.question = question;
     }
+
     /**
      * Return the answer text for this answer. Will return the attachment reference if needed.
      * 
-     * @param attachments
-     *            - HashMap containg the attachment details
+     * @param attachments                - HashMap containg the attachment details
+     * @param resolveAnswerForAttachment - Should the answer be resolved if there is an attachment.
      * 
      * @return - The answer text or attachment
      */
-    public String getAnswerText(HashMap<String, String> attachments) {
+    public String getAnswerText(HashMap<String, String> attachments, Boolean resolveAnswerForAttachment) {
 
         String resolvedAnswer = this.answerText;
 
         // See if the element is referencing an attachment
-        if (attachments != null) {
+        if (attachments != null && resolveAnswerForAttachment) {
             String attachmentPath = attachments.get(resolvedAnswer);
             if (attachmentPath != null) {
                 resolvedAnswer = attachmentPath;

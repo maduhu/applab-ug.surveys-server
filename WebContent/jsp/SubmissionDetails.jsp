@@ -12,7 +12,6 @@
    String endDate   = (String)session.getAttribute("survey.endDate");
    String status    = (String)session.getAttribute("survey.status");
    String showDraft = (String)session.getAttribute("survey.showDraft");
-   String includePeople = (String)session.getAttribute("survey.includePeople");
 %>
 <html>
 	<head>
@@ -27,7 +26,6 @@
 			<input type="hidden" name="endDate" value="<%=endDate %>"/>
 			<input type="hidden" name="status" value="<%=status %>"/>
 			<input type="hidden" name="showDraft" value="<%=showDraft %>"/>
-			<input type="hidden" name="includePeople" value="<%=includePeople %>"/>
 			<input type="submit" name="submit" value="Go Back To Submissions"/>		
 		</form>
 	</div>

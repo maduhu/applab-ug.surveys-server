@@ -58,9 +58,6 @@ public class ReviewSubmissions extends ApplabServlet {
             // Extract the request data
             String salesforceSurveyId = request.getParameter("surveyId");
 
-            // Always include people (non-CKWs)
-            boolean includePeople = true;
-
             boolean showDraft = false;
             if ("on".equals(request.getParameter("showDraft"))) {
                 showDraft = true;
@@ -107,7 +104,7 @@ public class ReviewSubmissions extends ApplabServlet {
                 statusFilter = SubmissionStatus.parseHtmlParameter(statusParameter);
 
                 statistics.getSurvey()
-                        .loadSubmissions(statusFilter, startDate, endDate, true, salesforceSurveyId, showDraft, includePeople);
+                        .loadSubmissions(statusFilter, startDate, endDate, true, salesforceSurveyId, showDraft);
 
                 // Bind the submission object
                 session.setAttribute("survey.statistics", statistics);
@@ -135,7 +132,7 @@ public class ReviewSubmissions extends ApplabServlet {
             }
 
             session.setAttribute("survey.showDraft", showDraft);
-            session.setAttribute("includePeople", includePeople);
+
             // Set up baseUrl to aid navigation to other linked pages
             session.setAttribute("survey.baseUrl", context.getUrl() + "/");
             String url = "/jsp/ReviewSubmissions.jsp";

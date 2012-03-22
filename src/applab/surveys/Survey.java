@@ -13,7 +13,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.TimeZone;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.rpc.ServiceException;
@@ -56,12 +55,13 @@ public class Survey {
     private Boolean saveToSalesforce;
     private String postProcessingMethod;
     private Boolean stopSaveToBackend;
+    private String exportUrl;
+    private String exportType;
 
     private SubmissionStatus cachedSubmissionFilter;
     private java.sql.Date cachedStartDate;
     private java.sql.Date cachedEndDate;
     private Boolean cachedShowDraft;
-    private Boolean cachedIncludePeople;
     private Boolean cachedBasic;
 
     private ArrayList<Integer> submissionOrder;
@@ -154,6 +154,22 @@ public class Survey {
         this.stopSaveToBackend = stopSaveToBackend;
     }
 
+    public String getExportUrl() {
+        return exportUrl;
+    }
+
+    public void setExportUrl(String exportUrl) {
+        this.exportUrl = exportUrl;
+    }
+
+    public String getExportType() {
+        return exportType;
+    }
+
+    public void setExportType(String exportType) {
+        this.exportType = exportType;
+    }
+
     public ArrayList<Integer> getSubmissionOrder() {
         return this.submissionOrder;
     }
@@ -177,16 +193,14 @@ public class Survey {
             SAXException, IOException, ParserConfigurationException {
 
         if (forceReload) {
-            getSubmissions(this.cachedSubmissionFilter, this.cachedStartDate, this.cachedEndDate, this.cachedBasic, this.cachedShowDraft,
-                    this.cachedIncludePeople);
+            getSubmissions(this.cachedSubmissionFilter, this.cachedStartDate, this.cachedEndDate, this.cachedBasic, this.cachedShowDraft);
         }
         return this.cachedSubmissions;
     }
 
     public HashMap<Integer, Submission> getSubmissions(
                                                        SubmissionStatus submissionFilter, java.sql.Date startDate,
-                                                       java.sql.Date endDate, boolean basic, boolean showDraft,
-                                                       boolean includePeople) throws ClassNotFoundException, SQLException,
+                                                       java.sql.Date endDate, boolean basic, boolean showDraft) throws ClassNotFoundException, SQLException,
             ParseException, SAXException, IOException,
             ParserConfigurationException {
 
@@ -195,20 +209,18 @@ public class Survey {
                 || (this.cachedStartDate == null || !startDate.equals(this.cachedStartDate))
                 || (this.cachedEndDate == null || !endDate.equals(this.cachedEndDate))
                 || this.cachedShowDraft != showDraft
-                || this.cachedIncludePeople != includePeople
                 || this.cachedBasic != basic) {
             this.cachedSubmissions = null;
             this.cachedSubmissionFilter = submissionFilter;
             this.cachedStartDate = startDate;
             this.cachedEndDate = endDate;
             this.cachedShowDraft = showDraft;
-            this.cachedIncludePeople = includePeople;
             this.cachedBasic = basic;
         }
 
         if (this.cachedSubmissions == null) {
             this.cachedSubmissions = loadSubmissions(submissionFilter,
-                    startDate, endDate, basic, showDraft, includePeople);
+                    startDate, endDate, basic, showDraft);
         }
         return this.cachedSubmissions;
     }
@@ -235,7 +247,7 @@ public class Survey {
      */
     public void loadSubmissions(SubmissionStatus submissionStatus,
                                 java.sql.Date startDate, java.sql.Date endDate, boolean basic,
-                                String salesforceId, boolean showDraft, boolean includePeople)
+                                String salesforceId, boolean showDraft)
             throws ClassNotFoundException, SQLException, ParseException,
             SAXException, IOException, ParserConfigurationException,
             ServiceException {
@@ -246,7 +258,7 @@ public class Survey {
         }
 
         this.getSubmissions(submissionStatus, startDate, endDate, basic,
-                showDraft, includePeople);
+                showDraft);
     }
 
     /**
@@ -404,6 +416,12 @@ public class Survey {
         return writer.toString();
     }
 
+    public boolean loadSurvey(boolean getFromSalesforce)
+            throws InvalidIdFault, UnexpectedErrorFault, LoginFault, 
+                RemoteException, SQLException, ClassNotFoundException, ServiceException {
+        return this.loadSurvey(this.salesforceId, getFromSalesforce);
+    }
+
     /**
      * Load the details of a survey that are stored in the salesforce cloud
      * 
@@ -426,7 +444,9 @@ public class Survey {
             commandText.append("Survey_Status__c, ");
             commandText.append("Save_To_Salesforce__c, ");
             commandText.append("Post_Processing_Method__c, ");
-            commandText.append("Stop_Save_To_Backend__c ");
+            commandText.append("Stop_Save_To_Backend__c, ");
+            commandText.append("Export_URL__c, ");
+            commandText.append("Export_Type__c ");
             commandText.append(" FROM Survey__c");
             commandText.append(" WHERE Name = '");
             commandText.append(salesforceId);
@@ -450,6 +470,8 @@ public class Survey {
             this.setSaveToSalesforce(salesforceSurvey.getSave_To_Salesforce__c());
             this.setStopSaveToBackend(salesforceSurvey.getStop_Save_To_Backend__c());
             this.setPostProcessingMethod(salesforceSurvey.getPost_Processing_Method__c());
+            this.setExportUrl(salesforceSurvey.getExport_URL__c());
+            this.setExportType(salesforceSurvey.getExport_Type__c());
 
         }
         this.loadSurveyFromDatabase();
@@ -633,7 +655,7 @@ public class Survey {
 
     HashMap<Integer, Submission> loadSubmissions(SubmissionStatus statusFilter,
                                                  java.sql.Date startDate, java.sql.Date endDate, boolean basic,
-                                                 boolean showDraft, boolean includePeople)
+                                                 boolean showDraft)
             throws ClassNotFoundException, SQLException, ParseException,
             SAXException, IOException, ParserConfigurationException {
         // Build the query that gets the submissions for a given survey, status
@@ -684,10 +706,6 @@ public class Survey {
             commandText.append(" AND s.server_entry_time <= ?");
         }
 
-        // Exclude non-CKW submissions
-        if (!includePeople) {
-            commandText.append(" AND s.interviewer_id LIKE 'CKW%'");
-        }
         commandText.append(" ORDER BY s.server_entry_time");
 
         if (!basic) {

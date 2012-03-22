@@ -27,12 +27,17 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.*;
-
-import org.apache.log4j.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.parsers.ParserConfigurationException;
+
+import org.apache.log4j.Logger;
 import org.xml.sax.SAXException;
+
+import applab.server.DatabaseHelpers;
+import applab.surveys.server.SurveyDatabaseHelpers;
+import applab.surveys.server.SurveysSalesforceProxy;
 
 import com.sforce.soap.enterprise.fault.InvalidFieldFault;
 import com.sforce.soap.enterprise.fault.InvalidIdFault;
@@ -40,11 +45,6 @@ import com.sforce.soap.enterprise.fault.InvalidQueryLocatorFault;
 import com.sforce.soap.enterprise.fault.InvalidSObjectFault;
 import com.sforce.soap.enterprise.fault.MalformedQueryFault;
 import com.sforce.soap.enterprise.fault.UnexpectedErrorFault;
-
-import applab.server.DatabaseHelpers;
-import applab.server.DateHelpers;
-import applab.surveys.server.SurveyDatabaseHelpers;
-import applab.surveys.server.SurveysSalesforceProxy;
 
 public class ProcessMarketSubmissions {
 
@@ -146,7 +146,7 @@ public class ProcessMarketSubmissions {
         for (String salesforceSurveyId : salesforceSurveyIds) {
             try {
                 Survey survey = new Survey(salesforceSurveyId);
-                survey.loadSubmissions(SubmissionStatus.NotReviewed, startDate, endDate, false, salesforceSurveyId, false, true);
+                survey.loadSubmissions(SubmissionStatus.NotReviewed, startDate, endDate, false, salesforceSurveyId, false);
                 surveys.add(survey);
                 logger.warn("Loaded Survey: " + survey.getName() + " Submission Count: " + survey.getSubmissions(false).size());
             }
