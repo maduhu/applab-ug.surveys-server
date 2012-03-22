@@ -693,7 +693,7 @@ public class ProcessMarketSubmissions {
             Commodity commodity = new Commodity();
             commodity.setId(resultSet.getInt("Id"));
             commodity.setName(resultSet.getString("Name"));
-            commodity.setLastUpdateDate(DatabaseHelpers.getJavaDateFromString(resultSet.getString("dateCreated"), 0));
+            commodity.setLastUpdateDate(DatabaseHelpers.getJavaDateFromString(resultSet.getString("dateCreated"), 3));
             commodity.setLowRetailPrice(resultSet.getDouble("lowRetailPrice"));
             commodity.setLowWholesalePrice(resultSet.getDouble("lowWholesalePrice"));
             commodity.setHighRetailPrice(resultSet.getDouble("highRetailPrice"));
@@ -769,7 +769,7 @@ public class ProcessMarketSubmissions {
             Commodity commodity = new Commodity();
             commodity.setId(resultSet.getInt("Id"));
             commodity.setName(resultSet.getString("Name"));
-            commodity.setLastUpdateDate(DatabaseHelpers.getJavaDateFromString(resultSet.getString("dateCreated"), 0));
+            commodity.setLastUpdateDate(DatabaseHelpers.getJavaDateFromString(resultSet.getString("dateCreated"), 3));
             commodity.setLowRetailPrice(resultSet.getDouble("lowRetailPrice"));
             commodity.setLowWholesalePrice(resultSet.getDouble("lowWholesalePrice"));
             commodity.setHighRetailPrice(resultSet.getDouble("highRetailPrice"));

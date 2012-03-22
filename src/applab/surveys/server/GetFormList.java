@@ -26,13 +26,14 @@ public class GetFormList extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     protected void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
+        response.setContentType("UTF-8");
         writeFormsList(response.getWriter(), context.getHandsetId(), context);
         context.close();
     }
 
     public static void writeFormsList(PrintWriter writer, String imei, ServletRequestContext context) throws Exception {
         SurveysSalesforceProxy salesforceProxy = new SurveysSalesforceProxy();
-        ArrayList<Survey> publishedSurveys = salesforceProxy.getPublishedSurveys(imei);
+        ArrayList<Survey> publishedSurveys = salesforceProxy.getPublishedSurveys(imei);     
         if (publishedSurveys.size() > 0) {
             writer.write("<forms>");
             for (Survey survey : publishedSurveys) {
