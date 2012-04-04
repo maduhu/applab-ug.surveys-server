@@ -38,14 +38,14 @@ import applab.server.XmlHelpers;
 
 /**
  * Server method that returns the XML for a survey
- * 
+ *
  * We require a transform here since the survey designer saves data in a different format than the mobile client
  * expects. We hope to push this transform to the designer->save path over time.
- * 
+ *
  * Input: survey id (provided in the surveyid URL parameter)
- * 
+ *
  * Output: xform data to be used by a mobile client
- * 
+ *
  */
 public class GetForm extends ApplabServlet {
     private static final long serialVersionUID = 1L;
@@ -60,15 +60,17 @@ public class GetForm extends ApplabServlet {
         }
         else {
             log(surveyFormXml);
+            //Charset set to UTF-8 for multi-language support.
+            response.setContentType("text/html; charset=UTF-8");
             response.getWriter().write(surveyFormXml);
         }
     }
 
     /**
      * Given the salesforce Id of a survey, fetch the XML for that survey
-     * @throws ClassNotFoundException 
-     * @throws SQLException 
-     * 
+     * @throws ClassNotFoundException
+     * @throws SQLException
+     *
      */
     private static String getSurveyForm(String salesforceSurveyId, HttpServletResponse response) throws TransformerException, SAXException, IOException,
             ParserConfigurationException, SQLException, ClassNotFoundException {
@@ -78,7 +80,7 @@ public class GetForm extends ApplabServlet {
         }
         String formData;
         String surveyId;
-        
+
         SelectCommand selectCommand = new SelectCommand(DatabaseTable.Survey);
         try {
             selectCommand.addField("xform");
@@ -112,14 +114,14 @@ public class GetForm extends ApplabServlet {
                 return insertNodes((Element) childNode, surveyId, doc);
             }
         }
-        
+
         // If we dont add anything in return the form as is
         return XmlHelpers.exportAsString(doc);
     }
 
     private static String insertNodes(Element headElement, String surveyId, Document doc)
             throws TransformerException {
-    
+
         for (Node childNode = headElement.getFirstChild(); childNode != null; childNode = childNode.getNextSibling()) {
             if (childNode.getNodeType() == Node.ELEMENT_NODE && childNode.getLocalName().equals("model")) {
                 Element modelElement = (Element) childNode;
@@ -130,7 +132,7 @@ public class GetForm extends ApplabServlet {
                         formName = instanceElement.getAttribute("id");
                         for (Node childInstanceNode = instanceElement.getFirstChild(); childInstanceNode != null; childInstanceNode = childInstanceNode.getNextSibling()) {
                              if (childInstanceNode.getNodeType() == Node.ELEMENT_NODE && childInstanceNode.getLocalName().equals(formName)) {
-                                 Element formElement = (Element) childInstanceNode; 
+                                 Element formElement = (Element) childInstanceNode;
                                  //remove style attribute if present, and also any empty xmlns attributes
                                  for (int i = 0; i < formElement.getChildNodes().getLength(); i++) {
                                      Node dataNode = formElement.getChildNodes().item(i);
