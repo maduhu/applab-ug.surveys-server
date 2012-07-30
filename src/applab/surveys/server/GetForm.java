@@ -15,6 +15,8 @@ package applab.surveys.server;
  */
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -60,8 +62,6 @@ public class GetForm extends ApplabServlet {
         }
         else {
             log(surveyFormXml);
-            //Charset set to UTF-8 for multi-language support.
-            response.setContentType("text/html; charset=UTF-8");
             response.getWriter().write(surveyFormXml);
         }
     }
@@ -89,7 +89,7 @@ public class GetForm extends ApplabServlet {
             selectCommand.whereEquals("survey_id", "'" + salesforceSurveyId + "'");
             ResultSet resultSet = selectCommand.execute();
             if (resultSet.next()) {
-                formData = resultSet.getString("xform");
+            	formData = resultSet.getString("xform");
                 surveyId = resultSet.getString("id");
             }
             else {
