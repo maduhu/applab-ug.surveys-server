@@ -11,9 +11,19 @@
     <servlet-class>applab.surveys.server.GetFormList</servlet-class>
   </servlet>
   <servlet>
+    <description>Lists all of the available survey forms for version 4.2 and later</description>
+    <servlet-name>GetNewFormList</servlet-name>
+    <servlet-class>applab.surveys.server.GetNewFormList</servlet-class>
+  </servlet>
+  <servlet>
     <description>Returns the requested survey form to the mobile client</description>
     <servlet-name>GetForm</servlet-name>
     <servlet-class>applab.surveys.server.GetForm</servlet-class>
+  </servlet>
+  <servlet>
+    <description>Returns the requested survey form for version 4.2 and later</description>
+    <servlet-name>GetNewForm</servlet-name>
+    <servlet-class>applab.surveys.server.GetNewForm</servlet-class>
   </servlet>
   <servlet>
     <description>Used from the survey validation tool to list the submissions for a particular survey</description>
@@ -64,8 +74,16 @@
     <url-pattern>/formList</url-pattern>
   </servlet-mapping>
   <servlet-mapping>
+    <servlet-name>GetNewFormList</servlet-name>
+    <url-pattern>/newFormList</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
     <servlet-name>GetForm</servlet-name>
     <url-pattern>/getForm</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>GetNewForm</servlet-name>
+    <url-pattern>/getNewForm</url-pattern>
   </servlet-mapping>
   <servlet-mapping>
     <servlet-name>ReviewSubmissions</servlet-name>
