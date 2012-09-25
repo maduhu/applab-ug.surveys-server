@@ -16,6 +16,7 @@ public class Question {
     private String rawValue;
     private String displayValue;
     private HashMap<String, String> choices;
+    private HashMap<Integer, String> bindingIndexMap;
     private QuestionType type;
     private Integer totalInstances;
     private Integer numberOfSelects;
@@ -24,7 +25,7 @@ public class Question {
     public Question(String binding, String value, QuestionType type, int questionNumber) {
         this.binding = binding;
         this.rawValue = value;
-        this.choices = new HashMap<String, String>();
+        this.choices = new HashMap<String, String>();this.bindingIndexMap = new HashMap<Integer, String>();
         this.totalInstances = 0;
         this.numberOfSelects = 0;
         this.type = type;
@@ -89,7 +90,11 @@ public class Question {
         }
         return choiceValue;
     }
-    
+
+    public String getValueAtIndex(Integer index) {
+    	return this.bindingIndexMap.get(index);
+    }
+
     public Integer getTotalInstances() {
         return this.totalInstances;
     }
@@ -122,9 +127,10 @@ public class Question {
 
         String encodedChoices = this.rawValue.substring(index + 4);
         int choiceCount = 0;
+        int binding = 0;
         while (encodedChoices.length() > 0) {
             // choices are of the form <choice text>:<choice index>;
-            int colonIndex = encodedChoices.indexOf(':');
+            int colonIndex = encodedChoices.indexOf(':');binding++;
             if (colonIndex == -1) {
                 // if we don't find a colon, bail
                 break;
@@ -143,7 +149,7 @@ public class Question {
             
             // While by convention our data collection team uses integers as the option names,
             // the tool and schema are based on string representations and we cannot always expect an integer 
-            String choiceIndex = encodedChoices.substring(colonIndex + 1, semicolonIndex);
+            String choiceIndex = encodedChoices.substring(colonIndex + 1, semicolonIndex);this.bindingIndexMap.put(binding, choiceIndex);
             this.choices.put(choiceIndex, choiceValue);
             choiceCount++;
             encodedChoices = encodedChoices.substring(semicolonIndex + 1);

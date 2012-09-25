@@ -316,7 +316,7 @@ public class Survey {
                     for (int j = 1; j <= question.getNumberOfSelects(); j++) {
                         writer.append(CsvHelpers
                                 .escapeAndQuoteForCsv(questionDisplayName)
-                                + "_" + j + ",");
+                                + "_" + question.getValueAtIndex(j) + ",");
                     }
                 }
                 else {
@@ -381,9 +381,9 @@ public class Survey {
                                 writer.append("[No Answer],");
                             }
                             else if (answer.getFriendlyAnswerText(true, this)
-                                    .contains(" " + j + " ")) {
+                                    .contains(" " + question.getValueAtIndex(j) + " ")) {
                                 writer.append(CsvHelpers
-                                        .escapeAndQuoteForCsv(String.valueOf(j))
+                                        .escapeAndQuoteForCsv(question.getValueAtIndex(j))
                                         + ",");
                             }
                             else {
