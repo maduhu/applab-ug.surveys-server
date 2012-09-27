@@ -25,7 +25,8 @@ public class Question {
     public Question(String binding, String value, QuestionType type, int questionNumber) {
         this.binding = binding;
         this.rawValue = value;
-        this.choices = new HashMap<String, String>();this.bindingIndexMap = new HashMap<Integer, String>();
+        this.choices = new HashMap<String, String>();
+        this.bindingIndexMap = new HashMap<Integer, String>();
         this.totalInstances = 0;
         this.numberOfSelects = 0;
         this.type = type;
@@ -130,7 +131,8 @@ public class Question {
         int binding = 0;
         while (encodedChoices.length() > 0) {
             // choices are of the form <choice text>:<choice index>;
-            int colonIndex = encodedChoices.indexOf(':');binding++;
+            int colonIndex = encodedChoices.indexOf(':');
+            binding++;
             if (colonIndex == -1) {
                 // if we don't find a colon, bail
                 break;
@@ -149,7 +151,8 @@ public class Question {
             
             // While by convention our data collection team uses integers as the option names,
             // the tool and schema are based on string representations and we cannot always expect an integer 
-            String choiceIndex = encodedChoices.substring(colonIndex + 1, semicolonIndex);this.bindingIndexMap.put(binding, choiceIndex);
+            String choiceIndex = encodedChoices.substring(colonIndex + 1, semicolonIndex);
+            this.bindingIndexMap.put(binding, choiceIndex);
             this.choices.put(choiceIndex, choiceValue);
             choiceCount++;
             encodedChoices = encodedChoices.substring(semicolonIndex + 1);
