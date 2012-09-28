@@ -103,6 +103,7 @@ public class GetDetailedSubmission extends ApplabServlet {
         commandText.append("a.question_name AS questionName, ");
         commandText.append("a.position AS position, ");
         commandText.append("a.answer AS answer, ");
+        commandText.append("s.submission_start_time AS surveyStartTime, ");
         commandText.append("s.server_entry_time AS surveyTime, ");
         commandText.append("s.handset_submit_time AS handsetTime, ");
         commandText.append("s.survey_id AS surveyId, ");
@@ -131,14 +132,15 @@ public class GetDetailedSubmission extends ApplabServlet {
     }
 
     private Submission createSubmission(ResultSet resultSet, Survey survey)
-            throws SQLException, ClassNotFoundException, SAXException, IOException, ParserConfigurationException {
+            throws SQLException, ClassNotFoundException, SAXException, IOException, ParserConfigurationException, ParseException {
 
         // Get the questions from the survey
         HashMap<String, Question> questions = survey.getBackEndSurveyXml().getQuestions();
         Submission submission = new Submission(survey);
 
-        submission.setHandsetSubmissionTime(resultSet.getDate("handsetTime"));
-        submission.setServerSubmissionTime(resultSet.getDate("surveyTime"));
+        submission.setHandsetSubmissionTime(DatabaseHelpers.getJavaDateFromString(resultSet.getString("handsetTime"), 0));
+        submission.setServerSubmissionTime(DatabaseHelpers.getJavaDateFromString(resultSet.getString("surveyTime"), 0));
+        submission.setSurveyStartTime(DatabaseHelpers.getJavaDateFromString(resultSet.getString("surveyStartTime"), 0));
         submission.setInterviewerName(resultSet.getString("interviewerName"));
         submission.setInterviewerId(resultSet.getString("interviewerId"));
         submission.setPhoneNumber(resultSet.getString("mobileNumber"));

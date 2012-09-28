@@ -390,7 +390,7 @@ public class Survey {
                                         + ",");
                             }
                             else {
-                                writer.append(",");
+                                writer.append(answer.getFriendlyAnswerText(true, this) + ",");
                             }
                         }
                     }
@@ -794,7 +794,12 @@ public class Survey {
                 submission.setServerSubmissionTime(DatabaseHelpers
                         .getJavaDateFromString(
                                 resultSet.getString("serverEntryTime"), 0));
-                submission.setSurveyStartTime(DatabaseHelpers.getJavaDateFromString(resultSet.getString("surveyStartTime"), 0));
+                try {
+                	submission.setSurveyStartTime(DatabaseHelpers.getJavaDateFromString(resultSet.getString("surveyStartTime"), 0));
+                }
+                catch (java.sql.SQLException exception) {
+                	submission.setSurveyStartTime(null);
+                }
                 // Avoid parsing if we already know the value
                 SubmissionStatus submissionStatus = statusFilter;
                 if (submissionStatus == null) {
