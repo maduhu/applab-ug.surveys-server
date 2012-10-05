@@ -16,6 +16,7 @@ public class Submission {
     private String interviewerName;
     private String serverSubmissionTime;
     private String handsetSubmissionTime;
+    private String surveyStartTime;
     private String phoneNumber;
     private String location;
 
@@ -98,7 +99,15 @@ public class Submission {
         this.handsetSubmissionTime = handsetSubmissionTime.toString();
     }
 
-    public int getId() {
+    public String getSurveyStartTime() {
+		return surveyStartTime;
+	}
+
+	public void setSurveyStartTime(Date surveyStartTime) {
+		this.surveyStartTime = (null == surveyStartTime) ? " " : surveyStartTime.toString();
+	}
+
+	public int getId() {
         return this.id;
     }
 

@@ -289,8 +289,9 @@ public class Survey {
         // Extract and save the standard column headers
         writer.append("Survey ID,");
         writer.append("Submission Id,");
+        writer.append("Survey Start Time,");
+        writer.append("Survey End Time,");
         writer.append("Server Entry Date,");
-        writer.append("Handset Submission Date,");
         writer.append("ID,");
         writer.append("Name,");
         writer.append("Location,");
@@ -336,10 +337,12 @@ public class Survey {
                     .valueOf(submission.getSurveyId())) + ',');
             writer.append(CsvHelpers.escapeAndQuoteForCsv(String
                     .valueOf(submissionId)) + ',');
-            writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
-                    .getServerSubmissionTime()) + ',');
+            writer.append(CsvHelpers.escapeAndQuoteForCsv(String
+                    .valueOf(submission.getSurveyStartTime())) + ',');
             writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
                     .getHandsetSubmissionTime()) + ',');
+            writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
+                    .getServerSubmissionTime()) + ',');
             writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
                     .getInterviewerId()) + ',');
             writer.append(CsvHelpers.escapeAndQuoteForCsv(submission
@@ -672,6 +675,7 @@ public class Survey {
         commandText.append(" s.survey_status AS status,");
         commandText.append(" s.customer_care_status AS customerCareStatus,");
         commandText.append(" s.mobile_number AS mobileNumber,");
+        commandText.append(" s.submission_start_time AS surveyStartTime,");
         commandText.append(" s.handset_submit_time AS handsetSubmitTime,");
         commandText.append(" s.server_entry_time AS serverEntryTime,");
         commandText.append(" s.location AS location");
@@ -790,7 +794,12 @@ public class Survey {
                 submission.setServerSubmissionTime(DatabaseHelpers
                         .getJavaDateFromString(
                                 resultSet.getString("serverEntryTime"), 0));
-
+                try {
+                	submission.setSurveyStartTime(DatabaseHelpers.getJavaDateFromString(resultSet.getString("surveyStartTime"), 0));
+                }
+                catch (java.sql.SQLException exception) {
+                	submission.setSurveyStartTime(null);
+                }
                 // Avoid parsing if we already know the value
                 SubmissionStatus submissionStatus = statusFilter;
                 if (submissionStatus == null) {

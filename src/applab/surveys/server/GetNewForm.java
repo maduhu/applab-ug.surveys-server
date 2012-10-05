@@ -49,7 +49,7 @@ import applab.server.XmlHelpers;
  * Output: xform data to be used by a mobile client
  *
  */
-public class GetForm extends ApplabServlet {
+public class GetNewForm extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
     public void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
@@ -62,6 +62,8 @@ public class GetForm extends ApplabServlet {
         }
         else {
             log(surveyFormXml);
+            //Charset set to UTF-8 for multi-language support.
+            response.setContentType("text/html; charset=utf-8");
             response.getWriter().write(surveyFormXml);
         }
     }

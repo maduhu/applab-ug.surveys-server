@@ -40,12 +40,16 @@
 				<td><%= surveyId %></td>
 			</tr>
 			<tr>
-				<td>Server Entry Time</td>
-				<td><%= submission.getServerSubmissionTime() %></td>
+				<td>Survey Start Time</td>
+				<td><%= submission.getSurveyStartTime() %></td>
 			</tr>
 			<tr>
-				<td>Handset Submission Time</td>
+				<td>Survey End Time</td>
 				<td><%= submission.getHandsetSubmissionTime() %></td>
+			</tr>
+			<tr>
+				<td>Server Entry Time</td>
+				<td><%= submission.getServerSubmissionTime() %></td>
 			</tr>
 			<tr>
 				<td>Name</td>

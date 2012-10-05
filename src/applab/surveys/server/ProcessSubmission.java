@@ -80,8 +80,8 @@ public class ProcessSubmission extends ApplabServlet {
             else if (contentType == "image/jpeg" || contentType == "image/gif" || contentType == "image/png" || contentType == "image/bmp"
                     || contentType == "video/3gp" || contentType == "video/mp4" || contentType == "video/3gpp"
                     || contentType == "audio/3gp" || contentType == "audio/mp4" || contentType == "audio/m4a"
-                    || contentType == "audio/3gpp") {
-                String attachmentReference = submission.createAttachmentReference(fileItem.getContentType());
+                    || contentType == "audio/3gpp") {log(contentType);
+                String attachmentReference = submission.createAttachmentReference(fileItem.getContentType());log(fileItem.getContentType());log(attachmentReference);
                 submission.saveAttachment(fileItem, context, this.getServletContext().getRealPath(attachmentReference), attachmentReference);
             }
         }

@@ -136,8 +136,9 @@
 		<tr>
 			<th>Survey ID</th>
 			<th>Submission ID</th>
+			<th>Survey Start Time</th>
+			<th>Survey End Time</th>
 			<th>Server Entry Time</th>
-			<th>Handset Submission Time</th>
 			<th>ID</th>
 			<th>Name</th>
 			<th>Customer Care Review</th>
@@ -157,10 +158,13 @@
 					<%= submission.getId() %>
 				</td>
 				<td>
-					<%= submission.getServerSubmissionTime() %>
+					<%= submission.getSurveyStartTime() %>
 				</td>
 				<td>
 					<%= submission.getHandsetSubmissionTime() %>
+				</td>
+				<td>
+					<%= submission.getServerSubmissionTime() %>
 				</td>
 				<td>
 				<a href= <%= baseSearchUrl + submission.getInterviewerId() %> > <%= submission.getInterviewerId() %></a>
