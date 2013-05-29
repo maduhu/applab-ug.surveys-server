@@ -187,4 +187,44 @@ public class SurveyDatabaseHelpers {
         }
         return false;
     }
+    
+    public static ResultSet getSubmissionDetails(int submissionId) throws SQLException, ClassNotFoundException {
+
+        Connection connection = SurveyDatabaseHelpers.getReaderConnection();
+
+        // Build the SQL for the query.
+        StringBuilder commandText = new StringBuilder();
+        commandText.append("SELECT a.question_number AS questionNumber, ");
+        commandText.append("a.question_name AS questionName, ");
+        commandText.append("a.position AS position, ");
+        commandText.append("a.answer AS answer, ");
+        commandText.append("s.submission_start_time AS surveyStartTime, ");
+        commandText.append("s.server_entry_time AS surveyTime, ");
+        commandText.append("s.handset_submit_time AS handsetTime, ");
+        commandText.append("s.handset_id AS handsetId, ");
+        commandText.append("s.survey_id AS surveyId, ");
+        commandText.append("s.interviewer_id AS interviewerId, ");
+        commandText.append("s.interviewer_name AS interviewerName, ");
+        commandText.append("s.mobile_number AS mobileNumber, ");
+        commandText.append("s.survey_status AS surveyStatus, ");
+        commandText.append("s.customer_care_status AS customerCareStatus, ");
+        commandText.append("s.location AS location, ");
+        commandText.append("s.customer_care_review AS customerCareReview, ");
+        commandText.append("s.data_team_review AS dataTeamReview, ");
+        commandText.append("s.submission_size AS submissionSize, ");
+        commandText.append("s.submission_location AS submissionLocation ");
+        commandText.append("FROM answers a, zebrasurveysubmissions s ");
+        commandText.append("WHERE a.submission_id = ? ");
+        commandText.append("AND a.submission_id = s.id ");
+        commandText.append("ORDER BY questionNumber, position");
+
+        // Prepare the statement
+        PreparedStatement query = connection.prepareStatement(commandText.toString());
+
+        // Pass the variables to the prepared statement
+        query.setInt(1, submissionId);
+
+        // Execute the query
+        return query.executeQuery();    	
+    }
 }

@@ -63,6 +63,7 @@ public class Survey {
     private java.sql.Date cachedEndDate;
     private Boolean cachedShowDraft;
     private Boolean cachedBasic;
+    private Boolean postProcessingDeferred;
 
     private ArrayList<Integer> submissionOrder;
     private HashMap<Integer, Submission> cachedSubmissions;
@@ -176,6 +177,13 @@ public class Survey {
 
     public void setSubmissionOrder(ArrayList<Integer> submissionOrder) {
         this.submissionOrder = submissionOrder;
+    }
+    
+    public Boolean isPostProcessingDeferred() {
+    	return postProcessingDeferred;
+    }
+    public void setPostProcessingDeferred(Boolean postProcessingDeferred) {
+    	this.postProcessingDeferred = postProcessingDeferred;
     }
 
     /**
@@ -447,6 +455,7 @@ public class Survey {
             commandText.append("Survey_Status__c, ");
             commandText.append("Save_To_Salesforce__c, ");
             commandText.append("Post_Processing_Method__c, ");
+            commandText.append("Defer_Post_Processing__c, ");
             commandText.append("Stop_Save_To_Backend__c, ");
             commandText.append("Export_URL__c, ");
             commandText.append("Export_Type__c ");
@@ -475,6 +484,7 @@ public class Survey {
             this.setPostProcessingMethod(salesforceSurvey.getPost_Processing_Method__c());
             this.setExportUrl(salesforceSurvey.getExport_URL__c());
             this.setExportType(salesforceSurvey.getExport_Type__c());
+            this.setPostProcessingDeferred(salesforceSurvey.getDefer_Post_Processing__c());
 
         }
         this.loadSurveyFromDatabase();

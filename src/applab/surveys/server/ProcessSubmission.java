@@ -113,7 +113,8 @@ public class ProcessSubmission extends ApplabServlet {
             Boolean stopSaveToBackend = false;
 
             // Decide where this survey should be saved to
-            if (submission.getSurvey().getSaveToSalesforce() || !submission.getSurvey().getPostProcessingMethod().equalsIgnoreCase("NONE")) {
+            if ((submission.getSurvey().getSaveToSalesforce() || !submission.getSurvey().getPostProcessingMethod().equalsIgnoreCase("NONE"))
+            		&& !submission.getSurvey().isPostProcessingDeferred()) {
 
                 // We may want to pass data to salesforce and then save the actual submission to backend.
                 stopSaveToBackend = submission.getSurvey().getStopSaveToBackend();

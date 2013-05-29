@@ -3,18 +3,28 @@ package applab.surveys.server;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.rpc.ServiceException;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 import applab.server.ApplabServlet;
 import applab.server.ServletRequestContext;
+import applab.server.XmlHelpers;
 import applab.surveys.CustomerCareStatus;
+import applab.surveys.ProcessedSubmission;
 import applab.surveys.SubmissionStatus;
+import applab.surveys.Survey;
 
 /**
  * Called by ReviewSubmissions to update the status of survey submissions based on staff review
@@ -23,7 +33,7 @@ import applab.surveys.SubmissionStatus;
 public class UpdateSubmissionStatus extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
-    public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, ClassNotFoundException, SQLException, ServletException {
+    public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, ClassNotFoundException, SQLException, ServletException, ServiceException, ParserConfigurationException {
 
         HttpSession session = request.getSession(true);
         if (session == null) {
@@ -37,7 +47,54 @@ public class UpdateSubmissionStatus extends ApplabServlet {
         
         String customerCareReview = request.getParameter("ccReview") + (request.getParameter("addCcReview") == "" ? "" : "\n" + request.getParameter("addCcReview"));
         String dataTeamReview = request.getParameter("dtReview") + (request.getParameter("addDtReview") == "" ? "" : "\n" + request.getParameter("addDtReview"));
-       
+        String salesforceId = request.getParameter("surveyId");
+        Survey survey = new Survey(salesforceId);
+        survey.loadSurvey(true);
+        if (survey.isPostProcessingDeferred()) {
+
+	        // Check if this survey has deferred post processing and the data team status is Approved, was not previously Approved.
+	        if (dataTeamReview.contains("Approved")) {
+	        	Connection connection = SurveyDatabaseHelpers.getReaderConnection();
+	        	StringBuilder commandText = new StringBuilder();
+	            commandText.append("SELECT s.survey_status AS surveyStatus ");
+	            commandText.append("FROM zebrasurveysubmissions s  ");
+	            commandText.append("WHERE s.submission_id = ? ");
+	            PreparedStatement query = connection.prepareStatement(commandText.toString());
+	            query.setInt(1, submissionId);
+	            ResultSet resultSet = query.executeQuery();
+	            resultSet.next();
+	            String previousDataTeamReview = resultSet.getString("surveyStatus");
+	            if (!previousDataTeamReview.contains("Approved")) {
+	            	ResultSet submissionResultSet = SurveyDatabaseHelpers.getSubmissionDetails(submissionId);
+
+	            	// Do the Post Processing
+	                ProcessedSubmission submission = new ProcessedSubmission(
+	                        submissionResultSet.getString("handsetId"),
+	                        submissionResultSet.getString("interviewerName"),
+	                        submissionResultSet.getString("location"),
+	                        submissionResultSet.getString("submissionLocation")
+	                );
+	                submission.setSize(submissionResultSet.getInt("submissionSize"));
+	                submission.setHandsetSubmitTime(submissionResultSet.getDate("handsetTime"));
+	                submission.setSubmissionStartTime(submissionResultSet.getDate("surveyStartTime"));
+	                submission.setSurvey(survey);
+	                Document xmlDocument = XmlHelpers.createDocument();
+
+	                // Based on the surveyId, call the respective processing class
+	                if (salesforceId.equalsIgnoreCase("20121110311")) {
+	                	xmlDocument = EwarehouseSurveyProcessing.processEwarehouseSurveys(submissionResultSet, xmlDocument);
+	                }
+
+	                submission.setXml(xmlDocument);
+	                String[] returnValues = submission.saveToSalesforce();
+	                if (returnValues[0].equalsIgnoreCase("1")) {
+	                	
+	                	// This would mean the post processing failed. Stay on the page and do not change the status
+	                	return;
+	                }
+	            }
+	        }
+        }
         updateSubmissionStatus(submissionId, dataTeamStatus.getDisplayName(), customerCareStatus.getDisplayName(), customerCareReview, dataTeamReview);
 
         // Redirect to the reviewsubmissionServlet.

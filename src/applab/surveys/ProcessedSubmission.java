@@ -650,7 +650,7 @@ public class ProcessedSubmission {
     }
 
     /**
-     * Get the handset submission time for the submission
+     * Set the handset submission time for the submission from the XML
      */
     private Boolean setHandsetSubmitTime() throws ParseException {
 
@@ -668,7 +668,24 @@ public class ProcessedSubmission {
     }
 
     /**
-     * Get the submission start time for the submission
+     * Set the handset submission time directly
+     * Will be used by deferred post processing code
+     */
+    public void setHandsetSubmitTime(Date handsetSubmissionTime) {
+    	this.handsetSubmissionTime = handsetSubmissionTime;
+    }
+
+    /**
+     * Get the handset submission time
+     * Will be used by deferred post processing code
+     * as well as to check for duplicate submissions
+     */
+    public Date getHandsetSubmissionTime() {
+    	return this.handsetSubmissionTime;
+    }
+
+    /**
+     * Set the submission start time for the submission
      */
     private Boolean setSubmissionStartTime() throws ParseException {
 
@@ -683,6 +700,23 @@ public class ProcessedSubmission {
             success = true;
         }
         return success;
+    }
+
+    /**
+     * Set the submission start time directly
+     * Will be used by the deferred post processing code
+     */
+    public void setSubmissionStartTime(Date submissionStartTime) {
+    	this.submissionStartTime = submissionStartTime;
+    }
+
+    /**
+     * Get the submission start time
+     * Used by the deferred post processing code 
+     * and to check for duplicate submissions
+     */
+    public Date getSubmissionStartTime() {
+    	return this.submissionStartTime;
     }
 
     /**
