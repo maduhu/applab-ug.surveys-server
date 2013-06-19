@@ -25,6 +25,7 @@ import applab.server.DatabaseHelpers;
 import applab.server.DatabaseTable;
 import applab.server.SelectCommand;
 import applab.server.WebAppId;
+import applab.surveys.ProcessedSubmission;
 
 /**
  * Helper methods for interacting with our survey and search databases
@@ -212,6 +213,8 @@ public class SurveyDatabaseHelpers {
         commandText.append("s.customer_care_review AS customerCareReview, ");
         commandText.append("s.data_team_review AS dataTeamReview, ");
         commandText.append("s.submission_size AS submissionSize, ");
+        commandText.append("a.parent_position AS parentPosition, ");
+        commandText.append("a.parent AS parentBinding, ");
         commandText.append("s.submission_location AS submissionLocation ");
         commandText.append("FROM answers a, zebrasurveysubmissions s ");
         commandText.append("WHERE a.submission_id = ? ");
@@ -226,5 +229,27 @@ public class SurveyDatabaseHelpers {
 
         // Execute the query
         return query.executeQuery();    	
+    }
+    
+    public static boolean isSubmissionAlreadyInDb(ProcessedSubmission submission) {
+    	
+    	try {
+    		Connection connection = getReaderConnection();
+    		Statement statement = connection.createStatement();
+    		String sqlQuery = "SELECT id FROM zebrasurveysubmissions WHERE submission_start_time = '" +
+    				DatabaseHelpers.getTimestamp(submission.getSubmissionStartTime()) + "' AND handset_submit_time='" +
+    				DatabaseHelpers.getTimestamp(submission.getHandsetSubmissionTime()) + "' AND handset_id='" +
+    				submission.getImei() + "' ";
+    		ResultSet resultSet = statement.executeQuery(sqlQuery);
+    		int resultsCount = DatabaseHelpers.getRowCount(resultSet);
+    		
+    		if (resultsCount > 0) { 
+    			return true;
+    		}
+    	}
+    	catch(Exception exception) {
+    		exception.printStackTrace();
+    	}
+    	return false;
     }
 }

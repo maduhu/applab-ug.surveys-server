@@ -1,5 +1,7 @@
 package applab.surveys.server;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -81,8 +83,16 @@ public class ProcessSubmission extends ApplabServlet {
                     || contentType == "video/3gp" || contentType == "video/mp4" || contentType == "video/3gpp"
                     || contentType == "audio/3gp" || contentType == "audio/mp4" || contentType == "audio/m4a"
                     || contentType == "audio/3gpp") {log(contentType);
-                String attachmentReference = submission.createAttachmentReference(fileItem.getContentType());log(fileItem.getContentType());log(attachmentReference);
-                submission.saveAttachment(fileItem, context, this.getServletContext().getRealPath(attachmentReference), attachmentReference);
+                String attachmentReference = submission.createAttachmentReference(fileItem.getContentType());log(fileItem.getContentType());
+                submission.saveAttachment(fileItem, context, this.getServletContext().getRealPath(attachmentReference), attachmentReference);log("full path="+context.getFullPath(attachmentReference.substring(1)));
+                
+                // Check the url of the saved attachment to ensure it's valid, else return an error
+        		URL url = new URL(context.getFullPath(attachmentReference.substring(1)));
+        		HttpURLConnection   conn = (HttpURLConnection)url.openConnection();
+        		if(conn.getResponseCode()!= 200) {
+        			log("Attachment Url messed up");
+        			response.sendError(HttpServletResponse.SC_NOT_FOUND, "Attachment Url messed up, please resubmit");
+        		}
             }
         }
         submission.setSize(totalSize);
@@ -106,6 +116,13 @@ public class ProcessSubmission extends ApplabServlet {
 
         int httpResponseCode = -1;
 
+        // Check that the submission is not already in salesforce
+        if (SurveyDatabaseHelpers.isSubmissionAlreadyInDb(submission)) {
+        	log("submission for IMEI " + submission.getImei() + " already exists, will be ignored");
+        	httpResponseCode = HttpServletResponse.SC_CREATED;
+        	response.setStatus(httpResponseCode);
+        	return;
+        }
         // Validate the survey against the questions. This will remove any answers that are not in the survey.
         String[] validateResponse = submission.validateSubmission();
         if (validateResponse[0].equals("1")) {

@@ -5,8 +5,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
-
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -14,14 +12,14 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.rpc.ServiceException;
+import javax.xml.transform.TransformerException;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
 
 import applab.server.ApplabServlet;
 import applab.server.ServletRequestContext;
-import applab.server.XmlHelpers;
 import applab.surveys.CustomerCareStatus;
+import applab.surveys.DeferredSurveyProcessingXmlGenerator;
 import applab.surveys.ProcessedSubmission;
 import applab.surveys.SubmissionStatus;
 import applab.surveys.Survey;
@@ -33,7 +31,7 @@ import applab.surveys.Survey;
 public class UpdateSubmissionStatus extends ApplabServlet {
     private static final long serialVersionUID = 1L;
 
-    public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, ClassNotFoundException, SQLException, ServletException, ServiceException, ParserConfigurationException {
+    public void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws IOException, ClassNotFoundException, SQLException, ServletException, ServiceException, ParserConfigurationException, TransformerException, SAXException {
 
         HttpSession session = request.getSession(true);
         if (session == null) {
@@ -50,22 +48,23 @@ public class UpdateSubmissionStatus extends ApplabServlet {
         String salesforceId = request.getParameter("surveyId");
         Survey survey = new Survey(salesforceId);
         survey.loadSurvey(true);
-        if (survey.isPostProcessingDeferred()) {
+        if (survey.isPostProcessingDeferred()) {log("Deferred Post Processing ");log("Data Team review "+dataTeamReview);log("Customercare review "+customerCareReview);
 
 	        // Check if this survey has deferred post processing and the data team status is Approved, was not previously Approved.
-	        if (dataTeamReview.contains("Approved")) {
+	        if (dataTeamStatus.getDisplayName().equalsIgnoreCase("Approved")) {
 	        	Connection connection = SurveyDatabaseHelpers.getReaderConnection();
 	        	StringBuilder commandText = new StringBuilder();
 	            commandText.append("SELECT s.survey_status AS surveyStatus ");
 	            commandText.append("FROM zebrasurveysubmissions s  ");
-	            commandText.append("WHERE s.submission_id = ? ");
+	            commandText.append("WHERE s.id = ? ");
 	            PreparedStatement query = connection.prepareStatement(commandText.toString());
 	            query.setInt(1, submissionId);
 	            ResultSet resultSet = query.executeQuery();
 	            resultSet.next();
-	            String previousDataTeamReview = resultSet.getString("surveyStatus");
-	            if (!previousDataTeamReview.contains("Approved")) {
+	            String previousDataTeamReview = resultSet.getString("surveyStatus");log("Previous survey status was " + previousDataTeamReview);
+	            if (!previousDataTeamReview.equalsIgnoreCase("Approved")) {
 	            	ResultSet submissionResultSet = SurveyDatabaseHelpers.getSubmissionDetails(submissionId);
+	            	submissionResultSet.next();
 
 	            	// Do the Post Processing
 	                ProcessedSubmission submission = new ProcessedSubmission(
@@ -74,24 +73,13 @@ public class UpdateSubmissionStatus extends ApplabServlet {
 	                        submissionResultSet.getString("location"),
 	                        submissionResultSet.getString("submissionLocation")
 	                );
+	                submission.setBackendSurveyIdFromRootNode(String.valueOf(survey.getPrimaryKey()));
 	                submission.setSize(submissionResultSet.getInt("submissionSize"));
 	                submission.setHandsetSubmitTime(submissionResultSet.getDate("handsetTime"));
 	                submission.setSubmissionStartTime(submissionResultSet.getDate("surveyStartTime"));
 	                submission.setSurvey(survey);
-	                Document xmlDocument = XmlHelpers.createDocument();
-
-	                // Based on the surveyId, call the respective processing class
-	                if (salesforceId.equalsIgnoreCase("20121110311")) {
-	                	xmlDocument = EwarehouseSurveyProcessing.processEwarehouseSurveys(submissionResultSet, xmlDocument);
-	                }
-
-	                submission.setXml(xmlDocument);
-	                String[] returnValues = submission.saveToSalesforce();
-	                if (returnValues[0].equalsIgnoreCase("1")) {
-	                	
-	                	// This would mean the post processing failed. Stay on the page and do not change the status
-	                	return;
-	                }
+	                String[] returnValues = DeferredSurveyProcessingXmlGenerator.processEwarehouseSurveys(submissionResultSet, survey,  submission);
+	                log(submission.getImei() + " submitted a survey with the following result : " + returnValues[1]);
 	            }
 	        }
         }

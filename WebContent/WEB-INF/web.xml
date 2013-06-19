@@ -119,4 +119,35 @@
     <servlet-name>UpdateCommodityPrices</servlet-name>
     <url-pattern>/UpdateCommodityPrices</url-pattern>
   </servlet-mapping>
+    <servlet>
+    <servlet>
+    <description></description>
+    <display-name>ProcessOldSubmissions</display-name>
+    <servlet-name>ProcessOldSubmissions</servlet-name>
+    <servlet-class>applab.surveys.server.ProcessOldSubmissions</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ProcessOldSubmissions</servlet-name>
+    <url-pattern>/processOldSubmissions</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    
+    <description>Does Post Processing for all Submissions for a given survey</description>
+    <servlet-name>EwarehouseRetroPostProcessing</servlet-name>
+    <servlet-class>applab.surveys.server.EwarehouseRetroPostProcessing</servlet-class>
+  </servlet>
+  <servlet>
+    <description>Does Post Processing for a single Submission</description>
+    <servlet-name>EwarehouseSubmissionPostProcessor</servlet-name>
+    <servlet-class>applab.surveys.server.EwarehouseSubmissionPostProcessor</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>EwarehouseRetroPostProcessing</servlet-name>
+    <url-pattern>/processManySubmissions</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>EwarehouseSubmissionPostProcessor</servlet-name>
+    <url-pattern>/processSingleSubmission</url-pattern>
+  </servlet-mapping>
+
 </web-app>

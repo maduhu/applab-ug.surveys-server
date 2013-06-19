@@ -172,7 +172,18 @@ public class ProcessedSubmission {
     public void setSize(long size) {
         this.size = size;
     }
+    
+    public long getSize() {
+    	return this.size;
+    }
 
+    public String getBackendSurveyIdFromRootNode () {
+    	return backendSurveyIdFromRootNode;
+    }
+    
+    public void setBackendSurveyIdFromRootNode (String backendSurveyIdFromRootNode) {
+    	this.backendSurveyIdFromRootNode = backendSurveyIdFromRootNode;
+    }
     public Survey getSurvey() {
         return survey;
     }
@@ -730,7 +741,22 @@ public class ProcessedSubmission {
         }
         this.duplicateHash = HashHelpers.createSHA1(hashSource);
     }
+    
+    public String getDuplicateHash() {
+    	return this.duplicateHash;
+    }
 
+    public String getIntervieweeId() {
+    	return this.intervieweeId;
+    }
+    
+    public String getInterviewLocation() {
+    	return this.interviewLocation;
+    }
+    
+    public String getSubmissionLocation() {
+    	return this.submissionLocation;
+    }
     /**
      * Validate the answers that have been submitted. If an answer does not match a question then take it out of the
      * answers hash map
