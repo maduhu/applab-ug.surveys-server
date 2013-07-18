@@ -11,7 +11,7 @@
     <servlet-class>applab.surveys.server.GetFormList</servlet-class>
   </servlet>
   <servlet>
-    <description>Lists all of the available survey forms for version 4.2 and later</description>
+    <description>Lists all of the available survey forms for versions 4.2 and later</description>
     <servlet-name>GetNewFormList</servlet-name>
     <servlet-class>applab.surveys.server.GetNewFormList</servlet-class>
   </servlet>
@@ -21,7 +21,7 @@
     <servlet-class>applab.surveys.server.GetForm</servlet-class>
   </servlet>
   <servlet>
-    <description>Returns the requested survey form for version 4.2 and later</description>
+    <description>Returns the requested survey form for versions 4.2 and later</description>
     <servlet-name>GetNewForm</servlet-name>
     <servlet-class>applab.surveys.server.GetNewForm</servlet-class>
   </servlet>
@@ -119,8 +119,7 @@
     <servlet-name>UpdateCommodityPrices</servlet-name>
     <url-pattern>/UpdateCommodityPrices</url-pattern>
   </servlet-mapping>
-    <servlet>
-    <servlet>
+<servlet>
     <description></description>
     <display-name>ProcessOldSubmissions</display-name>
     <servlet-name>ProcessOldSubmissions</servlet-name>
@@ -131,23 +130,13 @@
     <url-pattern>/processOldSubmissions</url-pattern>
   </servlet-mapping>
   <servlet>
-    
-    <description>Does Post Processing for all Submissions for a given survey</description>
-    <servlet-name>EwarehouseRetroPostProcessing</servlet-name>
-    <servlet-class>applab.surveys.server.EwarehouseRetroPostProcessing</servlet-class>
-  </servlet>
-  <servlet>
-    <description>Does Post Processing for a single Submission</description>
-    <servlet-name>EwarehouseSubmissionPostProcessor</servlet-name>
-    <servlet-class>applab.surveys.server.EwarehouseSubmissionPostProcessor</servlet-class>
+    <description>Does Post Processing submissions of a given survey</description>
+    <display-name>ZebraDataPostProcessing</display-name>
+    <servlet-name>ZebraDataPostProcessing</servlet-name>
+    <servlet-class>applab.surveys.server.ZebraDataPostProcessing</servlet-class>
   </servlet>
   <servlet-mapping>
-    <servlet-name>EwarehouseRetroPostProcessing</servlet-name>
-    <url-pattern>/processManySubmissions</url-pattern>
+    <servlet-name>ZebraDataPostProcessing</servlet-name>
+    <url-pattern>/processSurvey</url-pattern>
   </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>EwarehouseSubmissionPostProcessor</servlet-name>
-    <url-pattern>/processSingleSubmission</url-pattern>
-  </servlet-mapping>
-
 </web-app>

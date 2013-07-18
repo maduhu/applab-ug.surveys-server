@@ -56,7 +56,7 @@ public class DeferredSurveyProcessingXmlGenerator {
 	 * @throws IOException
 	 * @throws SAXException
 	 */
-	public static String[] processEwarehouseSurveys(
+	public static String[] postProcessSurvey(
 			ResultSet submissionResultSet, Survey survey,
 			ProcessedSubmission pSubmission) throws SQLException,
 			TransformerException, ClassNotFoundException, ServiceException,

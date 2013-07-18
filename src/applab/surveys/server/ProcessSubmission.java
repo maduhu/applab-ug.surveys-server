@@ -116,17 +116,18 @@ public class ProcessSubmission extends ApplabServlet {
 
         int httpResponseCode = -1;
 
-        // Check that the submission is not already in salesforce
-        if (SurveyDatabaseHelpers.isSubmissionAlreadyInDb(submission)) {
-        	log("submission for IMEI " + submission.getImei() + " already exists, will be ignored");
-        	httpResponseCode = HttpServletResponse.SC_CREATED;
-        	response.setStatus(httpResponseCode);
-        	return;
-        }
+
         // Validate the survey against the questions. This will remove any answers that are not in the survey.
         String[] validateResponse = submission.validateSubmission();
         if (validateResponse[0].equals("1")) {
 
+            // Check that the submission is not already in salesforce
+            if (SurveyDatabaseHelpers.isSubmissionAlreadyInDb(submission)) {
+            	log("submission for IMEI " + submission.getImei() + " already exists, will be ignored");
+            	httpResponseCode = HttpServletResponse.SC_CREATED;
+            	response.setStatus(httpResponseCode);
+            	return;
+            }
             Boolean stopSaveToBackend = false;
 
             // Decide where this survey should be saved to

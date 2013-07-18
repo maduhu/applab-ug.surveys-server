@@ -48,7 +48,7 @@ public class UpdateSubmissionStatus extends ApplabServlet {
         String salesforceId = request.getParameter("surveyId");
         Survey survey = new Survey(salesforceId);
         survey.loadSurvey(true);
-        if (survey.isPostProcessingDeferred()) {log("Deferred Post Processing ");log("Data Team review "+dataTeamReview);log("Customercare review "+customerCareReview);
+        if (survey.isPostProcessingDeferred()) {
 
 	        // Check if this survey has deferred post processing and the data team status is Approved, was not previously Approved.
 	        if (dataTeamStatus.getDisplayName().equalsIgnoreCase("Approved")) {
@@ -61,7 +61,7 @@ public class UpdateSubmissionStatus extends ApplabServlet {
 	            query.setInt(1, submissionId);
 	            ResultSet resultSet = query.executeQuery();
 	            resultSet.next();
-	            String previousDataTeamReview = resultSet.getString("surveyStatus");log("Previous survey status was " + previousDataTeamReview);
+	            String previousDataTeamReview = resultSet.getString("surveyStatus");
 	            if (!previousDataTeamReview.equalsIgnoreCase("Approved")) {
 	            	ResultSet submissionResultSet = SurveyDatabaseHelpers.getSubmissionDetails(submissionId);
 	            	submissionResultSet.next();
@@ -78,7 +78,7 @@ public class UpdateSubmissionStatus extends ApplabServlet {
 	                submission.setHandsetSubmitTime(submissionResultSet.getDate("handsetTime"));
 	                submission.setSubmissionStartTime(submissionResultSet.getDate("surveyStartTime"));
 	                submission.setSurvey(survey);
-	                String[] returnValues = DeferredSurveyProcessingXmlGenerator.processEwarehouseSurveys(submissionResultSet, survey,  submission);
+	                String[] returnValues = DeferredSurveyProcessingXmlGenerator.postProcessSurvey(submissionResultSet, survey,  submission);
 	                log(submission.getImei() + " submitted a survey with the following result : " + returnValues[1]);
 	            }
 	        }

@@ -1,6 +1,5 @@
 package applab.surveys.server;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,32 +7,29 @@ import java.sql.SQLException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.rpc.ServiceException;
-import javax.xml.transform.TransformerException;
-
-import org.xml.sax.SAXException;
-
 import applab.server.ApplabServlet;
 import applab.server.ServletRequestContext;
 import applab.surveys.DeferredSurveyProcessingXmlGenerator;
 import applab.surveys.ProcessedSubmission;
 import applab.surveys.Survey;
 
-public class EwarehouseRetroPostProcessing extends ApplabServlet {
-	
+/**
+ * Class to do post processing using data 
+ * from zebra, all you need is a salesforce Id
+ * of a survey that has post processing enabled
+ * and a status ie Approved. Use any other status other
+ * than Approved if you want all submissions processed
+ *
+ */
+public class ZebraDataPostProcessing extends ApplabServlet {
+
 	protected void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
 		
 		String salesforceId = request.getParameter("salesforceId");
+		String submissionStatus = request.getParameter("status");
 		Survey survey = new Survey(salesforceId);
 		survey.loadSurvey(true);
-		doPostProcessingForPreviouslyApprovedSubmissions(survey, response);
-		response.getWriter().write("Post Processing Complete!!");
-	}
-	
-	public static void doPostProcessingForPreviouslyApprovedSubmissions(Survey survey, HttpServletResponse response) throws ClassNotFoundException, SQLException, ParserConfigurationException, ServiceException, TransformerException, IOException, SAXException {
-
-		ResultSet submissionsResultSet = getAllApprovedSubmissionsById(survey.getPrimaryKey());
+		ResultSet submissionsResultSet = getAllSubmissionsById(survey.getPrimaryKey(), submissionStatus);
 		while (submissionsResultSet.next()) {
 			int submissionId = submissionsResultSet.getInt("submissionId");
 			ResultSet resultSet = SurveyDatabaseHelpers.getSubmissionDetails(submissionId);
@@ -49,13 +45,15 @@ public class EwarehouseRetroPostProcessing extends ApplabServlet {
                 submission.setHandsetSubmitTime(resultSet.getDate("handsetTime"));
                 submission.setSubmissionStartTime(resultSet.getDate("surveyStartTime"));
                 submission.setSurvey(survey);
-                String[] returnValues = DeferredSurveyProcessingXmlGenerator.processEwarehouseSurveys(resultSet, survey,  submission);
-                
+                String[] returnValues = DeferredSurveyProcessingXmlGenerator.postProcessSurvey(resultSet, survey,  submission);
+                log("Handset with IMEI: " + submission.getImei() + " submitted a survey with the following result " + returnValues[1]);
 			}
 		}
+		log("post processing complete!!");
+		response.getWriter().print("post processing complete!");
 	}
 	
-	public static ResultSet getAllApprovedSubmissionsById(int surveyId) throws ClassNotFoundException, SQLException {
+	private static ResultSet getAllSubmissionsById(int surveyId, String submissionStatus) throws ClassNotFoundException, SQLException {
 		
         Connection connection = SurveyDatabaseHelpers.getReaderConnection();
 
@@ -63,20 +61,25 @@ public class EwarehouseRetroPostProcessing extends ApplabServlet {
         StringBuilder commandText = new StringBuilder();
         commandText.append("SELECT s.id AS submissionId, ");
         commandText.append("s.survey_id AS surveyId, ");
+        commandText.append("s.result_hash AS resultHash, ");
         commandText.append("s.survey_status AS surveyStatus ");
         commandText.append("FROM zebrasurveysubmissions s ");
         commandText.append("WHERE s.survey_id = ? ");
-        commandText.append("AND s.survey_status = ? ");
+        
+        if (submissionStatus.equalsIgnoreCase("Approved")) {
+        	commandText.append("AND s.survey_status != ? ");
+        }
         
         // Prepare the statement
         PreparedStatement query = connection.prepareStatement(commandText.toString());
 
         // Pass the variables to the prepared statement
         query.setInt(1, surveyId);
-        query.setString(2, "Approved");
+        if (submissionStatus.equalsIgnoreCase("Approved")) {
+        	query.setString(2, submissionStatus);
+        }
 
         // Execute the query
         return query.executeQuery(); 
 	}
-
 }
