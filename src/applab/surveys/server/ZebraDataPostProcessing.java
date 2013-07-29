@@ -46,7 +46,7 @@ public class ZebraDataPostProcessing extends ApplabServlet {
                 submission.setSubmissionStartTime(resultSet.getDate("surveyStartTime"));
                 submission.setSurvey(survey);
                 String[] returnValues = DeferredSurveyProcessingXmlGenerator.postProcessSurvey(resultSet, survey,  submission);
-                log("Handset with IMEI: " + submission.getImei() + " submitted a survey with the following result " + returnValues[1]);
+                log("Handset with IMEI: " + submission.getImei() + " submission id" + submissionId + " submitted a survey with the following result " + returnValues[1]);
 			}
 		}
 		log("post processing complete!!");
