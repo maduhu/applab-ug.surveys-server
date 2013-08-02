@@ -67,7 +67,7 @@ public class ZebraDataPostProcessing extends ApplabServlet {
         commandText.append("WHERE s.survey_id = ? ");
         
         if (submissionStatus.equalsIgnoreCase("Approved")) {
-        	commandText.append("AND s.survey_status != ? ");
+        	commandText.append("AND s.survey_status = ? ");
         }
         
         // Prepare the statement
