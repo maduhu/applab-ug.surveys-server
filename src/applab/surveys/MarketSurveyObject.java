@@ -106,7 +106,7 @@ public class MarketSurveyObject {
     public static List<MarketSurveyObject> getBySurveyName(String surveyName, List<MarketSurveyObject> marketSurveys) {
         List<MarketSurveyObject> fitleredMarketSurveys = new ArrayList<MarketSurveyObject>();
         for (MarketSurveyObject marketSurvey : marketSurveys) {
-            if (marketSurvey.getSurveyName().equals(surveyName)) {
+            if (marketSurvey.getSurveyName() != null && marketSurvey.getSurveyName().equals(surveyName)) {
                 fitleredMarketSurveys.add(marketSurvey);
             }
         }

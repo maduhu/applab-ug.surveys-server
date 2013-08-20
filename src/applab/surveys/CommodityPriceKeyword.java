@@ -16,8 +16,9 @@ public class CommodityPriceKeyword {
     private String commodityName;
     private String unit;
     private String generatedKeyword;
+    private String category;
 
-    public CommodityPriceKeyword(Commodity commodity, String attribution, String baseKeyword, int categoryId) {
+    public CommodityPriceKeyword(Commodity commodity, String attribution, String baseKeyword, int categoryId, String category) {
 
         this.commodity = commodity;
         this.attribution = attribution;
@@ -27,9 +28,35 @@ public class CommodityPriceKeyword {
         this.district = commodity.getDistrictName();
         this.region = commodity.getRegionName();
         this.commodityName = commodity.getName();
-        this.unit = "kg";
+        this.category = category;
+        if(commodity != null && commodity.getRetailUnitOfMeasure() != null && commodity.getRetailUnitOfMeasure() != ""){
+        	this.unit = commodity.getRetailUnitOfMeasure();
+        }
+        else{
+        	this.unit = "kg";
+        }
     }
+
     
+    public CommodityPriceKeyword(Commodity commodity, String attribution, String baseKeyword, int categoryId, String unit, String category) {
+
+        this.commodity = commodity;
+        this.attribution = attribution;
+        this.baseKeyword = baseKeyword;
+        this.categoryId = categoryId;
+        this.subcounty = commodity.getSubcountyName();
+        this.district = commodity.getDistrictName();
+        this.region = commodity.getRegionName();
+        this.commodityName = commodity.getName();
+        this.category = category;
+        if(!unit.isEmpty()){
+        	this.unit = unit;
+        }
+        else{
+        	this.unit = "kg";
+        }
+    }
+
     public CommodityPriceKeyword(String attribution, String baseKeyword, int categoryId) {
 
         this.attribution = attribution;
@@ -128,6 +155,14 @@ public class CommodityPriceKeyword {
         return generatedKeyword;
     }
 
+	public void setCategory(String category) {
+		this.category = category;
+	}
+
+	public String getCategory() {
+		return category;
+	}
+	
     private String generateKeyword() {
 
         if (this.region == null || this.region == "" || this.district == null || this.district == "" || this.subcounty == null
@@ -135,6 +170,8 @@ public class CommodityPriceKeyword {
             return null;
         }
         StringBuilder keyword = new StringBuilder();
+        keyword.append(this.category);
+        keyword.append(" ");
         keyword.append(this.baseKeyword);
         keyword.append(" ");
         keyword.append(this.region.replace(" ", "_"));

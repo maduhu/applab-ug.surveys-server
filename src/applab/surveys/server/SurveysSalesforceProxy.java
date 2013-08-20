@@ -15,6 +15,7 @@ package applab.surveys.server;
 
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +29,13 @@ import applab.surveys.*;
 import com.sforce.soap.enterprise.*;
 import com.sforce.soap.enterprise.fault.*;
 import com.sforce.soap.enterprise.sobject.*;
+import com.sforce.soap.schemas._class.ImportBackendServerKeywords.ImportBackendServerKeywordsBindingStub;
+import com.sforce.soap.schemas._class.ImportBackendServerKeywords.ImportBackendServerKeywordsServiceLocator;
+import com.sforce.soap.schemas._class.ImportBackendServerKeywords.MenuItemAdapter;
 
+import applab.server.ApplabConfiguration;
 import applab.server.SalesforceProxy;
+import applab.server.WebAppId;
 
 public class SurveysSalesforceProxy extends SalesforceProxy {
 
@@ -121,6 +127,9 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
         marketsQueryText.append(" WHERE m.Market_Day__c = '");
         marketsQueryText.append(marketDay);
         marketsQueryText.append("'");
+        marketsQueryText.append(" AND m.Subcounty__c != NULL");
+        marketsQueryText.append(" AND m.District__c != NULL");
+        marketsQueryText.append(" AND m.Group__c != NULL");
         QueryResult marketsQuery = getBinding().query(marketsQueryText.toString());
 
         String groupNames = "";
@@ -214,44 +223,84 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
      * @throws InvalidQueryLocatorFault
      * @throws RemoteException
      */
-    public boolean updateCommodities(String marketDay, List<Commodity> currentCommodityPrices2) throws InvalidSObjectFault, MalformedQueryFault,
+    public boolean updateCommodities(String marketDay, List<Commodity> currentCommodityPrices2, String CATEGORY, String BASE_KEYWORD, String ATTRIBUTION, String MENU_NAME) throws InvalidSObjectFault, MalformedQueryFault,
             InvalidFieldFault, InvalidIdFault, UnexpectedErrorFault, InvalidQueryLocatorFault, RemoteException {
 
-        List<Commodities__c> updateCommodities = new ArrayList<Commodities__c>();
-        StringBuilder queryText = new StringBuilder();
-        queryText.append("SELECT c.Id, c.Name, c.Market__r.Name, ");
-        queryText.append("c.Lowest_Retail_Price__c, ");
-        queryText.append("c.Highest_Retail_Price__c, ");
-        queryText.append("c.Lowest_Wholesale_Price__c, ");
-        queryText.append("c.Highest_Wholesale_Price__c ");
-        queryText.append("FROM Commodities__c c  ");
-        queryText.append("WHERE c.Market__r.Market_Day__c = '");
-        queryText.append(marketDay);
-        queryText.append("' ");
-        QueryResult query = getBinding().query(queryText.toString());
-        logger.warn("Commodities sent for update: " + currentCommodityPrices2.size());
-        logger.warn("Commodites loade from Salesforce: " + query.getSize());
-        for (int i = 0; i < query.getSize(); i++) {
-            Commodities__c salesforceCommodity = (Commodities__c)query.getRecords(i);
-            Commodity commodity = getByNameAndMarketName(salesforceCommodity.getName(), salesforceCommodity.getMarket__r().getName(),
-                    currentCommodityPrices2);
-            if (commodity != null) {
-                logger.warn("Commodity to be updated: " + commodity.getName() + " : " + commodity.getMarketName());
-                // TODO: Add flagging logic in case the difference between previous and current price is too large
-                salesforceCommodity.setLowest_Retail_Price__c(commodity.getLowRetailPrice());
-                salesforceCommodity.setHighest_Retail_Price__c(commodity.getHighRetailPrice());
-                salesforceCommodity.setLowest_Wholesale_Price__c(commodity.getLowWholesalePrice());
-                salesforceCommodity.setHighest_Wholesale_Price__c(commodity.getHighWholesalePrice());
-                updateCommodities.add(salesforceCommodity);
-            }
+        List<Commodity> updateCommodities = new ArrayList<Commodity>();
+        logger.warn("commodity count is " + currentCommodityPrices2.size());
+        List<String> allMarkets = new ArrayList<String>();
+        String marketsString = "";
+        //get unique markets
+        for(Commodity commodity: currentCommodityPrices2){
+        	if(!allMarkets.contains(commodity.getMarketName())){
+        		logger.warn("market added " + commodity.getMarketName());
+        		allMarkets.add(commodity.getMarketName());
+        		if(marketsString.length() == 0){
+        			marketsString = "'" + commodity.getMarketName() + "'";
+        		}
+        		else{
+        			marketsString += ", '" + commodity.getMarketName() + "'";
+        		}
+        	}
         }
+        //remove last comma (,)
+        marketsString = marketsString.trim();
+        if(marketsString.endsWith(",")){
+        	if (marketsString.length() > 0 && marketsString.charAt(marketsString.length()-1)==',') {
+        		marketsString = marketsString.substring(0, marketsString.length()-1);
+        	}
+        }
+        logger.warn("markets with updatable commodities are " + allMarkets.size() + " " + marketsString);
+        if(allMarkets.size() == 0){
+        	//however, this shouldn't happen. commodities should already have the markets from submissions
+        	return false;
+        }
+
+        //get all child menu items for current markets. these should be corresponding commodities
+        StringBuilder queryText = new StringBuilder();
+        queryText.append("SELECT ");
+		queryText.append("	Id, Label__c, Parent_Item__r.Id, Parent_Item__r.Label__c ");
+		queryText.append("FROM ");
+		queryText.append("	Menu_Item__c ");
+		queryText.append("WHERE ");
+		queryText.append("Parent_Item__r.Label__c in (");
+		queryText.append(marketsString);
+		queryText.append(") ");
+		queryText.append("AND Is_Active__c = true ");
+		logger.warn(queryText.toString());
+		QueryResult query = getBinding().query(queryText.toString());
+		if(query.getSize() == 0){
+			logger.warn("There are no updatable keywords under these markets " + query.getSize());
+			//return false;//proceeding will result in creation of new keywords
+		}
+	      for (int i = 0; i < query.getSize(); i++) {
+	    	  Menu_Item__c salesforceCommodityMenuItem = (Menu_Item__c)query.getRecords(i);
+	    	  Commodity commodity = getByNameAndMarketName(salesforceCommodityMenuItem.getLabel__c(), salesforceCommodityMenuItem.getParent_Item__r().getLabel__c(),
+	              currentCommodityPrices2);
+	    	  if (commodity != null) {
+	    		  logger.warn("Commodity to be updated: " + commodity.getName() + " : " + commodity.getMarketName());
+	    		  // TODO: Add flagging logic in case the difference between previous and current price is too large
+	    		  //no need for this since check was made earlier to normalise the prices
+	    		  updateCommodities.add(commodity);
+	    	  }
+	      }
+
+		if(updateCommodities.size() == 0){
+			logger.warn("There are no updatable keywords relating these markets " + query.getSize());
+			//return false;//proceeding will result in creation of new keywords
+		}
+    	List<MenuItemAdapter> menuItemAdapeters = generateItemAdapters(currentCommodityPrices2, CATEGORY, BASE_KEYWORD, ATTRIBUTION);
         try {
-            Commodities__c[] salesforceCommodities = new Commodities__c[updateCommodities.size()];
-            getBinding().update(updateCommodities.toArray(salesforceCommodities));
-            return true;
+    		logger.warn("Creating keywords exporter");
+        	ImportBackendServerKeywordsBindingStub keywordsExporter = setupSalesforceAuthentication();
+    		logger.warn("sending keywords to salesforce...");
+        	boolean passed = keywordsExporter.importBackendKeywords(menuItemAdapeters.toArray(new MenuItemAdapter[menuItemAdapeters.size()]), MENU_NAME);
+        	logger.warn("updating keywords successful? : " + passed);
+        	return passed;
         }
         catch (Exception ex) {
             ex.printStackTrace();
+            logger.error(ex);
             return false;
         }
     }
@@ -266,5 +315,126 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
         }
         return null;
     }
+        
+    /*
+     *	creates MenuItemAdapters for the given market prices passed
+     *	@param keywords		a list of market price items to be save to salesforce
+     *	@return 			List of MenuItemAdapters
+     */
+     private List<MenuItemAdapter> generateItemAdapters(List<Commodity> keywords, String CATEGORY, String BASE_KEYWORD, String ATTRIBUTION){
+     	int updatableKeyWordsCount = 0;
+ 		logger.warn("MIS: Generating itemAdapters");        
+         List<MenuItemAdapter> adapters = new ArrayList<MenuItemAdapter>();
+         for (Integer i = 0; i < keywords.size(); i++) {
+         	updatableKeyWordsCount++;  
+             // split keywords breabcrumb to build menu paths for adapters
+         	CommodityPriceKeyword priceKeyword = new CommodityPriceKeyword(keywords.get(i), ATTRIBUTION, BASE_KEYWORD, 64, CATEGORY);
+         	String[] rawTokens = priceKeyword.getKeyword().trim().replaceAll("\\s+", " ").split(" ");
+         	String[] tokens = removeUnderscore(priceKeyword.getKeyword().trim().replaceAll("\\s+", " ").split(" "));
+ 
+             // current and previous paths
+             String previousPath = "";
+             String currentPath = "";
+             // loop over all the tokens and build adapters
+             for (Integer j = 0; j < tokens.length; j++) {
+                 previousPath = currentPath;
+                 currentPath = buildAdapterMenuPath(rawTokens, j);
+ 
+                 // Make sure that there is no 'similar' adapter already loaded
+                 if (!existsInAdaptersList(adapters, currentPath)) {
+                     MenuItemAdapter adapter = new MenuItemAdapter();
+                     adapter.setMenuPath(currentPath);
+                     adapter.setIsActive(true);
+                     adapter.setLastModifiedDate(Calendar.getInstance());
+                     adapter.setLabel(tokens[j]);
+                     adapter.setIsProcessed(false);
+ 
+                     // Fill in content, attribution et al if its the end point item
+                     if (j == tokens.length - 1) {
+                         adapter.setContent(priceKeyword.getContent());
+                         adapter.setAttribution(ATTRIBUTION);
+                     }
+                     adapter.setPreviousItemPath(previousPath);
+                     adapters.add(adapter);
+                     logger.warn(currentPath);
+                 }
+             }
+         }
+         logger.warn("MIS: adding adapter completed with updatable keywords = " + updatableKeyWordsCount);
+		 logger.warn("MIS: adding adapter completed with " + adapters.size());
+         return adapters;
+     }
+     
+     /**
+      *	replaces underscores with spaces
+      *	@param tokens	string containing inderscores
+      *	@return			string without underscores
+      */
+     private String[] removeUnderscore(String[] tokens) {
+          if (tokens.length > 0) {
+              for (Integer x = 0; x < tokens.length; x++) {
+                  String token = tokens[x].trim().replaceAll("_", " ");
+                  tokens[x] = token;
+              }
+          }
+          return tokens;
+      }
+      
+      /**
+       *	builds a menu path
+       *	@param tokens	strings elements in the menu path
+       *	@param level	the last level in the menu path
+       *	@return			menu path
+       */
+     private String buildAdapterMenuPath(String[] tokens, Integer level) {
+           String path = "";
+           for (Integer x = 0; x < tokens.length && x <= level; x++) {
+               String y = tokens[x];
+               path = path + ' ' + y;
+           }
+           return path;
+       }
+       
+       /**
+        *	Checks if the keyword already exists in list of adapters
+        *	@param adapters		list of adapters
+        *	@param path			string path or keyword
+        *	@return				true if exists, false otherwise
+        */
+     private boolean existsInAdaptersList(List<MenuItemAdapter> adapters, String path) {
+            for (MenuItemAdapter adapter : adapters){
+                if (adapter.getMenuPath().equals(path)){
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+     /**
+      * 
+      * Creates a login session and assigns it to localBindingStub object to give a handle to logout when required
+      * 
+      * @return		proxy instance upon which we can call and pass keywords heading for update
+      * @throws Exception	here we enforce a catch
+      * @throws LoginFault	there can be failure to login, this exception should be expected
+      * @throws RemoteException	remote errors arising
+      */
+     private ImportBackendServerKeywordsBindingStub setupSalesforceAuthentication() throws Exception, LoginFault, RemoteException {
+        	
+ 		ImportBackendServerKeywordsServiceLocator getImportServiceLocator = new ImportBackendServerKeywordsServiceLocator();
+		ImportBackendServerKeywordsBindingStub serviceStub = (ImportBackendServerKeywordsBindingStub) getImportServiceLocator.getImportBackendServerKeywords();
+		
+		// Use soap api to login and get session info
+		SforceServiceLocator soapServiceLocator = new SforceServiceLocator();
+		soapServiceLocator.setSoapEndpointAddress((String) ApplabConfiguration.getConfigParameter(WebAppId.global, "salesforceAddress", ""));
+		SoapBindingStub localbinding = (SoapBindingStub) soapServiceLocator.getSoap();
+		LoginResult loginResult = localbinding.login((String) ApplabConfiguration.getConfigParameter(WebAppId.global, "salesforceUsername", ""),
+		            							(String) ApplabConfiguration.getConfigParameter(WebAppId.global, "salesforcePassword", "") +
+		                             			(String) ApplabConfiguration.getConfigParameter(WebAppId.global, "salesforceToken", ""));
 
+		SessionHeader sessionHeader = new SessionHeader(loginResult.getSessionId());
+		serviceStub.setHeader("http://soap.sforce.com/schemas/class/ImportBackendServerKeywords","SessionHeader", sessionHeader);
+		
+		return serviceStub;
+	}
 }

@@ -57,6 +57,13 @@ public class Commodity implements Cloneable {
         this.name = name;
     }
 
+    public Commodity(String name, String units) {
+        this();
+        this.name = name;
+        this.wholesaleUnitOfMeasure = units;
+        this.retailUnitOfMeasure = units;
+    }
+
     public Commodity(String name, String marketName, String subcountyName) {
         this();
         this.name = name;
