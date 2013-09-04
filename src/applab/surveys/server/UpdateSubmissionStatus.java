@@ -85,6 +85,9 @@ public class UpdateSubmissionStatus extends ApplabServlet {
 	                }
 	            }
 	        }
+	        else {
+	        	updateSubmissionStatus(submissionId, dataTeamStatus.getDisplayName(), customerCareStatus.getDisplayName(), customerCareReview, dataTeamReview);
+	        }
         }
         else {
         	updateSubmissionStatus(submissionId, dataTeamStatus.getDisplayName(), customerCareStatus.getDisplayName(), customerCareReview, dataTeamReview);
