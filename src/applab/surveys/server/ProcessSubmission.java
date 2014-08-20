@@ -30,6 +30,7 @@ import applab.surveys.ProcessedSubmission;
 public class ProcessSubmission extends ApplabServlet {
 
     private static final long serialVersionUID = 1L;
+    private static final String RESPONSE = "message";
 
     @Override
     protected void doApplabPost(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
@@ -140,6 +141,7 @@ public class ProcessSubmission extends ApplabServlet {
                 // Save to Salesforce
                 String[] returnValues = submission.saveToSalesforce();
                 httpResponseCode = Integer.valueOf(returnValues[0]);
+                response.setHeader(RESPONSE, returnValues[1]);
                 log("Handset with IMEI: " + submission.getImei() + " submitted a survey with the following result " + returnValues[1]);
             }
 

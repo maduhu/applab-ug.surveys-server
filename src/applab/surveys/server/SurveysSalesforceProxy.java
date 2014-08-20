@@ -122,7 +122,7 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
 
         Map<String, MarketSurveyObject> marketSurveys = new HashMap<String, MarketSurveyObject>();
         StringBuilder marketsQueryText = new StringBuilder();
-        marketsQueryText.append("SELECT m.Group__c, m.Name, m.Subcounty__r.Name, m.District__r.Name, m.District__r.Region__c ");
+        marketsQueryText.append("SELECT m.Group__c, m.Name, m.Subcounty__r.Display_Name__c, m.District__r.Name, m.District__r.Region__c ");
         marketsQueryText.append("FROM Markets__c m ");
         marketsQueryText.append(" WHERE m.Market_Day__c = '");
         marketsQueryText.append(marketDay);
@@ -138,7 +138,7 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
             // Check if there is a group associated to Market
             // Only markets with a group should be processed
             if (market.getGroup__c() != null && !market.getGroup__c().isEmpty()) {
-                marketSurveys.put(market.getGroup__c(), new MarketSurveyObject(market.getGroup__c(), market.getId(), market.getDistrict__r().getRegion__c(), market.getDistrict__r().getName(), market.getSubcounty__r().getName(), market.getName()));
+                marketSurveys.put(market.getGroup__c(), new MarketSurveyObject(market.getGroup__c(), market.getId(), market.getDistrict__r().getRegion__c(), market.getDistrict__r().getName(), market.getSubcounty__r().getDisplay_Name__c(), market.getName()));
                 logger.warn("Market Loaded : " + market.getName());
                 // Check if we need to put the separator
                 if (j != 0) {
@@ -197,6 +197,7 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
         queryText.append("WHERE sg.Group__c IN (");
         queryText.append(groupNames);
         queryText.append(")");
+        queryText.append(" AND sg.Survey__r.End_Date__c >= TODAY ");
         QueryResult query = getBinding().query(queryText.toString());
 
         for (int i = 0; i < query.getSize(); i++) {
@@ -392,7 +393,7 @@ public class SurveysSalesforceProxy extends SalesforceProxy {
                String y = tokens[x];
                path = path + ' ' + y;
            }
-           return path;
+           return path.trim();
        }
        
        /**

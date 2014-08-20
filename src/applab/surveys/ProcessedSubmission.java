@@ -733,13 +733,17 @@ public class ProcessedSubmission {
     /**
      * Generate the hex string that detects duplicate submissions
      */
-    private void setDuplicateHash() {
+    public void setDuplicateHash() {
 
         String hashSource = this.imei;
         for (SubmissionAnswer responseValue : this.surveyResponses.values()) {
             hashSource += responseValue.getAnswerText(this.attachmentReferences, false);
         }
         this.duplicateHash = HashHelpers.createSHA1(hashSource);
+    }
+    
+    public void setDuplicateHash(String hashSource){
+    	this.duplicateHash = HashHelpers.createSHA1(hashSource);
     }
     
     public String getDuplicateHash() {
