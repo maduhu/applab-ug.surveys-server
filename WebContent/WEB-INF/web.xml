@@ -119,7 +119,7 @@
     <servlet-name>UpdateCommodityPrices</servlet-name>
     <url-pattern>/UpdateCommodityPrices</url-pattern>
   </servlet-mapping>
-<servlet>
+  <servlet>
     <description></description>
     <display-name>ProcessOldSubmissions</display-name>
     <servlet-name>ProcessOldSubmissions</servlet-name>
@@ -138,5 +138,15 @@
   <servlet-mapping>
     <servlet-name>ZebraDataPostProcessing</servlet-name>
     <url-pattern>/processSurvey</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <description></description>
+    <display-name>SurveyDownloadHugeFile</display-name>
+    <servlet-name>SurveyDownloadHugeFile</servlet-name>
+    <servlet-class>applab.surveys.SurveyDownloadHugeFile</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>SurveyDownloadHugeFile</servlet-name>
+    <url-pattern>/SurveyDownloadHugeFile</url-pattern>
   </servlet-mapping>
 </web-app>

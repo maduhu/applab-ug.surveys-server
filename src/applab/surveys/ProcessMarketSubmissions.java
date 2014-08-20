@@ -111,7 +111,10 @@ public class ProcessMarketSubmissions {
         logger.warn("Market Survey objects loaded: " + marketSurveys.size());
         Set<String> salesforceIds = new HashSet<String>();
         for (MarketSurveyObject marketSurvey : marketSurveys) {
-            salesforceIds.add(marketSurvey.getSurveyName());
+        	if(marketSurvey.getSurveyName() == null){
+        		logger.warn("SalesforceId null for market=" + marketSurvey.getMarketName() + ", group=" + marketSurvey.getGroupId()+ ", value="+marketSurvey.getSurveyName());
+        	}
+            salesforceIds.add(marketSurvey.getSurveyName());logger.warn(" details: " + marketSurvey.getSurveyName());
         }
         this.surveys = loadSurveys(salesforceIds);
         boolean hasSavedCommodityPrices = true;
@@ -146,7 +149,7 @@ public class ProcessMarketSubmissions {
         java.sql.Date startDate = new java.sql.Date(calendar.getTimeInMillis());
         logger.warn("Submission begins:: " + startDate.toString());
 
-        for (String salesforceSurveyId : salesforceSurveyIds) {
+        for (String salesforceSurveyId : salesforceSurveyIds) {logger.warn(salesforceSurveyId);
             try {
                 if(salesforceSurveyId == null){
                 	logger.warn("survey ID was null skipping...");
@@ -167,12 +170,12 @@ public class ProcessMarketSubmissions {
     public boolean saveCommodityPrices(List<Commodity> commodities) throws InvalidSObjectFault, MalformedQueryFault,
             InvalidFieldFault, InvalidIdFault, UnexpectedErrorFault, InvalidQueryLocatorFault, RemoteException {
         boolean savedToBackEnd = false;
-        boolean savedToSearch = false;
+        boolean savedToSearch = true;
         boolean savedToSalesForce = false;
         if (commodities != null && commodities.size() != 0) {
             try {
                 savedToBackEnd = saveCommodityPricesToBackendDatabase(commodities);
-                savedToSearch = saveCommodityPricesToSearchDatabase(commodities);
+                //savedToSearch = saveCommodityPricesToSearchDatabase(commodities);//if this is done, keywords will be migrated to SF twice
                 savedToSalesForce = saveCommodityPricesToSalesForce(commodities);
             }
             catch (ClassNotFoundException e) {
@@ -383,15 +386,29 @@ public class ProcessMarketSubmissions {
         logger.warn("Commodity Prices for one Market Survey: " + commodityPrices.size());
 //        commodityPrices = cloneCommodities(commodityPrices, relatedMarketSurveys);
         logger.warn("Commodity Prices for" + relatedMarketSurveys.size() + " Market Surveys: " + commodityPrices.size());
-        commodityPrices = setCommodityPrices(survey.getSubmissions(true).values(), commodityPrices, relatedMarketSurveys, survey);
+        commodityPrices = setCommodityPrices(survey.getSubmissions(false).values(), commodityPrices, relatedMarketSurveys, survey);
         List<Commodity> marketDayCommodities = new ArrayList<Commodity>();
+        //do some post-processing
+        //-check for any commodities without market details
+        //this is possible because some submissions do not correspond to their market days
+        //also check whether wholesale prices are lower or equal to retail prices 
         if(commodityPrices != null){
 	        for(Commodity marketDayCommodity: commodityPrices){
-	        	for(MarketSurveyObject marketDayObject: marketSurveys){
-	        		if(marketDayObject.getMarketName() != null && marketDayCommodity.getMarketName() != null 
-	        				&& marketDayCommodity.getMarketName().toLowerCase().equals(marketDayObject.getMarketName().toLowerCase())){
+	        	if( marketDayCommodity.getMarketName() != null &&  marketDayCommodity.getMarketName() != "" ){
+	        		if(marketDayCommodity.getHighWholesalePrice() < marketDayCommodity.getLowWholesalePrice()){
+	        			logger.warn("//high wholesale has to be >= low wholesale price");
+	        		}
+	        		else if(marketDayCommodity.getHighRetailPrice() < marketDayCommodity.getLowRetailPrice()){
+	        			logger.warn("//high retail has to be >= low retail price");
+	        		}
+	        		else if(marketDayCommodity.getLowRetailPrice() < marketDayCommodity.getLowWholesalePrice()
+	        				|| marketDayCommodity.getLowRetailPrice() < marketDayCommodity.getHighWholesalePrice()
+	        				|| marketDayCommodity.getHighRetailPrice() < marketDayCommodity.getHighWholesalePrice()
+	        				|| marketDayCommodity.getHighRetailPrice() < marketDayCommodity.getLowWholesalePrice()){
+	        			logger.warn("//retail prices cannot be lower than wholesale prices");
+	        		}
+	        		else{
 	        			marketDayCommodities.add(marketDayCommodity);
-	        			break;
 	        		}
 	        	}
 	        }
@@ -419,95 +436,7 @@ public class ProcessMarketSubmissions {
             if (submissions.length == 0) {
                 return null;
             }
-            else if (submissions.length >= 2) {
-                for (Commodity commodity : commodities) {
-                    double wholesaleWeightUnit1 = 0;
-                    double retailWeightUnit1 = 0;
-                    double wholesaleWeightUnit2 = 0;
-                    double retailWeightUnit2 = 0;
-                    double highWholesalePrice1 = 0;
-                    double highWholesalePrice2 = 0;
-                    double lowWholesalePrice1 = 0;
-                    double lowWholesalePrice2 = 0;
-                    double highRetailPrice1 = 0;
-                    double highRetailPrice2 = 0;
-                    double lowRetailPrice1 = 0;
-                    double lowRetailPrice2 = 0;
-                    String market1 = "";
-                    String market2 = "";
-                    for (Question question : commodity.getQuestions()) {
-                        Answer answer1 = submissions[0].getAnswer(question.getBinding() + "_1");
-                        Answer answer2 = submissions[1].getAnswer(question.getBinding() + "_1");
-//                        logger.warn("Question:: " + question.getBinding() + " answer1 :: " + answer1.getRawAnswerText() + " answer2 :: "
-//                                + answer2.getRawAnswerText());
-                        // Check if the question was answered. Its possible that a particular commodity is not in the
-                        // market.
-                        if (answer1 != null && answer2 != null) {
-                            // Check if answers to both submissions are to weight related questions
-                            if (answer1.getParentQuestion().getBinding().endsWith("wholesale")
-                                    && answer2.getParentQuestion().getBinding().endsWith("wholesale")) {
-                                wholesaleWeightUnit1 = extractNumberFromString(answer1.getRawAnswerText());
-                                wholesaleWeightUnit2 = extractNumberFromString(answer2.getRawAnswerText());
-                            }
-                            else if (answer1.getParentQuestion().getBinding().endsWith("retail")
-                                    && answer2.getParentQuestion().getBinding().endsWith("retail")) {
-                                retailWeightUnit1 = extractNumberFromString(answer1.getRawAnswerText());
-                                retailWeightUnit2 = extractNumberFromString(answer2.getRawAnswerText());
-                            }
-                            else if (answer1.getParentQuestion().getBinding().startsWith("high_wholesale_price_")
-                                    && answer2.getParentQuestion().getBinding().startsWith("high_wholesale_price_")) {
-                                highWholesalePrice1 = Double.valueOf(answer1.getRawAnswerText());
-                                highWholesalePrice2 = Double.valueOf(answer2.getRawAnswerText());
-                            }
-                            else if (answer1.getParentQuestion().getBinding().startsWith("low_wholesale_price_")
-                                    && answer2.getParentQuestion().getBinding().startsWith("low_wholesale_price_")) {
-                                lowWholesalePrice1 = Double.valueOf(answer1.getRawAnswerText());
-                                lowWholesalePrice2 = Double.valueOf(answer2.getRawAnswerText());
-                            }
-                            else if (answer1.getParentQuestion().getBinding().startsWith("high_retail_price_")
-                                    && answer2.getParentQuestion().getBinding().startsWith("high_retail_price_")) {
-                                highRetailPrice1 = Double.valueOf(answer1.getRawAnswerText());
-                                highRetailPrice2 = Double.valueOf(answer2.getRawAnswerText());
-                            }
-                            else if (answer1.getParentQuestion().getBinding().startsWith("low_retail_price_")
-                                    && answer2.getParentQuestion().getBinding().startsWith("low_retail_price_")) {
-                                lowRetailPrice1 = Double.valueOf(answer1.getRawAnswerText());
-                                lowRetailPrice2 = Double.valueOf(answer2.getRawAnswerText());
-                            }
-                            else if(answer1.getParentQuestion().getBinding().startsWith("market_name")
-                                    && answer2.getParentQuestion().getBinding().startsWith("market_name")) {
-                            	market1 = answer1.getFriendlyAnswerText(false, currentSurvey).trim();
-                            	market2 = answer2.getFriendlyAnswerText(false, currentSurvey).trim();
-//                        		logger.warn(market1 + ", " + market2 + " market submissions");
-                            }
-                        }
-                    }
-                    double[] highWholesaleValues = comparePrices(highWholesalePrice1, wholesaleWeightUnit1, highWholesalePrice2,
-                            wholesaleWeightUnit2, true);
-                    double[] lowWholesaleValues = comparePrices(lowWholesalePrice1, wholesaleWeightUnit1, lowWholesalePrice2,
-                            wholesaleWeightUnit2, false);
-                    double[] highRetailValues = comparePrices(highRetailPrice1, retailWeightUnit1, highRetailPrice2, retailWeightUnit2,
-                            true);
-                    double[] lowRetailValues = comparePrices(lowRetailPrice1, retailWeightUnit1, lowRetailPrice2, retailWeightUnit2, false);
-
-                    commodity.setRawHighWholesalePrice(highWholesaleValues[0]);
-                    commodity.setWeightOfWholesaleUnitOfMeasure(highWholesaleValues[1]);
-                    commodity.setRawLowWholesalePrice(lowWholesaleValues[0]);
-                    commodity.setRawHighRetailPrice(highRetailValues[0]);
-                    commodity.setWeightOfRetailUnitOfMeasure(highRetailValues[1]);
-                    commodity.setRawLowRetailPrice(lowRetailValues[0]);
-
-                    commodity.setHighWholesalePrice(highWholesaleValues[0]);
-                    commodity.setLowWholesalePrice(lowWholesaleValues[0]);
-                    commodity.setHighRetailPrice(highRetailValues[0]);
-                    commodity.setLowRetailPrice(lowRetailValues[0]);                    
-
-            		if(market1.equals(market2)){
-            			commodity = setSubcountyDistrictAndRegionByMarketName(commodity, market1);
-            		}
-                }
-            }
-            else if (submissions.length == 1) {
+            for(Submission submission: submissions){
                 if (this.previousCommodityPrices == null) {
                     this.previousCommodityPrices = getPreviousCommodityPrices();
                 }
@@ -523,17 +452,17 @@ public class ProcessMarketSubmissions {
                     if (previousCommodity == null) {
                         //logger.warn("Commodity questions count:: " + commodity.getQuestions().size());
                         String temp = "";
-                        for (String k : submissions[0].getAnswers().keySet()) {
+                        for (String k : submission.getAnswers().keySet()) {
                             temp = temp + ", " + k;
                         }
                         //logger.warn("Answer keys::" + temp);
                         for (Question question : commodity.getQuestions()) {
-                            Answer answer = submissions[0].getAnswer(question.getBinding() + "_1");
+                            Answer answer = submission.getAnswer(question.getBinding() + "_1");
                             // Check if the question was answered. Its possible that a particular commodity is not in
                             // the
                             // market.
                             if (answer != null) {
-                                //logger.warn("Question:: " + question.getBinding() + " answer :: " + answer.getRawAnswerText());
+//                                logger.warn("Question:: " + question.getBinding() + " answer :: " + answer.getRawAnswerText());
                                 // Check if answer is to weight related questions
                                 if (answer.getParentQuestion().getBinding().endsWith("wholesale")) {
                                     commodity.setWeightOfWholesaleUnitOfMeasure(extractNumberFromString(answer.getRawAnswerText()));
@@ -555,8 +484,10 @@ public class ProcessMarketSubmissions {
                                 }
                                 else if(answer.getParentQuestion().getBinding().startsWith("market_name")) {
                                 	String marketName = answer.getFriendlyAnswerText(false, currentSurvey).trim();
-//                            		logger.warn(marketName + ", market submission");
-                        			commodity = setSubcountyDistrictAndRegionByMarketName(commodity, marketName);
+                            		if(commodity.getMarketName() == null){
+                                		logger.warn(marketName + ", market submission");
+                            			commodity = setSubcountyDistrictAndRegionByMarketName(commodity, marketName);
+                            		}
                                 }
                             }
                         }
@@ -570,7 +501,7 @@ public class ProcessMarketSubmissions {
                         double highRetailPrice1 = 0;
                         double lowRetailPrice1 = 0;
                         for (Question question : commodity.getQuestions()) {
-                            Answer answer = submissions[0].getAnswer(question.getBinding());
+                            Answer answer = submission.getAnswer(question.getBinding());
                             // Check if the question was answered. Its possible that a particular commodity is not in
                             // the
                             // market.
@@ -584,39 +515,52 @@ public class ProcessMarketSubmissions {
                                 }
                                 else if (answer.getParentQuestion().getBinding().startsWith("high_wholesale_price_")) {
                                     highWholesalePrice1 = Double.valueOf(answer.getRawAnswerText());
+                                    double highWholesaleValue = comparePrices(highWholesalePrice1, wholesaleWeightUnit1,
+                                            previousCommodity.getHighWholesalePrice(), true);
+                                    commodity.setHighWholesalePrice(highWholesaleValue);
                                 }
                                 else if (answer.getParentQuestion().getBinding().startsWith("low_wholesale_price_")) {
                                     lowWholesalePrice1 = Double.valueOf(answer.getRawAnswerText());
+                                    double lowWholesaleValue = comparePrices(lowWholesalePrice1, wholesaleWeightUnit1,
+                                            previousCommodity.getLowWholesalePrice(), false);
+                                    commodity.setLowWholesalePrice(lowWholesaleValue);
                                 }
                                 else if (answer.getParentQuestion().getBinding().startsWith("high_retail_price_")) {
                                     highRetailPrice1 = Double.valueOf(answer.getRawAnswerText());
+                                    double highRetailValue = comparePrices(highRetailPrice1, retailWeightUnit1, previousCommodity.getHighRetailPrice(),
+                                            true);
+                                    commodity.setHighRetailPrice(highRetailValue);
                                 }
                                 else if (answer.getParentQuestion().getBinding().startsWith("low_retail_price_")) {
                                     lowRetailPrice1 = Double.valueOf(answer.getRawAnswerText());
+                                    double lowRetailValue = comparePrices(lowRetailPrice1, retailWeightUnit1, previousCommodity.getLowRetailPrice(),
+                                            false);
+                                    commodity.setLowRetailPrice(lowRetailValue);
                                 }
                                 else if(answer.getParentQuestion().getBinding().startsWith("market_name")) {
                                 	String marketName = answer.getFriendlyAnswerText(false, currentSurvey).trim();
-//                            		logger.warn(marketName + ", market submission");
-                        			commodity = setSubcountyDistrictAndRegionByMarketName(commodity, marketName);
+                            		if(commodity.getMarketName() == null){
+                                		logger.warn(marketName + ", market submission");
+                            			commodity = setSubcountyDistrictAndRegionByMarketName(commodity, marketName);
+                            		}
                                 }
                             }
                         }
-                        double highWholesaleValue = comparePrices(highWholesalePrice1, wholesaleWeightUnit1,
-                                previousCommodity.getHighWholesalePrice(), true);
-                        double lowWholesaleValue = comparePrices(lowWholesalePrice1, wholesaleWeightUnit1,
-                                previousCommodity.getLowWholesalePrice(), false);
-                        double highRetailValue = comparePrices(highRetailPrice1, retailWeightUnit1, previousCommodity.getHighRetailPrice(),
-                                true);
-                        double lowRetailValue = comparePrices(lowRetailPrice1, retailWeightUnit1, previousCommodity.getLowRetailPrice(),
-                                false);
-
-                        commodity.setHighWholesalePrice(highWholesaleValue);
-                        commodity.setLowWholesalePrice(lowWholesaleValue);
-                        commodity.setHighRetailPrice(highRetailValue);
-                        commodity.setLowRetailPrice(lowRetailValue);
+//                        double highWholesaleValue = comparePrices(highWholesalePrice1, wholesaleWeightUnit1,
+//                                previousCommodity.getHighWholesalePrice(), true);
+//                        double lowWholesaleValue = comparePrices(lowWholesalePrice1, wholesaleWeightUnit1,
+//                                previousCommodity.getLowWholesalePrice(), false);
+//                        double highRetailValue = comparePrices(highRetailPrice1, retailWeightUnit1, previousCommodity.getHighRetailPrice(),
+//                                true);
+//                        double lowRetailValue = comparePrices(lowRetailPrice1, retailWeightUnit1, previousCommodity.getLowRetailPrice(),
+//                                false);
+//
+//                        commodity.setHighWholesalePrice(highWholesaleValue);
+//                        commodity.setLowWholesalePrice(lowWholesaleValue);
+//                        commodity.setHighRetailPrice(highRetailValue);
+//                        commodity.setLowRetailPrice(lowRetailValue);
                     }
                 }
-
             }
         }
         return commodities;
@@ -624,15 +568,16 @@ public class ProcessMarketSubmissions {
 
     private Commodity setSubcountyDistrictAndRegionByMarketName(Commodity commodity, String marketName){
     	for(MarketSurveyObject marketObject: marketSurveys){
-    		if(marketObject.getMarketName().toLowerCase().equals(marketName.toLowerCase().trim())){
-    			commodity.setMarketName(marketName);
+    		if(marketObject.getMarketName().toLowerCase().startsWith(marketName.toLowerCase().trim())){
+    			commodity.setMarketName(marketObject.getMarketName());
                 commodity.setRegionName(marketObject.getRegionName());
                 commodity.setDistrictName(marketObject.getDistrictName());
                 commodity.setSubcountyName(marketObject.getSubcountyName());
+                logger.warn("market=> " + marketName + " " +marketObject.getRegionName());
             	return commodity;
     		}
     	}
-    	logger.warn("could not get marketSurveyObject for " + commodity.getMarketName());
+    	logger.warn("could not get marketSurveyObject for " + marketName);
         return commodity;
     }
     
@@ -656,42 +601,56 @@ public class ProcessMarketSubmissions {
 
     public double[] comparePrices(double price1, double weightOfUnitOfMeasure1, double price2, double weightOfUnitOfMeasure2,
                                   boolean getHigher) {
-        double normalisedPrice1 = price1 / weightOfUnitOfMeasure1;
-        double normalisedPrice2 = price2 / weightOfUnitOfMeasure2;
         double[] result = new double[2];
-        if (normalisedPrice1 == 0 || normalisedPrice2 == 0) {
-            if (normalisedPrice1 == 0 && normalisedPrice2 != 0) {
-                result[0] = price2;
-                result[1] = weightOfUnitOfMeasure2;
-            }
-            else {
-                result[0] = price1;
-                result[1] = weightOfUnitOfMeasure1;
-            }
-        }
-        else {
-
-            if (normalisedPrice1 > normalisedPrice2) {
-                if (getHigher) {
-                    result[0] = price1;
-                    result[1] = weightOfUnitOfMeasure1;
-                }
-                else {
-                    result[0] = price2;
-                    result[1] = weightOfUnitOfMeasure2;
-                }
-            }
-            else {
-                if (getHigher) {
-                    result[0] = price2;
-                    result[1] = weightOfUnitOfMeasure2;
-                }
-                else {
-                    result[0] = price1;
-                    result[1] = weightOfUnitOfMeasure1;
-                }
-            }
-        }
+    	if(weightOfUnitOfMeasure1 != 0 && weightOfUnitOfMeasure2 != 0){
+	        double normalisedPrice1 = price1 / weightOfUnitOfMeasure1;
+	        double normalisedPrice2 = price2 / weightOfUnitOfMeasure2;
+	        if (normalisedPrice1 == 0 || normalisedPrice2 == 0) {
+	            if (normalisedPrice1 == 0 && normalisedPrice2 != 0) {
+	                result[0] = price2;
+	                result[1] = weightOfUnitOfMeasure2;
+	            }
+	            else {
+	                result[0] = price1;
+	                result[1] = weightOfUnitOfMeasure1;
+	            }
+	        }
+	        else {
+	
+	            if (normalisedPrice1 > normalisedPrice2) {
+	                if (getHigher) {
+	                    result[0] = price1;
+	                    result[1] = weightOfUnitOfMeasure1;
+	                }
+	                else {
+	                    result[0] = price2;
+	                    result[1] = weightOfUnitOfMeasure2;
+	                }
+	            }
+	            else {
+	                if (getHigher) {
+	                    result[0] = price2;
+	                    result[1] = weightOfUnitOfMeasure2;
+	                }
+	                else {
+	                    result[0] = price1;
+	                    result[1] = weightOfUnitOfMeasure1;
+	                }
+	            }
+	        }
+    	}
+    	else{
+    		if (price1 > price2) {
+	            if (getHigher) {
+	                result[0] = price1;
+	                result[1] = price2;
+	            }
+	            else {
+	                result[0] = price2;
+	                result[1] = price1;
+	            }
+    		}
+    	}
         return result;
     }
 
@@ -722,7 +681,7 @@ public class ProcessMarketSubmissions {
 	    	
 	        if (unnormalisedPrice >= normalisedPrice2 * 2 || unnormalisedPrice <= normalisedPrice2 / 2) {
 	        	//outside bounds
-	        	logger.warn("price was outside the acceptable range. mataining previous");
+	        	logger.warn(unnormalisedPrice+" price was outside the acceptable range. mataining previous " + normalisedPrice2);
 	            result = normalisedPrice2;
 	        }
 	        else {
