@@ -139,4 +139,24 @@
     <servlet-name>ZebraDataPostProcessing</servlet-name>
     <url-pattern>/processSurvey</url-pattern>
   </servlet-mapping>
+  <servlet>
+    <description>Post Processing a submission of a given survey</description>
+    <display-name>ZebraPostProcessSingleSubmission</display-name>
+    <servlet-name>ZebraPostProcessSingleSubmission</servlet-name>
+    <servlet-class>applab.surveys.server.ZebraPostProcessSingleSubmission</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ZebraPostProcessSingleSubmission</servlet-name>
+    <url-pattern>/processSingleSurveySubmission</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <description>Post Process submissions of a survey greater than a specified submissionId</description>
+    <display-name>ZebraDataPostProcessingBySubmissionIdRange</display-name>
+    <servlet-name>ZebraDataPostProcessingBySubmissionIdRange</servlet-name>
+    <servlet-class>applab.surveys.server.ZebraDataPostProcessingBySubmissionIdRange</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ZebraDataPostProcessingBySubmissionIdRange</servlet-name>
+    <url-pattern>/processSurveySubmissions</url-pattern>
+  </servlet-mapping>
 </web-app>

@@ -7,29 +7,24 @@ import java.sql.SQLException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import applab.server.ApplabServlet;
 import applab.server.ServletRequestContext;
 import applab.surveys.DeferredSurveyProcessingXmlGenerator;
 import applab.surveys.ProcessedSubmission;
 import applab.surveys.Survey;
 
-/**
- * Class to do post processing using data 
- * from zebra, all you need is a salesforce Id
- * of a survey that has post processing enabled
- * and a status ie Approved. Use any other status other
- * than Approved if you want all submissions processed
- *
- */
-public class ZebraDataPostProcessing extends ApplabServlet {
+public class ZebraDataPostProcessingBySubmissionIdRange extends ApplabServlet {
 
 	protected void doApplabGet(HttpServletRequest request, HttpServletResponse response, ServletRequestContext context) throws Exception {
 		
 		String salesforceId = request.getParameter("salesforceId");
 		String submissionStatus = request.getParameter("status");
+		String submissionIdRange = request.getParameter("submissionId");
+		int submissionIds = Integer.valueOf(submissionIdRange);
 		Survey survey = new Survey(salesforceId);
 		survey.loadSurvey(true);
-		ResultSet submissionsResultSet = getAllSubmissionsById(survey.getPrimaryKey(), submissionStatus);
+		ResultSet submissionsResultSet = getAllSubmissionsById(survey.getPrimaryKey(), submissionStatus, submissionIds);
 		while (submissionsResultSet.next()) {
 			int submissionId = submissionsResultSet.getInt("submissionId");
 			ResultSet resultSet = SurveyDatabaseHelpers.getSubmissionDetails(submissionId);
@@ -53,7 +48,7 @@ public class ZebraDataPostProcessing extends ApplabServlet {
 		response.getWriter().print("post processing complete!");
 	}
 	
-	private static ResultSet getAllSubmissionsById(int surveyId, String submissionStatus) throws ClassNotFoundException, SQLException {
+	private static ResultSet getAllSubmissionsById(int surveyId, String submissionStatus, int submissionId) throws ClassNotFoundException, SQLException {
 		
         Connection connection = SurveyDatabaseHelpers.getReaderConnection();
 
@@ -65,7 +60,7 @@ public class ZebraDataPostProcessing extends ApplabServlet {
         commandText.append("s.survey_status AS surveyStatus ");
         commandText.append("FROM zebrasurveysubmissions s ");
         commandText.append("WHERE s.survey_id = ? ");
-        
+        commandText.append("AND s.id >= ? ");
         if (submissionStatus.equalsIgnoreCase("Approved") || submissionStatus.equalsIgnoreCase("Pending")) {
         	commandText.append("AND s.survey_status = ? ");
         }
@@ -75,11 +70,13 @@ public class ZebraDataPostProcessing extends ApplabServlet {
 
         // Pass the variables to the prepared statement
         query.setInt(1, surveyId);
+        query.setInt(2, submissionId);
         if (submissionStatus.equalsIgnoreCase("Approved") || submissionStatus.equalsIgnoreCase("Pending")) {
-        	query.setString(2, submissionStatus);
+        	query.setString(3, submissionStatus);
         }
 
         // Execute the query
         return query.executeQuery(); 
 	}
+
 }

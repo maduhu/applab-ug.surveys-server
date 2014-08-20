@@ -80,10 +80,18 @@ public class UpdateSubmissionStatus extends ApplabServlet {
 	                submission.setSurvey(survey);
 	                String[] returnValues = DeferredSurveyProcessingXmlGenerator.postProcessSurvey(submissionResultSet, survey,  submission);
 	                log(submission.getImei() + " submitted a survey with the following result : " + returnValues[1]);
+	                if (returnValues[0].equalsIgnoreCase("1")) {
+	                	updateSubmissionStatus(submissionId, dataTeamStatus.getDisplayName(), customerCareStatus.getDisplayName(), customerCareReview, dataTeamReview);
+	                }
 	            }
 	        }
+	        else {
+	        	updateSubmissionStatus(submissionId, dataTeamStatus.getDisplayName(), customerCareStatus.getDisplayName(), customerCareReview, dataTeamReview);
+	        }
         }
-        updateSubmissionStatus(submissionId, dataTeamStatus.getDisplayName(), customerCareStatus.getDisplayName(), customerCareReview, dataTeamReview);
+        else {
+        	updateSubmissionStatus(submissionId, dataTeamStatus.getDisplayName(), customerCareStatus.getDisplayName(), customerCareReview, dataTeamReview);
+        }
 
         // Redirect to the reviewsubmissionServlet.
         String url = "/getSubmissions";
