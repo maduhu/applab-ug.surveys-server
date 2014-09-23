@@ -11,7 +11,8 @@
    String endDate   = (String) session.getAttribute("survey.endDate");
    String status       = (String) session.getAttribute("survey.status");
    String salesforceId = (String) session.getAttribute("survey.salesforceId");  
-   Boolean showDraft  =  (Boolean) session.getAttribute("survey.showDraft");    
+   Boolean showDraft  =  (Boolean) session.getAttribute("survey.showDraft"); 
+   String approvalFailureResponse = (String) session.getAttribute("survey.failureMessage");
    String baseSearchUrl = "https://na5.salesforce.com/_ui/common/search/client/ui/UnifiedSearchResults?str=";
 %>
 <html>
@@ -52,6 +53,12 @@
 		  	      dateFormat: 'yy-m-d'
 		     });
 	});
+</script>
+<script type="text/javascript">
+    var response = '<%=approvalFailureResponse%>';
+    if(response != null && response != 'null' && response != undefined && response != ''){
+        alert("APPROVAL FAILED: "+response);
+    }
 </script>
 </head>
 <body>

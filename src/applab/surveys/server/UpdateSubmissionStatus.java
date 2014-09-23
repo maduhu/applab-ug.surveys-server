@@ -83,6 +83,9 @@ public class UpdateSubmissionStatus extends ApplabServlet {
 	                if (returnValues[0].equalsIgnoreCase("1")) {
 	                	updateSubmissionStatus(submissionId, dataTeamStatus.getDisplayName(), customerCareStatus.getDisplayName(), customerCareReview, dataTeamReview);
 	                }
+	                else if(returnValues[0].equalsIgnoreCase("0")) {
+	                	session.setAttribute("survey.failureMessage", returnValues[1]);
+	                }
 	            }
 	        }
 	        else {

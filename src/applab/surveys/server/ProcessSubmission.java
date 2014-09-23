@@ -160,6 +160,7 @@ public class ProcessSubmission extends ApplabServlet {
         }
         else {
             log("Handset with IMEI: " + submission.getImei() + " failed to validate submission because " + validateResponse[1]);
+            response.setHeader(RESPONSE, validateResponse[1]);
             httpResponseCode = HttpServletResponse.SC_BAD_REQUEST;
         }
         response.setStatus(httpResponseCode);
