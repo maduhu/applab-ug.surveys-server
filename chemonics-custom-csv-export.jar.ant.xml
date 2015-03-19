@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project SurveysServer with Jar-in-Jar Loader">
+    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
+    <!--ANT 1.7 is required                                        -->
+    <target name="create_run_jar">
+        <jar destfile="D:/temp/ChemonicsCustomCSVExport.jar">
+            <manifest>
+                <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
+                <attribute name="Rsrc-Main-Class" value="applab.surveys.server.ChemonicsCustomCSVExport"/>
+                <attribute name="Class-Path" value="."/>
+                <attribute name="Rsrc-Class-Path" value="./ commons-fileupload-1.2.1.jar commons-io-1.4.jar mysql-connector-java-5.1.12-bin.jar commons-logging-1.0.4.jar jaxrpc.jar log4j-1.2.8.jar saaj.jar wsdl4j-1.5.1.jar axis.jar axis-ant.jar commons-discovery-0.2.jar activation.jar junit.jar org.hamcrest.core_1.3.0.v201303031735.jar axis-ant.jar axis.jar jaxrpc.jar mysql-connector-java-5.1.12-bin.jar commons-discovery.jar javax.wsdl_1.6.2.v201005080631.jar org.apache.commons.logging_1.0.4.v201005080501.jar saaj.jar gson-1.7.1.jar javax.wsdl_1.5.1.v200806030408.jar json-simple-1.1.1.jar servlet-api.jar servlet-api.jar mail.jar apache-mime4j-0.6.jar commons-httpclient-3.1.jar httpclient-4.0.1.jar httpmime-4.0.jar httpclient-4.1.2.jar httpcore-4.1.jar"/>
+            </manifest>
+            <zipfileset src="jar-in-jar-loader.zip"/>
+            <fileset dir="D:/PROGRAMS/Ripos/applab-ug.surveys-server/build/classes"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="commons-fileupload-1.2.1.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="commons-io-1.4.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="mysql-connector-java-5.1.12-bin.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="commons-logging-1.0.4.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="jaxrpc.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="log4j-1.2.8.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="saaj.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="wsdl4j-1.5.1.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="axis.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="axis-ant.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="commons-discovery-0.2.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="activation.jar"/>
+            <zipfileset dir="D:\PROGRAMS\eclipse\kepler\plugins\org.junit_4.11.0.v201303080030" includes="junit.jar"/>
+            <zipfileset dir="D:\PROGRAMS\eclipse\kepler\plugins" includes="org.hamcrest.core_1.3.0.v201303031735.jar"/>
+            <fileset dir="D:/PROGRAMS/Ripos/applab-ug.common-server/bin"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.common-server\WebContent\WEB-INF\lib" includes="axis-ant.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.common-server\WebContent\WEB-INF\lib" includes="axis.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.common-server\WebContent\WEB-INF\lib" includes="jaxrpc.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.common-server\WebContent\WEB-INF\lib" includes="mysql-connector-java-5.1.12-bin.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.common-server\WebContent\WEB-INF\lib" includes="commons-discovery.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.common-server\WebContent\WEB-INF\lib" includes="javax.wsdl_1.6.2.v201005080631.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.common-server\WebContent\WEB-INF\lib" includes="org.apache.commons.logging_1.0.4.v201005080501.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.common-server\WebContent\WEB-INF\lib" includes="saaj.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="gson-1.7.1.jar"/>
+            <zipfileset dir="D:\PROGRAMS\eclipse\gymede\plugins" includes="javax.wsdl_1.5.1.v200806030408.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.common-server\WebContent\WEB-INF\lib" includes="json-simple-1.1.1.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.common-server\WebContent\WEB-INF\lib" includes="servlet-api.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="servlet-api.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="mail.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="apache-mime4j-0.6.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="commons-httpclient-3.1.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="httpclient-4.0.1.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="httpmime-4.0.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="httpclient-4.1.2.jar"/>
+            <zipfileset dir="D:\PROGRAMS\Ripos\applab-ug.surveys-server\WebContent\WEB-INF\lib" includes="httpcore-4.1.jar"/>
+        </jar>
+    </target>
+</project>

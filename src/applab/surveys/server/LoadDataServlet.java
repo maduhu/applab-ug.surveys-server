@@ -1,36 +1,17 @@
 package applab.surveys.server;
 
-import java.io.IOException;
-import java.rmi.RemoteException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.text.ParseException;
 import java.util.HashMap;
-import java.util.UUID;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.rpc.ServiceException;
-
-import org.apache.catalina.tribes.util.Logs;
-import org.apache.commons.logging.LogSource;
-import org.xml.sax.SAXException;
-
-import com.sforce.soap.enterprise.QueryResult;
-import com.sforce.soap.enterprise.SoapBindingStub;
-import com.sforce.soap.enterprise.sobject.Survey__c;
-
 import applab.server.ApplabServlet;
-import applab.server.HashHelpers;
-import applab.server.SalesforceProxy;
 import applab.server.ServletRequestContext;
 import applab.server.XmlHelpers;
 import applab.surveys.DeferredSurveyProcessingXmlGenerator;
 import applab.surveys.ProcessedSubmission;
-import applab.surveys.SubmissionAnswer;
 import applab.surveys.Survey;
 import applab.surveys.server.SurveyDatabaseHelpers;
 
